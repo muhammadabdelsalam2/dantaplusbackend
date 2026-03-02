@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Role;
 
@@ -15,15 +14,16 @@ class RoleSeeder extends Seeder
     {
         $roles = [
             'super-admin',
+            'Admin',
             'doctor',
             'patient',
         ];
+
         foreach ($roles as $role) {
             Role::firstOrCreate([
                 'name' => $role,
-                'guard_name' => 'web', // Sanctum uses web guard internally
+                'guard_name' => 'web',
             ]);
         }
-        //
     }
 }
