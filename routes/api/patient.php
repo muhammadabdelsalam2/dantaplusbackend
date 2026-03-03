@@ -1,8 +1,13 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use Illuminate\Support\Facades\Route;
 
-Route::post('/register/patient', [AuthController::class, 'registerPatient']);
+Route::prefix('patient')->group(function () {
+    Route::post('register', [AuthController::class, 'registerPatient']);
+    Route::post('verify/account', [AuthController::class, 'verifyAccount'])->name('api.auth.verifyAccount');
+
+});
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', fn() => auth()->user());
