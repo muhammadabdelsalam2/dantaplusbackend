@@ -3,20 +3,16 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use App\Repositories\Contracts\SuperAdmin\UserManagementRepositoryInterface;
+use App\Repositories\SuperAdmin\UserManagementRepository;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
-        //
+        $this->app->bind(UserManagementRepositoryInterface::class, UserManagementRepository::class);
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
         //
