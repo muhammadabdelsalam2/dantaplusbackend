@@ -15,7 +15,6 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
-        // NOTE: remove 'user_id' unless you really have a column named user_id in users table
         'password',
         'is_active',
     ];
@@ -34,11 +33,25 @@ class User extends Authenticatable
         ];
     }
 
+    /**
+     * Check if user has super-admin role
+     */
+    public function isSuperAdmin(): bool
+    {
+        return $this->hasRole('super-admin');
+    }
+
+    /**
+     * Doctor relation
+     */
     public function doctor()
     {
         return $this->hasOne(Doctor::class);
     }
 
+    /**
+     * Patient relation
+     */
     public function patient()
     {
         return $this->hasOne(Patient::class);

@@ -2,6 +2,11 @@
 
 namespace App\Http\Controllers\Api;
 
+<<<<<<< HEAD
+=======
+
+use App\Enums\OtpType;
+>>>>>>> f3eebae6800c910a07686bf2c7a95cffb9c55131
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterDoctorRequest;
@@ -9,6 +14,7 @@ use App\Http\Requests\Auth\RegisterPatientRequest;
 use App\Models\User;
 use App\Services\AuthService;
 use App\Support\ApiResponse;
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -82,5 +88,55 @@ class AuthController extends Controller
         $result = $this->authService->registerPatient($request->validated());
 
         return response()->json($result, 201);
+    }
+
+    public function verifyAccount(Request $request)
+    {
+        $request->validate([
+            'identifier' => 'required|string', // email أو phone
+            'otp' => 'required|string',
+        ]);
+
+        $identifier = $request->identifier;
+        $code = $request->otp;
+
+        try {
+            // تحقق من OTP
+            $this->authService->verifyRegistrationOtp($identifier, $code);
+
+            // جلب المستخدم بعد التحقق
+            $user = User::where('email', $identifier)
+                ->orWhere('phone', $identifier)
+                ->firstOrFail();
+
+            // إنشاء API token بعد التحقق
+            $token = $user->createToken('auth_token')->plainTextToken;
+
+            return ApiResponse::success([
+                'user' => $user,
+                'token' => $token,
+            ], 'Account verified successfully');
+
+        } catch (\Exception $e) {
+            $message = $e->getMessage();
+
+            // إذا OTP انتهت مدته، أرسل OTP جديد تلقائي
+            if ($message === 'OTP expired.') {
+                $newOtp = app()->make(OtpService::class)->generate(
+                    $identifier,
+                    OtpType::REGISTER->value,
+                    filter_var($identifier, FILTER_VALIDATE_EMAIL) ? 'email' : 'phone',
+                    User::where('email', $identifier)->orWhere('phone', $identifier)->first()->id
+                );
+
+                return ApiResponse::error(
+                    'OTP expired. A new OTP has been sent.',
+                    403,
+                    ['new_otp_sent' => true]
+                );
+            }
+
+            return ApiResponse::error($message, 400);
+        }
     }
 }

@@ -19,12 +19,14 @@ class ServiceResult
 
     public static function error(
         string $message,
-        int $code = 400,
-        mixed $errors = null
+        ?string $nextEndpoint = null,
+        mixed $errors = null,
+        int $code = 400
     ): array {
         return [
             'success' => false,
             'message' => $message,
+            'nextEndpoint' => $nextEndpoint,
             'errors' => $errors,
             'code' => $code,
         ];

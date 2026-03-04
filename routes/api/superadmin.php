@@ -21,6 +21,11 @@ Route::prefix('superadmin')
         Route::patch('/users/{user}/status', [UserController::class, 'toggleStatus']);
         Route::delete('/users/{user}', [UserController::class, 'destroy']);
 
-        // Roles dropdown
-        Route::get('/roles', [RoleController::class, 'index']);
+        // Roles Management
+        Route::get('/roles', [RoleController::class, 'index']);                 // list + dropdown
+        Route::post('/roles', [RoleController::class, 'store']);               // create
+        Route::get('/roles/{role}', [RoleController::class, 'show']);          // show
+        Route::patch('/roles/{role}', [RoleController::class, 'update']);      // update
+        Route::delete('/roles/{role}', [RoleController::class, 'destroy']);    // delete
+        Route::put('/roles/{role}/permissions', [RoleController::class, 'syncPermissions']); // assign permissions (sync)
     });
