@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api;
 
-
 use App\Enums\OtpType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
@@ -10,9 +9,13 @@ use App\Http\Requests\Auth\RegisterDoctorRequest;
 use App\Http\Requests\Auth\RegisterPatientRequest;
 use App\Models\User;
 use App\Services\AuthService;
-use App\Support\ApiResponse;
 use App\Services\OtpService;
+use App\Support\ApiResponse;
+
+
+
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
 {
@@ -21,46 +24,57 @@ class AuthController extends Controller
     public function __construct(private AuthService $authService)
     {
     }
-    //
-    public function login(LoginRequest $request, AuthService $service)
+
+    /**
+     * POST /api/login
+     */
+    public function login(LoginRequest $request)
     {
-        $result = $service->login($request->validated());
-        if (!$result['success']) {
-            return ApiResponse::error(
-                $result['message'],
-                $result['code'],
-                $result['errors'] ?? null
-            );
+        $data = $request->validated();
+
+        $ok = Auth::guard("web")->attempt([
+            "email" => $data["email"],
+            "password" => $data["password"],
+        ]);
+
+        if (!$ok) {
+            return ApiResponse::error("Invalid credentials", 401);
         }
 
-        return ApiResponse::success(
-            $result['data'],
-            $result['message'],
-            $result['code']
-        );
+        /** @var User $user */
+        $user = User::where("email", $data["email"])->first();
+
+        if ($user && (int)($user->is_active ?? 1) !== 1) {
+            Auth::guard("web")->logout();
+            return ApiResponse::error("Account is inactive", 403);
+        }
+
+        $token = $user->createToken("postman")->plainTextToken;
+
+        return ApiResponse::success([
+            "user" => $user,
+            "token" => $token,
+            "token_type" => "Bearer",
+        ], "Logged in");
     }
 
-    public function registerDoctor(RegisterDoctorRequest $request, AuthService $service)
+    public function registerDoctor(RegisterDoctorRequest $request)
     {
-        return response()->json(
-            $service->registerDoctor($request->validated()),
-            201
-        );
+        $result = $this->authService->registerDoctor($request->validated());
+        return response()->json($result, 201);
     }
 
-    public function registerPatient(RegisterPatientRequest $request, AuthService $service)
+    public function registerPatient(RegisterPatientRequest $request)
     {
-        return response()->json(
-            $service->registerPatient($request->validated()),
-            201
-        );
+        $result = $this->authService->registerPatient($request->validated());
+        return response()->json($result, 201);
     }
 
     public function verifyAccount(Request $request)
     {
         $request->validate([
-            'identifier' => 'required|string', // email أو phone
-            'otp' => 'required|string',
+            "identifier" => "required|string",
+            "otp" => "required|string",
         ]);
 //         $request->validate([
 //     'identifier' => 'required|email',
@@ -71,38 +85,39 @@ class AuthController extends Controller
         $code = $request->otp;
 
         try {
-            // تحقق من OTP
             $this->authService->verifyRegistrationOtp($identifier, $code);
 
-            // جلب المستخدم بعد التحقق
-            $user = User::where('email', $identifier)
-                ->orWhere('phone', $identifier)
+            $user = User::where("email", $identifier)
+                ->orWhere("phone", $identifier)
                 ->firstOrFail();
 
-            // إنشاء API token بعد التحقق
-            $token = $user->createToken('auth_token')->plainTextToken;
+            $token = $user->createToken("auth_token")->plainTextToken;
 
             return ApiResponse::success([
-                'user' => $user,
-                'token' => $token,
-            ], 'Account verified successfully');
+                "user" => $user,
+                "token" => $token,
+            ], "Account verified successfully");
 
         } catch (\Exception $e) {
             $message = $e->getMessage();
 
-            // إذا OTP انتهت مدته، أرسل OTP جديد تلقائي
-            if ($message === 'OTP expired.') {
-                $newOtp = app()->make(OtpService::class)->generate(
+            if ($message === "OTP expired.") {
+
+                $user = User::where("email", $identifier)
+                    ->orWhere("phone", $identifier)
+                    ->first();
+
+                app(OtpService::class)->generate(
                     $identifier,
                     OtpType::REGISTER->value,
-                    filter_var($identifier, FILTER_VALIDATE_EMAIL) ? 'email' : 'phone',
-                    User::where('email', $identifier)->orWhere('phone', $identifier)->first()->id
+                    filter_var($identifier, FILTER_VALIDATE_EMAIL) ? "email" : "phone",
+                    $user?->id
                 );
 
                 return ApiResponse::error(
-                    'OTP expired. A new OTP has been sent.',
+                    "OTP expired. A new OTP has been sent.",
                     403,
-                    ['new_otp_sent' => true]
+                    ["new_otp_sent" => true]
                 );
             }
 

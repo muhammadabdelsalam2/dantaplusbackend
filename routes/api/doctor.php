@@ -1,14 +1,9 @@
 <?php
 
-use App\Http\Controllers\Api\AuthController;
-Route::post('/register/doctor', [AuthController::class, 'registerDoctor']);
+use Illuminate\Support\Facades\Route;
 
-
-/* 
-| ====================================
-|  This Is All Api Logic With Doctor
-/ ====================================
-*/
-Route::middleware(['auth:sanctum', 'role:doctor'])->group(function () {
-    // Route::get('/doctor/dashboard', ...);
-});
+Route::prefix('doctor')
+    ->middleware(['auth:sanctum', 'role:doctor'])
+    ->group(function () {
+        // TODO: doctor endpoints
+    });
