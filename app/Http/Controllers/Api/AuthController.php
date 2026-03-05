@@ -11,7 +11,7 @@ use App\Http\Requests\Auth\RegisterPatientRequest;
 use App\Models\User;
 use App\Services\AuthService;
 use App\Support\ApiResponse;
-
+use App\Services\OtpService;
 use Illuminate\Http\Request;
 
 class AuthController extends Controller
@@ -62,6 +62,10 @@ class AuthController extends Controller
             'identifier' => 'required|string', // email أو phone
             'otp' => 'required|string',
         ]);
+//         $request->validate([
+//     'identifier' => 'required|email',
+//     'otp' => 'required|string',
+// ]);
 
         $identifier = $request->identifier;
         $code = $request->otp;
