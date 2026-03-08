@@ -1,16 +1,12 @@
 <?php
 
-
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\Owner\ClinicManagementController;
 use App\Http\Controllers\Api\Owner\MaterialCommissionController;
 use App\Http\Controllers\Api\Owner\MaterialCompanyController;
 use App\Http\Controllers\Api\Owner\MaterialOrderController;
 use App\Http\Controllers\Api\Owner\MaterialProductController;
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\SuperAdmin\RoleController;
-use App\Http\Controllers\Api\SuperAdmin\UserController;
-
 use App\Http\Controllers\Api\SuperAdmin\Settings\BackupSettingsController;
 use App\Http\Controllers\Api\SuperAdmin\Settings\BillingPlansController;
 use App\Http\Controllers\Api\SuperAdmin\Settings\CustomizationSettingsController;
@@ -20,12 +16,16 @@ use App\Http\Controllers\Api\SuperAdmin\Settings\PasswordController;
 use App\Http\Controllers\Api\SuperAdmin\Settings\ProfileController;
 use App\Http\Controllers\Api\SuperAdmin\Settings\UserManagementSettingsController;
 use App\Http\Controllers\Api\SuperAdmin\Settings\WhatsappSettingsController;
+use App\Http\Controllers\Api\SuperAdmin\SubscriptionDashboardController;
+use App\Http\Controllers\Api\SuperAdmin\UserController;
+use Illuminate\Support\Facades\Route;
 
 Route::post('login', [AuthController::class, 'login']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
- // Super Admin routes Eslam
+
+    // Super Admin routes Eslam
     Route::prefix('owner')->middleware(['role:super-admin'])->group(function () {
         Route::get('/clinics', [ClinicManagementController::class, 'index']);
         Route::post('/clinics', [ClinicManagementController::class, 'store']);
@@ -61,9 +61,6 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 });
 
-
-
-
 /**
  * NOTE:
  * - This file is loaded under "/api" prefix already (from bootstrap/app.php).
@@ -88,7 +85,6 @@ Route::prefix('superadmin')
         Route::patch('/users/{user}/status', [UserController::class, 'toggleStatus']);
         Route::delete('/users/{user}', [UserController::class, 'destroy']);
 
-
         /*
         |--------------------------------------------------------------------------
         | Roles Management
@@ -102,6 +98,14 @@ Route::prefix('superadmin')
         Route::delete('/roles/{role}', [RoleController::class, 'destroy']);
         Route::put('/roles/{role}/permissions', [RoleController::class, 'syncPermissions']);
 
+        /*
+        |--------------------------------------------------------------------------
+        | Subscription Dashboard
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/subscriptions/dashboard', [SubscriptionDashboardController::class, 'dashboard']);
+        Route::get('/subscriptions', [SubscriptionDashboardController::class, 'index']);
 
         /*
         |--------------------------------------------------------------------------
@@ -121,7 +125,6 @@ Route::prefix('superadmin')
             Route::patch('/profile', [ProfileController::class, 'update']);
             Route::post('/profile/photo', [ProfileController::class, 'uploadPhoto']);
 
-
             /*
             |--------------------------------------------------------------------------
             | Password
@@ -129,7 +132,6 @@ Route::prefix('superadmin')
             */
 
             Route::patch('/password', [PasswordController::class, 'update']);
-
 
             /*
             |--------------------------------------------------------------------------
@@ -140,7 +142,6 @@ Route::prefix('superadmin')
             Route::get('/global', [GlobalSettingsController::class, 'show']);
             Route::patch('/global', [GlobalSettingsController::class, 'update']);
 
-
             /*
             |--------------------------------------------------------------------------
             | User Management Settings
@@ -149,7 +150,6 @@ Route::prefix('superadmin')
 
             Route::get('/user-management', [UserManagementSettingsController::class, 'show']);
             Route::patch('/user-management', [UserManagementSettingsController::class, 'update']);
-
 
             /*
             |--------------------------------------------------------------------------
@@ -160,7 +160,6 @@ Route::prefix('superadmin')
             Route::get('/notifications', [NotificationSettingsController::class, 'show']);
             Route::patch('/notifications', [NotificationSettingsController::class, 'update']);
 
-
             /*
             |--------------------------------------------------------------------------
             | Customization Settings
@@ -169,7 +168,6 @@ Route::prefix('superadmin')
 
             Route::get('/customization', [CustomizationSettingsController::class, 'show']);
             Route::patch('/customization', [CustomizationSettingsController::class, 'update']);
-
 
             /*
             |--------------------------------------------------------------------------
@@ -184,7 +182,6 @@ Route::prefix('superadmin')
             Route::get('/whatsapp/templates', [WhatsappSettingsController::class, 'listTemplates']);
             Route::put('/whatsapp/templates/{templateKey}', [WhatsappSettingsController::class, 'upsertTemplate']);
 
-
             /*
             |--------------------------------------------------------------------------
             | Billing Plans
@@ -193,7 +190,6 @@ Route::prefix('superadmin')
 
             Route::get('/billing/plans', [BillingPlansController::class, 'show']);
             Route::patch('/billing/plans', [BillingPlansController::class, 'update']);
-
 
             /*
             |--------------------------------------------------------------------------
@@ -206,4 +202,3 @@ Route::prefix('superadmin')
             Route::post('/backup/manual', [BackupSettingsController::class, 'manual']);
         });
     });
-
