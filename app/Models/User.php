@@ -20,6 +20,7 @@ class User extends Authenticatable
         'is_active',
         
         'clinic_id',
+        'lab_id',
 
     ];
 
@@ -65,5 +66,10 @@ class User extends Authenticatable
     public function clinic(): BelongsTo
     {
         return $this->belongsTo(Clinic::class);
+    }
+
+    public function lab(): BelongsTo
+    {
+        return $this->belongsTo(DentalLab::class, 'lab_id');
     }
 }

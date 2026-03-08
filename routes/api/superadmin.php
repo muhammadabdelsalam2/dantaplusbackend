@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\Owner\ClinicManagementController;
+use App\Http\Controllers\Api\Owner\DentalLabManagementController;
 use App\Http\Controllers\Api\Owner\MaterialCommissionController;
 use App\Http\Controllers\Api\Owner\MaterialCompanyController;
 use App\Http\Controllers\Api\Owner\MaterialOrderController;
@@ -35,6 +36,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/clinics/{clinic}', [ClinicManagementController::class, 'destroy']);
         Route::get('/clinics/{clinic}/branches', [ClinicManagementController::class, 'branches']);
         Route::get('/modules', [ClinicManagementController::class, 'clinicmodules']);
+        Route::get('/labs', [DentalLabManagementController::class, 'index']);
+        Route::post('/labs', action: [DentalLabManagementController::class, 'store']);
+        Route::post('/labs/bulk-status', [DentalLabManagementController::class, 'bulkStatus']);
+        Route::post('/labs/bulk-delete', [DentalLabManagementController::class, 'bulkDelete']);
+        Route::get('/labs/{lab}', [DentalLabManagementController::class, 'show']);
+        Route::post('/labs/{lab}', [DentalLabManagementController::class, 'update']);
+        Route::patch('/labs/{lab}/status', [DentalLabManagementController::class, 'updateStatus']);
+        Route::delete('/labs/{lab}', [DentalLabManagementController::class, 'destroy']);
 
         Route::prefix('material')->group(function () {
             Route::get('/categories', [MaterialProductController::class, 'categories']);
@@ -59,6 +68,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/orders/{order}', [MaterialOrderController::class, 'show']);
         });
     });
+    //https://danta.matgary.io
 });
 
 /**

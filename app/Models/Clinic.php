@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -47,5 +48,17 @@ class Clinic extends Model
     public function users(): HasMany
     {
         return $this->hasMany(User::class);
+    }
+
+    public function labPartnerships(): HasMany
+    {
+        return $this->hasMany(ClinicLabPartnership::class);
+    }
+
+    public function dentalLabs(): BelongsToMany
+    {
+        return $this->belongsToMany(DentalLab::class, 'clinic_lab_partnerships', 'clinic_id', 'lab_id')
+            ->withPivot(['status', 'total_cases_sent'])
+            ->withTimestamps();
     }
 }
