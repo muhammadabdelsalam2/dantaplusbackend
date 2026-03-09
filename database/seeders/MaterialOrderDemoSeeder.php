@@ -17,175 +17,204 @@ class MaterialOrderDemoSeeder extends Seeder
     public function run(): void
     {
         DB::transaction(function () {
-            $clinics = Clinic::query()->take(15)->get();
-
-            if ($clinics->count() < 5) {
-                $clinics = collect();
-
-               $clinics = Clinic::query()->take(15)->get();
-
-if ($clinics->count() < 5) {
-    $needed = 10 - $clinics->count();
-
-    for ($i = 1; $i <= $needed; $i++) {
-        $clinics->push(Clinic::create([
-            'name' => 'Clinic ' . ($clinics->count() + 1),
-            'owner_name' => 'Dr. Owner ' . ($clinics->count() + 1),
-            'email' => 'clinic' . uniqid() . '@example.com',
-            'phone' => '010' . str_pad((string) rand(0, 99999999), 8, '0', STR_PAD_LEFT),
-        ]));
+            $clinics = $this->seedClinics();
+            $companies = $this->seedCompaniesAndProducts();
+            $this->seedOrders($clinics, $companies);
+        });
     }
-}
-            }
 
-            $companies = MaterialCompany::query()->with('products')->take(10)->get();
+    private function seedClinics()
+    {
+        $clinics = Clinic::query()->take(15)->get();
 
-            if ($companies->count() < 3) {
-                $companies = collect();
+        if ($clinics->count() >= 5) {
+            return $clinics;
+        }
 
-                $companyCategoriesPool = [
-                    ['restorative', 'prosthodontics'],
-                    ['orthodontic'],
-                    ['endodontics'],
-                    ['implantology', 'surgical'],
-                    ['prosthodontics', 'restorative'],
-                ];
+        $plans = ['Starter', 'Standard', 'Pro', 'Enterprise'];
+        $paymentMethods = ['Cash', 'Card', 'Bank Transfer', 'Instapay'];
+        $statuses = ['Active', 'Inactive', 'Suspended'];
 
-                for ($i = 1; $i <= 6; $i++) {
-                    $company = MaterialCompany::create([
-                        'name' => 'Material Company ' . $i,
-                        'email' => 'material-company' . $i . '@example.com',
-                        'commission_percentage' => rand(5, 18),
-                        'logo_url' => null,
-                        'description' => 'Demo supplier company ' . $i,
-                        'phone' => '201100000' . str_pad((string) $i, 3, '0', STR_PAD_LEFT),
-                        'website' => 'https://company' . $i . '.example.com',
-                        'country' => 'Egypt',
-                        'city' => collect(['Cairo', 'Giza', 'Alexandria', 'Mansoura', 'Minya'])->random(),
-                        'address' => 'Street ' . $i . ', Building ' . rand(1, 30),
-                        'categories' => $companyCategoriesPool[array_rand($companyCategoriesPool)],
-                        'status' => $i % 5 === 0 ? 'Inactive' : 'Active',
-                        'is_featured' => $i % 2 === 0,
-                        'rating' => rand(30, 50) / 10,
-                    ]);
+        $needed = 12 - $clinics->count();
 
-                    $products = [];
-                    $productCategories = [
-                        'Implants',
-                        'Abutments',
-                        'Composite',
-                        'Burs',
-                        'Cements',
-                        'Endo Files',
-                        'Orthodontic Wires',
-                        'Sutures',
-                    ];
+        for ($i = 1; $i <= $needed; $i++) {
+            $number = $clinics->count() + 1;
 
-                    for ($p = 1; $p <= 12; $p++) {
-                        $products[] = MaterialProduct::create([
-                            'company_id' => $company->id,
-                            'name' => $company->name . ' Product ' . $p,
-                            'category' => $productCategories[array_rand($productCategories)],
-                            'sku' => strtoupper(Str::random(10)),
-                            'description' => 'Demo material product ' . $p . ' for ' . $company->name,
-                            'price' => rand(50, 1500),
-                            'stock' => rand(20, 300),
-                            'status' => rand(1, 10) > 2 ? 'Active' : 'Inactive',
-                            'image_url' => null,
-                        ]);
-                    }
+            $clinics->push(Clinic::create([
+                'name' => 'Clinic ' . $number,
+                'owner_name' => 'Dr. Owner ' . $number,
+                'email' => 'clinic' . $number . '_' . uniqid() . '@example.com',
+                'phone' => '010' . str_pad((string) rand(0, 99999999), 8, '0', STR_PAD_LEFT),
+                'address' => 'Street ' . rand(1, 50) . ', Building ' . rand(1, 20) . ', Cairo',
+                'subscription_plan' => $plans[array_rand($plans)],
+                'payment_method' => $paymentMethods[array_rand($paymentMethods)],
+                'status' => $statuses[array_rand($statuses)],
+                'start_date' => Carbon::now()->subMonths(rand(1, 12)),
+                'expiry_date' => Carbon::now()->addMonths(rand(1, 12)),
+                'max_users' => rand(3, 25),
+                'max_branches' => rand(1, 5),
+            ]));
+        }
 
-                    $company->setRelation('products', collect($products));
-                    $companies->push($company);
-                }
-            } else {
-                $companies->each(function ($company) {
-                    if ($company->products->count() === 0) {
-                        for ($p = 1; $p <= 8; $p++) {
-                            MaterialProduct::create([
-                                'company_id' => $company->id,
-                                'name' => $company->name . ' Product ' . $p,
-                                'category' => collect([
-                                    'Implants',
-                                    'Abutments',
-                                    'Composite',
-                                    'Burs',
-                                    'Cements',
-                                    'Endo Files',
-                                ])->random(),
-                                'sku' => strtoupper(Str::random(10)),
-                                'description' => 'Demo material product ' . $p,
-                                'price' => rand(50, 1200),
-                                'stock' => rand(10, 250),
-                                'status' => 'Active',
-                                'image_url' => null,
-                            ]);
-                        }
+        return $clinics;
+    }
 
-                        $company->load('products');
-                    }
-                });
-            }
+    private function seedCompaniesAndProducts()
+    {
+        $companies = MaterialCompany::query()->with('products')->take(10)->get();
 
-            $statuses = MaterialOrder::STATUSES;
-            $paymentMethods = ['Cash', 'Card', 'Bank Transfer', 'Wallet'];
-            $paymentStatuses = ['Pending', 'Paid', 'Failed', 'Refunded'];
+        $companyCategorySets = [
+            ['orthodontic'],
+            ['prosthodontics'],
+            ['endodontics'],
+            ['implantology'],
+            ['surgical'],
+            ['restorative', 'prosthodontics'],
+            ['orthodontic', 'surgical'],
+            ['implantology', 'restorative'],
+        ];
 
-            for ($i = 1; $i <= 120; $i++) {
-                $clinic = $clinics->random();
-                $company = $companies->random();
+        $productCategories = [
+            'Implants',
+            'Abutments',
+            'Composite',
+            'Burs',
+            'Cements',
+            'Endo Files',
+            'Orthodontic Wires',
+            'Sutures',
+            'Scalers',
+            'Bonding Agents',
+        ];
 
-                $products = MaterialProduct::query()
-                    ->where('company_id', $company->id)
-                    ->where('status', 'Active')
-                    ->inRandomOrder()
-                    ->take(rand(2, 6))
-                    ->get();
+        if ($companies->count() < 5) {
+            $needed = 8 - $companies->count();
 
-                if ($products->isEmpty()) {
-                    continue;
-                }
+            for ($i = 1; $i <= $needed; $i++) {
+                $number = $companies->count() + 1;
 
-                $commissionPercentage = (float) $company->commission_percentage;
-
-                $order = MaterialOrder::create([
-                    'order_code' => 'MO-' . now()->format('Ymd') . '-' . str_pad((string) $i, 5, '0', STR_PAD_LEFT),
-                    'clinic_id' => $clinic->id,
-                    'supplier_company_id' => $company->id,
-                    'order_date' => Carbon::now()->subDays(rand(0, 120))->subHours(rand(0, 23)),
-                    'amount_total' => 0,
-                    'status' => $statuses[array_rand($statuses)],
-                    'commission_amount' => 0,
-                    'notes' => 'Demo order #' . $i,
-                    'payment_method' => $paymentMethods[array_rand($paymentMethods)],
-                    'payment_status' => $paymentStatuses[array_rand($paymentStatuses)],
-                    'payment_reference' => strtoupper(Str::random(12)),
+                $company = MaterialCompany::create([
+                    'name' => 'Material Company ' . $number,
+                    'email' => 'material_company_' . $number . '_' . uniqid() . '@example.com',
+                    'commission_percentage' => rand(5, 18),
+                    'logo_url' => null,
+                    'description' => 'Demo supplier company number ' . $number,
+                    'phone' => '011' . str_pad((string) rand(0, 99999999), 8, '0', STR_PAD_LEFT),
+                    'website' => 'https://company' . $number . '.example.com',
+                    'country' => 'Egypt',
+                    'city' => collect(['Cairo', 'Giza', 'Alexandria', 'Mansoura', 'Minya', 'Assiut'])->random(),
+                    'address' => 'Industrial Zone ' . rand(1, 10) . ', Building ' . rand(1, 20),
+                    'categories' => $companyCategorySets[array_rand($companyCategorySets)],
+                    'status' => rand(1, 10) > 2 ? 'Active' : 'Inactive',
+                    'is_featured' => rand(0, 1),
+                    'rating' => rand(30, 50) / 10,
                 ]);
 
-                $total = 0;
+                $createdProducts = collect();
 
-                foreach ($products as $product) {
-                    $quantity = rand(1, 8);
-                    $unitPrice = (float) $product->price;
-                    $lineTotal = $quantity * $unitPrice;
-                    $total += $lineTotal;
+                for ($p = 1; $p <= 12; $p++) {
+                    $createdProducts->push(MaterialProduct::create([
+                        'company_id' => $company->id,
+                        'name' => $company->name . ' Product ' . $p,
+                        'category' => $productCategories[array_rand($productCategories)],
+                        'sku' => 'SKU-' . strtoupper(Str::random(8)),
+                        'description' => 'Demo material product ' . $p . ' for ' . $company->name,
+                        'price' => rand(50, 2500),
+                        'stock' => rand(10, 300),
+                        'status' => rand(1, 10) > 2 ? 'Active' : 'Inactive',
+                        'image_url' => null,
+                    ]));
+                }
 
-                    MaterialOrderItem::create([
-                        'order_id' => $order->id,
-                        'product_id' => $product->id,
-                        'quantity' => $quantity,
-                        'unit_price' => $unitPrice,
-                        'line_total' => $lineTotal,
+                $company->setRelation('products', $createdProducts);
+                $companies->push($company);
+            }
+        }
+
+        $companies->each(function ($company) use ($productCategories) {
+            $company->loadMissing('products');
+
+            if ($company->products->count() === 0) {
+                for ($p = 1; $p <= 10; $p++) {
+                    MaterialProduct::create([
+                        'company_id' => $company->id,
+                        'name' => $company->name . ' Product ' . $p,
+                        'category' => $productCategories[array_rand($productCategories)],
+                        'sku' => 'SKU-' . strtoupper(Str::random(8)),
+                        'description' => 'Auto-created product ' . $p . ' for ' . $company->name,
+                        'price' => rand(50, 2500),
+                        'stock' => rand(10, 300),
+                        'status' => 'Active',
+                        'image_url' => null,
                     ]);
                 }
 
-                $commissionAmount = round($total * ($commissionPercentage / 100), 2);
-
-                $order->update([
-                    'amount_total' => round($total, 2),
-                    'commission_amount' => $commissionAmount,
-                ]);
+                $company->load('products');
             }
         });
+
+        return MaterialCompany::query()->with('products')->get();
+    }
+
+    private function seedOrders($clinics, $companies): void
+    {
+        $statuses = MaterialOrder::STATUSES;
+        $paymentMethods = ['Cash', 'Card', 'Bank Transfer', 'Instapay', 'Wallet'];
+        $paymentStatuses = ['Pending', 'Paid', 'Failed', 'Refunded'];
+
+        for ($i = 1; $i <= 150; $i++) {
+            $clinic = $clinics->random();
+            $company = $companies->random();
+
+            $products = MaterialProduct::query()
+                ->where('company_id', $company->id)
+                ->where('status', 'Active')
+                ->inRandomOrder()
+                ->take(rand(2, 6))
+                ->get();
+
+            if ($products->isEmpty()) {
+                continue;
+            }
+
+            $order = MaterialOrder::create([
+                'order_code' => 'MO-' . now()->format('Ymd') . '-' . str_pad((string) $i, 5, '0', STR_PAD_LEFT),
+                'clinic_id' => $clinic->id,
+                'supplier_company_id' => $company->id,
+                'order_date' => Carbon::now()->subDays(rand(0, 180))->subHours(rand(0, 23))->subMinutes(rand(0, 59)),
+                'amount_total' => 0,
+                'status' => $statuses[array_rand($statuses)],
+                'commission_amount' => 0,
+                'notes' => 'Demo material order #' . $i,
+                'payment_method' => $paymentMethods[array_rand($paymentMethods)],
+                'payment_status' => $paymentStatuses[array_rand($paymentStatuses)],
+                'payment_reference' => 'PAY-' . strtoupper(Str::random(10)),
+            ]);
+
+            $total = 0;
+
+            foreach ($products as $product) {
+                $quantity = rand(1, 8);
+                $unitPrice = (float) $product->price;
+                $lineTotal = round($quantity * $unitPrice, 2);
+
+                MaterialOrderItem::create([
+                    'order_id' => $order->id,
+                    'product_id' => $product->id,
+                    'quantity' => $quantity,
+                    'unit_price' => $unitPrice,
+                    'line_total' => $lineTotal,
+                ]);
+
+                $total += $lineTotal;
+            }
+
+            $commissionAmount = round($total * (((float) $company->commission_percentage) / 100), 2);
+
+            $order->update([
+                'amount_total' => round($total, 2),
+                'commission_amount' => $commissionAmount,
+            ]);
+        }
     }
 }
