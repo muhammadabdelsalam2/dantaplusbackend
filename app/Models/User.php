@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -11,14 +12,14 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasFactory, HasApiTokens, HasRoles, Notifiable;
+    use HasApiTokens, HasFactory, HasRoles, Notifiable;
 
     protected $fillable = [
         'name',
         'email',
         'password',
         'is_active',
-        
+
         'clinic_id',
         'lab_id',
 
@@ -49,7 +50,6 @@ class User extends Authenticatable
     /**
      * Doctor relation
      */
-
     public function doctor()
     {
         return $this->hasOne(Doctor::class);
@@ -71,5 +71,10 @@ class User extends Authenticatable
     public function lab(): BelongsTo
     {
         return $this->belongsTo(DentalLab::class, 'lab_id');
+    }
+
+    public function communicationMessages(): HasMany
+    {
+        return $this->hasMany(CommunicationMessage::class, 'sender_id');
     }
 }

@@ -15,10 +15,13 @@ class DentalLab extends Model
     use HasFactory, SoftDeletes;
 
     public const STATUS_ACTIVE = 'Active';
+
     public const STATUS_INACTIVE = 'Inactive';
 
     public const RESPONSE_SPEED_FAST = 'Fast';
+
     public const RESPONSE_SPEED_MEDIUM = 'Medium';
+
     public const RESPONSE_SPEED_SLOW = 'Slow';
 
     protected $fillable = [
@@ -56,7 +59,7 @@ class DentalLab extends Model
     {
         return Attribute::make(
             get: function ($value) {
-                if (!$value) {
+                if (! $value) {
                     return null;
                 }
 
@@ -69,7 +72,7 @@ class DentalLab extends Model
                 }
 
                 if (str_starts_with($value, 'storage/')) {
-                    return asset('/' . $value);
+                    return asset('/'.$value);
                 }
 
                 return asset(Storage::url($value));
@@ -97,5 +100,10 @@ class DentalLab extends Model
         return $this->belongsToMany(Clinic::class, 'clinic_lab_partnerships', 'lab_id', 'clinic_id')
             ->withPivot(['status', 'total_cases_sent'])
             ->withTimestamps();
+    }
+
+    public function conversations(): HasMany
+    {
+        return $this->hasMany(CommunicationConversation::class, 'lab_id');
     }
 }

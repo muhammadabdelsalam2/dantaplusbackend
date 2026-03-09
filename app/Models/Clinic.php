@@ -61,4 +61,14 @@ class Clinic extends Model
             ->withPivot(['status', 'total_cases_sent'])
             ->withTimestamps();
     }
+
+    public function maintenanceRequests(): HasMany
+    {
+        return $this->hasMany(OwnerMaintenanceRequest::class);
+    }
+
+    public function conversations(): HasMany
+    {
+        return $this->hasMany(CommunicationConversation::class);
+    }
 }

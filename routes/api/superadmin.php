@@ -2,11 +2,14 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\Owner\ClinicManagementController;
+use App\Http\Controllers\Api\Owner\CommunicationCenterController;
 use App\Http\Controllers\Api\Owner\DentalLabManagementController;
+use App\Http\Controllers\Api\Owner\EquipmentMaintenanceController;
 use App\Http\Controllers\Api\Owner\MaterialCommissionController;
 use App\Http\Controllers\Api\Owner\MaterialCompanyController;
 use App\Http\Controllers\Api\Owner\MaterialOrderController;
 use App\Http\Controllers\Api\Owner\MaterialProductController;
+use App\Http\Controllers\Api\Owner\RenewalAlertsController;
 use App\Http\Controllers\Api\SuperAdmin\RoleController;
 use App\Http\Controllers\Api\SuperAdmin\Settings\BackupSettingsController;
 use App\Http\Controllers\Api\SuperAdmin\Settings\BillingPlansController;
@@ -67,8 +70,30 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/orders', [MaterialOrderController::class, 'index']);
             Route::get('/orders/{order}', [MaterialOrderController::class, 'show']);
         });
+
+        Route::prefix('maintenance')->group(function () {
+            Route::get('/requests', [EquipmentMaintenanceController::class, 'listRequests']);
+            Route::post('/requests', [EquipmentMaintenanceController::class, 'storeRequest']);
+            Route::patch('/requests/{id}', [EquipmentMaintenanceController::class, 'updateRequest']);
+            Route::get('/companies', [EquipmentMaintenanceController::class, 'listCompanies']);
+            Route::post('/companies', [EquipmentMaintenanceController::class, 'storeCompany']);
+            Route::patch('/alerts/{id}/review', [EquipmentMaintenanceController::class, 'reviewAlert']);
+        });
+
+        Route::prefix('communication')->group(function () {
+            Route::get('/conversations', [CommunicationCenterController::class, 'index']);
+            Route::get('/conversations/{id}/messages', [CommunicationCenterController::class, 'messages']);
+            Route::post('/conversations/{id}/messages', [CommunicationCenterController::class, 'storeMessage']);
+            Route::patch('/conversations/{id}', [CommunicationCenterController::class, 'update']);
+            Route::get('/analytics', [CommunicationCenterController::class, 'analytics']);
+        });
+
+        Route::prefix('alerts')->group(function () {
+            Route::get('/renewal', [RenewalAlertsController::class, 'index']);
+            Route::post('/renewal/reminders', [RenewalAlertsController::class, 'sendReminder']);
+        });
     });
-    //https://danta.matgary.io
+    // https://danta.matgary.io
 });
 
 /**

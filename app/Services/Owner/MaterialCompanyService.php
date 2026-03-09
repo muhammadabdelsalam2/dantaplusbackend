@@ -2,6 +2,8 @@
 
 namespace App\Services\Owner;
 
+use App\Http\Resources\SuperAdmin\MaterialCompanyCollection;
+use App\Http\Resources\SuperAdmin\MaterialCompanyResource;
 use App\Repositories\MaterialCompanyRepository;
 use App\Support\ServiceResult;
 use Illuminate\Http\UploadedFile;
@@ -20,16 +22,8 @@ class MaterialCompanyService
         $perPage = (int) ($filters['per_page'] ?? 15);
         $companies = $this->materialCompanyRepository->paginate($filters, $perPage);
 
-        $data = [
-            'items' => $companies->items(),
-            'pagination' => [
-                'current_page' => $companies->currentPage(),
-                'last_page' => $companies->lastPage(),
-                'per_page' => $companies->perPage(),
-                'total' => $companies->total(),
-            ],
-            'stats' => $this->materialCompanyRepository->stats(),
-        ];
+        $data = (new MaterialCompanyCollection($companies))->response()->getData(true);
+        $data['stats'] = $this->materialCompanyRepository->stats();
 
         return ServiceResult::success($data, 'Material companies fetched successfully');
     }
@@ -61,7 +55,11 @@ class MaterialCompanyService
                 'rating' => $data['rating'] ?? null,
             ]);
 
-            return ServiceResult::success($company, 'Material company created successfully', 201);
+            return ServiceResult::success(
+                (new MaterialCompanyResource($company))->resolve(),
+                'Material company created successfully',
+                201
+            );
         });
     }
 
@@ -73,7 +71,10 @@ class MaterialCompanyService
             return ServiceResult::error('Material company not found', null, null, 404);
         }
 
-        return ServiceResult::success($company, 'Material company fetched successfully');
+        return ServiceResult::success(
+            (new MaterialCompanyResource($company))->resolve(),
+            'Material company fetched successfully'
+        );
     }
 
     public function update(int $companyId, array $data): array
@@ -95,7 +96,10 @@ class MaterialCompanyService
 
             $updated = $this->materialCompanyRepository->update($company, $data);
 
-            return ServiceResult::success($updated, 'Material company updated successfully');
+            return ServiceResult::success(
+                (new MaterialCompanyResource($updated))->resolve(),
+                'Material company updated successfully'
+            );
         });
     }
 
@@ -109,7 +113,10 @@ class MaterialCompanyService
 
         $updated = $this->materialCompanyRepository->update($company, ['status' => $status]);
 
-        return ServiceResult::success($updated, 'Material company status updated successfully');
+        return ServiceResult::success(
+            (new MaterialCompanyResource($updated))->resolve(),
+            'Material company status updated successfully'
+        );
     }
 
     public function updateCommission(int $companyId, float $commissionPercentage): array
@@ -125,7 +132,10 @@ class MaterialCompanyService
             'last_commission_update' => now(),
         ]);
 
-        return ServiceResult::success($updated, 'Material company commission updated successfully');
+        return ServiceResult::success(
+            (new MaterialCompanyResource($updated))->resolve(),
+            'Material company commission updated successfully'
+        );
     }
 
     public function destroy(int $companyId): array
@@ -154,6 +164,7 @@ class MaterialCompanyService
         }
 
         $path = Str::replaceFirst('/storage/', '', $path);
+
         if ($path !== '' && Storage::disk('public')->exists($path)) {
             Storage::disk('public')->delete($path);
         }
