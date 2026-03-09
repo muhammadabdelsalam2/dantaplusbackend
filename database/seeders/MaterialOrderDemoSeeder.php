@@ -32,8 +32,8 @@ class MaterialOrderDemoSeeder extends Seeder
         }
 
         $plans = ['Basic', 'Standard', 'Premium'];
-        $paymentMethods = ['Cash', 'Card', 'Bank Transfer', 'Instapay'];
-        $statuses = ['Active', 'Inactive', 'Suspended'];
+        $paymentMethods = ['Stripe', 'PayPal', 'Manual'];
+        $statuses = ['Active', 'Trial', 'Expired', 'Suspended'];
 
         $needed = 12 - $clinics->count();
 
