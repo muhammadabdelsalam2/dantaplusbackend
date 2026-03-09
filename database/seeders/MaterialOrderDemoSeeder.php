@@ -31,7 +31,7 @@ class MaterialOrderDemoSeeder extends Seeder
             return $clinics;
         }
 
-        $plans = ['Starter', 'Standard', 'Pro', 'Enterprise'];
+        $plans = ['Basic', 'Standard', 'Premium'];
         $paymentMethods = ['Cash', 'Card', 'Bank Transfer', 'Instapay'];
         $statuses = ['Active', 'Inactive', 'Suspended'];
 
