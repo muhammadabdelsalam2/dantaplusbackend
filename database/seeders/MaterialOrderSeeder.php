@@ -2,47 +2,75 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
+use App\Models\Clinic;
+use App\Models\MaterialCompany;
 use App\Models\MaterialOrder;
 use App\Models\MaterialOrderItem;
 use App\Models\MaterialProduct;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
+use Carbon\Carbon;
 
 class MaterialOrderSeeder extends Seeder
 {
     public function run(): void
     {
-        // استخدم المنتج الموجود عندك (id=2) أو أول منتج متاح
-        $product = MaterialProduct::query()->find(2) ?? MaterialProduct::query()->first();
+        $clinics = Clinic::query()->pluck('id')->toArray();
+        $companies = MaterialCompany::query()->pluck('id')->toArray();
 
-        if (!$product) {
-            // ما فيش منتجات -> ما نقدرش نعمل items
-            $this->command?->warn('No material_products found. Seed products first.');
+        if (empty($clinics) || empty($companies)) {
+            $this->command->warn('Clinics or Material Companies are missing. Seed them first.');
             return;
         }
 
-        $unitPrice = (float) $product->price;
+        for ($i = 1; $i <= 100; $i++) {
+            $clinicId = $clinics[array_rand($clinics)];
+            $companyId = $companies[array_rand($companies)];
 
-        for ($i = 1; $i <= 5; $i++) {
+            $products = MaterialProduct::query()
+                ->where('company_id', $companyId)
+                ->inRandomOrder()
+                ->take(rand(2, 6))
+                ->get();
 
-            $quantity = rand(1, 3);
-            $lineTotal = $quantity * $unitPrice;
+            if ($products->isEmpty()) {
+                continue;
+            }
 
-            // ✅ لازم amount_total يتبعت هنا
             $order = MaterialOrder::create([
-                'order_code' => 'ORD-' . strtoupper(Str::random(6)),
-                'clinic_id' => 1,
-                'supplier_company_id' => $product->company_id ?? 2,
-                'status' => 'pending',
-                'amount_total' => $lineTotal,
+                'order_code' => 'MO-' . str_pad((string) $i, 5, '0', STR_PAD_LEFT),
+                'clinic_id' => $clinicId,
+                'supplier_company_id' => $companyId,
+                'order_date' => Carbon::now()->subDays(rand(0, 120)),
+                'amount_total' => 0,
+                'status' => collect(MaterialOrder::STATUSES)->random(),
+                'commission_amount' => rand(50, 500),
+                'notes' => fake()->sentence(),
+                'payment_method' => collect(['Cash', 'Card', 'Bank Transfer', 'Wallet'])->random(),
+                'payment_status' => collect(['Pending', 'Paid', 'Partial'])->random(),
+                'payment_reference' => strtoupper(Str::random(10)),
             ]);
 
-            MaterialOrderItem::create([
-                'order_id' => $order->id,
-                'product_id' => $product->id,
-                'quantity' => $quantity,
-                'unit_price' => $unitPrice,
-                'line_total' => $lineTotal,
+            $total = 0;
+
+            foreach ($products as $product) {
+                $qty = rand(1, 10);
+                $unitPrice = $product->price ?? rand(100, 2000);
+                $lineTotal = $qty * $unitPrice;
+
+                MaterialOrderItem::create([
+                    'order_id' => $order->id,
+                    'product_id' => $product->id,
+                    'quantity' => $qty,
+                    'unit_price' => $unitPrice,
+                    'line_total' => $lineTotal,
+                ]);
+
+                $total += $lineTotal;
+            }
+
+            $order->update([
+                'amount_total' => $total,
             ]);
         }
     }

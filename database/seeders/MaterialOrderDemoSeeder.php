@@ -22,13 +22,20 @@ class MaterialOrderDemoSeeder extends Seeder
             if ($clinics->count() < 5) {
                 $clinics = collect();
 
-                for ($i = 1; $i <= 10; $i++) {
-                    $clinics->push(Clinic::create([
-                        'name' => 'Clinic ' . $i,
-                        'email' => 'clinic' . $i . '@example.com',
-                        'phone' => '01000000' . str_pad((string) $i, 3, '0', STR_PAD_LEFT),
-                    ]));
-                }
+               $clinics = Clinic::query()->take(15)->get();
+
+if ($clinics->count() < 5) {
+    $needed = 10 - $clinics->count();
+
+    for ($i = 1; $i <= $needed; $i++) {
+        $clinics->push(Clinic::create([
+            'name' => 'Clinic ' . ($clinics->count() + 1),
+            'owner_name' => 'Dr. Owner ' . ($clinics->count() + 1),
+            'email' => 'clinic' . uniqid() . '@example.com',
+            'phone' => '010' . str_pad((string) rand(0, 99999999), 8, '0', STR_PAD_LEFT),
+        ]));
+    }
+}
             }
 
             $companies = MaterialCompany::query()->with('products')->take(10)->get();
