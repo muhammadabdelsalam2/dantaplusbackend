@@ -23,6 +23,10 @@ class DatabaseSeeder extends Seeder
             SuperAdminSeeder::class,
             DoctorSeeder::class,
             PatientSeeder::class,
+             ClinicSeeder::class,
+    MaterialCompanySeeder::class,
+    MaterialProductSeeder::class,
+    MaterialOrderSeeder::class,
         ]);
     }
 }
