@@ -9,8 +9,8 @@ use App\Models\MaterialOrderItem;
 use App\Models\MaterialProduct;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 class MaterialOrderDemoSeeder extends Seeder
 {
@@ -23,17 +23,13 @@ class MaterialOrderDemoSeeder extends Seeder
         });
     }
 
-    private function seedClinics()
+    private function seedClinics(): Collection
     {
         $clinics = Clinic::query()->take(15)->get();
 
         if ($clinics->count() >= 5) {
             return $clinics;
         }
-
-        $plans = ['Basic', 'Standard', 'Premium'];
-        $paymentMethods = ['Stripe', 'PayPal', 'Manual'];
-        $statuses = ['Active', 'Trial', 'Expired', 'Suspended'];
 
         $needed = 12 - $clinics->count();
 
@@ -46,9 +42,12 @@ class MaterialOrderDemoSeeder extends Seeder
                 'email' => 'clinic' . $number . '_' . uniqid() . '@example.com',
                 'phone' => '010' . str_pad((string) rand(0, 99999999), 8, '0', STR_PAD_LEFT),
                 'address' => 'Street ' . rand(1, 50) . ', Building ' . rand(1, 20) . ', Cairo',
-                'subscription_plan' => $plans[array_rand($plans)],
-                'payment_method' => $paymentMethods[array_rand($paymentMethods)],
-                'status' => $statuses[array_rand($statuses)],
+
+                // خليك على قيم ثابتة وآمنة
+                'subscription_plan' => 'Basic',
+                'payment_method' => 'Manual',
+                'status' => 'Active',
+
                 'start_date' => Carbon::now()->subMonths(rand(1, 12)),
                 'expiry_date' => Carbon::now()->addMonths(rand(1, 12)),
                 'max_users' => rand(3, 25),
@@ -59,7 +58,7 @@ class MaterialOrderDemoSeeder extends Seeder
         return $clinics;
     }
 
-    private function seedCompaniesAndProducts()
+    private function seedCompaniesAndProducts(): Collection
     {
         $companies = MaterialCompany::query()->with('products')->take(10)->get();
 
@@ -106,8 +105,10 @@ class MaterialOrderDemoSeeder extends Seeder
                     'address' => 'Industrial Zone ' . rand(1, 10) . ', Building ' . rand(1, 20),
                     'categories' => $companyCategorySets[array_rand($companyCategorySets)],
                     'status' => rand(1, 10) > 2 ? 'Active' : 'Inactive',
-                    'is_featured' => rand(0, 1),
-                    'rating' => rand(30, 50) / 10,
+                    'is_featured' => (bool) rand(0, 1),
+
+                    // عندك unsignedTinyInteger فخلّيها integer
+                    'rating' => rand(3, 5),
                 ]);
 
                 $createdProducts = collect();
@@ -115,14 +116,14 @@ class MaterialOrderDemoSeeder extends Seeder
                 for ($p = 1; $p <= 12; $p++) {
                     $createdProducts->push(MaterialProduct::create([
                         'company_id' => $company->id,
+                        'image_url' => null,
                         'name' => $company->name . ' Product ' . $p,
-                        'category' => $productCategories[array_rand($productCategories)],
-                        'sku' => 'SKU-' . strtoupper(Str::random(8)),
+                        'brand' => $company->name,
                         'description' => 'Demo material product ' . $p . ' for ' . $company->name,
+                        'category' => $productCategories[array_rand($productCategories)],
                         'price' => rand(50, 2500),
                         'stock' => rand(10, 300),
                         'status' => rand(1, 10) > 2 ? 'Active' : 'Inactive',
-                        'image_url' => null,
                     ]));
                 }
 
@@ -138,14 +139,14 @@ class MaterialOrderDemoSeeder extends Seeder
                 for ($p = 1; $p <= 10; $p++) {
                     MaterialProduct::create([
                         'company_id' => $company->id,
+                        'image_url' => null,
                         'name' => $company->name . ' Product ' . $p,
-                        'category' => $productCategories[array_rand($productCategories)],
-                        'sku' => 'SKU-' . strtoupper(Str::random(8)),
+                        'brand' => $company->name,
                         'description' => 'Auto-created product ' . $p . ' for ' . $company->name,
+                        'category' => $productCategories[array_rand($productCategories)],
                         'price' => rand(50, 2500),
                         'stock' => rand(10, 300),
                         'status' => 'Active',
-                        'image_url' => null,
                     ]);
                 }
 
@@ -156,7 +157,7 @@ class MaterialOrderDemoSeeder extends Seeder
         return MaterialCompany::query()->with('products')->get();
     }
 
-    private function seedOrders($clinics, $companies): void
+    private function seedOrders(Collection $clinics, Collection $companies): void
     {
         $statuses = MaterialOrder::STATUSES;
         $paymentMethods = ['Cash', 'Card', 'Bank Transfer', 'Instapay', 'Wallet'];
@@ -181,14 +182,17 @@ class MaterialOrderDemoSeeder extends Seeder
                 'order_code' => 'MO-' . now()->format('Ymd') . '-' . str_pad((string) $i, 5, '0', STR_PAD_LEFT),
                 'clinic_id' => $clinic->id,
                 'supplier_company_id' => $company->id,
-                'order_date' => Carbon::now()->subDays(rand(0, 180))->subHours(rand(0, 23))->subMinutes(rand(0, 59)),
+                'order_date' => Carbon::now()
+                    ->subDays(rand(0, 180))
+                    ->subHours(rand(0, 23))
+                    ->subMinutes(rand(0, 59)),
                 'amount_total' => 0,
                 'status' => $statuses[array_rand($statuses)],
                 'commission_amount' => 0,
                 'notes' => 'Demo material order #' . $i,
                 'payment_method' => $paymentMethods[array_rand($paymentMethods)],
                 'payment_status' => $paymentStatuses[array_rand($paymentStatuses)],
-                'payment_reference' => 'PAY-' . strtoupper(Str::random(10)),
+                'payment_reference' => 'PAY-' . strtoupper(substr(md5(uniqid((string) $i, true)), 0, 10)),
             ]);
 
             $total = 0;
