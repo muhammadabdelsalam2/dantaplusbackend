@@ -15,6 +15,11 @@ class DentalLabRepository
         $sortDir = strtolower($filters['sort_dir'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
 
         return DentalLab::query()
+            ->with([
+                'services' => fn($q) => $q
+                    ->select(['id', 'lab_id', 'name', 'price', 'turnaround_days'])
+                    ->orderBy('name')
+            ])
             ->withCount([
                 'partnerships as active_clinics' => fn($q) => $q->where('status', ClinicLabPartnership::STATUS_ACTIVE),
             ])

@@ -17,24 +17,51 @@ class DentalLabManagementService
     {
     }
 
-    public function index(array $filters): array
-    {
-        $perPage = (int) ($filters['per_page'] ?? 15);
-        $labs = $this->dentalLabRepository->paginate($filters, $perPage);
+   public function index(array $filters): array
+{
+    $perPage = (int) ($filters['per_page'] ?? 15);
+    $labs = $this->dentalLabRepository->paginate($filters, $perPage);
 
-        $data = [
-            'items' => $labs->items(),
-            'pagination' => [
-                'current_page' => $labs->currentPage(),
-                'last_page' => $labs->lastPage(),
-                'per_page' => $labs->perPage(),
-                'total' => $labs->total(),
-            ],
-            'stats' => $this->dentalLabRepository->stats(),
+    $items = collect($labs->items())->map(function ($lab) {
+        return [
+            'id' => $lab->id,
+            'name' => $lab->name,
+            'contact_person' => $lab->contact_person,
+            'address' => $lab->address,
+            'city' => $lab->city,
+            'phone' => $lab->phone,
+            'email' => $lab->email,
+            'working_hours' => $lab->working_hours,
+            'avg_delivery_days' => $lab->avg_delivery_days,
+            'response_speed' => $lab->response_speed,
+            'status' => $lab->status,
+            'logo_url' => $lab->logo_url,
+            'rating' => $lab->rating,
+            'is_external' => $lab->is_external,
+            'date_added' => $lab->date_added,
+            'on_time_percentage' => $lab->on_time_percentage,
+            'rejection_rate' => $lab->rejection_rate,
+            'created_at' => $lab->created_at,
+            'updated_at' => $lab->updated_at,
+            'deleted_at' => $lab->deleted_at,
+            'active_clinics' => $lab->active_clinics,
+            'services' => $lab->services,
         ];
+    })->values();
 
-        return ServiceResult::success($data, 'Dental labs fetched successfully');
-    }
+    $data = [
+        'items' => $items,
+        'pagination' => [
+            'current_page' => $labs->currentPage(),
+            'last_page' => $labs->lastPage(),
+            'per_page' => $labs->perPage(),
+            'total' => $labs->total(),
+        ],
+        'stats' => $this->dentalLabRepository->stats(),
+    ];
+
+    return ServiceResult::success($data, 'Dental labs fetched successfully');
+}
 
     public function store(array $data): array
     {
