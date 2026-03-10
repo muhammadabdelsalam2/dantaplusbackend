@@ -13,11 +13,20 @@ class UpdateMaterialProductStatusRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'status' => $this->has('status') ? strtolower($this->status) : null,
+        ]);
+    }
+
     public function rules(): array
     {
         return [
-            'status' => ['required', Rule::in([MaterialProduct::STATUS_ACTIVE, MaterialProduct::STATUS_INACTIVE])],
+            'status' => ['required', Rule::in([
+                MaterialProduct::STATUS_ACTIVE,
+                MaterialProduct::STATUS_INACTIVE
+            ])],
         ];
     }
 }
-

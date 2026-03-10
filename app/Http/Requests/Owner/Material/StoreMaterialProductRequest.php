@@ -17,6 +17,8 @@ class StoreMaterialProductRequest extends FormRequest
     {
         $this->merge([
             'company_id' => $this->route('company'),
+            'status' => $this->has('status') ? strtolower($this->status) : null,
+            'category' => $this->has('category') ? strtolower($this->category) : null,
         ]);
     }
 
@@ -31,7 +33,10 @@ class StoreMaterialProductRequest extends FormRequest
             'category' => ['required', 'string', Rule::in(config('material_market.product_category_keys', []))],
             'price' => ['required', 'numeric', 'min:0'],
             'stock' => ['required', 'integer', 'min:0'],
-            'status' => ['required', Rule::in([MaterialProduct::STATUS_ACTIVE, MaterialProduct::STATUS_INACTIVE])],
+            'status' => ['required', Rule::in([
+                MaterialProduct::STATUS_ACTIVE,
+                MaterialProduct::STATUS_INACTIVE
+            ])],
         ];
     }
 }

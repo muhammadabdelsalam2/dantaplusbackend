@@ -9,6 +9,9 @@ return [
         ['key' => 'endodontics', 'label' => 'Endodontics'],
         ['key' => 'surgical', 'label' => 'Surgical'],
         ['key' => 'cosmetic', 'label' => 'Cosmetic'],
+         ['key' => 'composites', 'label' => 'Composites'],
+        ['key' => 'impression_materials', 'label' => 'Impression Materials'],
+        ['key' => 'cements', 'label' => 'Cements'],
     ],
 
     'company_category_keys' => [
@@ -18,6 +21,9 @@ return [
         'endodontics',
         'surgical',
         'cosmetic',
+        'composites',
+        'impression_materials',
+        'cements',
     ],
 
     // For product category dropdown
@@ -25,11 +31,23 @@ return [
         ['key' => 'composites', 'label' => 'Composites'],
         ['key' => 'impression_materials', 'label' => 'Impression Materials'],
         ['key' => 'cements', 'label' => 'Cements'],
+                ['key' => 'restorative', 'label' => 'Restorative'],
+        ['key' => 'prosthodontics', 'label' => 'Prosthodontics'],
+        ['key' => 'orthodontic', 'label' => 'Orthodontic'],
+        ['key' => 'endodontics', 'label' => 'Endodontics'],
+        ['key' => 'surgical', 'label' => 'Surgical'],
+        ['key' => 'cosmetic', 'label' => 'Cosmetic'],
     ],
 
     'product_category_keys' => [
         'composites',
         'impression_materials',
         'cements',
+        'restorative',
+        'prosthodontics',
+        'orthodontic',
+        'endodontics',
+        'surgical',
+        'cosmetic',
     ],
 ];

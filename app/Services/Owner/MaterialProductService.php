@@ -2,6 +2,7 @@
 
 namespace App\Services\Owner;
 
+use App\Models\MaterialProduct;
 use App\Repositories\MaterialCompanyRepository;
 use App\Repositories\MaterialProductRepository;
 use App\Support\ServiceResult;
@@ -65,7 +66,7 @@ class MaterialProductService
                 'category' => $data['category'],
                 'price' => $data['price'],
                 'stock' => (int) ($data['stock'] ?? 0),
-                'status' => $data['status'] ?? 'Active',
+                'status' => strtolower($data['status'] ?? MaterialProduct::STATUS_ACTIVE),
             ]);
 
             return ServiceResult::success($product, 'Material product created successfully', 201);
@@ -88,6 +89,10 @@ class MaterialProductService
 
             unset($data['image']);
 
+            if (isset($data['status'])) {
+                $data['status'] = strtolower($data['status']);
+            }
+
             $updated = $this->materialProductRepository->update($product, $data);
 
             return ServiceResult::success($updated, 'Material product updated successfully');
@@ -101,7 +106,9 @@ class MaterialProductService
             return ServiceResult::error('Material product not found', null, null, 404);
         }
 
-        $updated = $this->materialProductRepository->update($product, ['status' => $status]);
+        $updated = $this->materialProductRepository->update($product, [
+            'status' => strtolower($status),
+        ]);
 
         return ServiceResult::success($updated, 'Material product status updated successfully');
     }

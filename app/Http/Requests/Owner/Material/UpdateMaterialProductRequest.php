@@ -13,6 +13,21 @@ class UpdateMaterialProductRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $data = [];
+
+        if ($this->has('status')) {
+            $data['status'] = strtolower($this->status);
+        }
+
+        if ($this->has('category')) {
+            $data['category'] = strtolower($this->category);
+        }
+
+        $this->merge($data);
+    }
+
     public function rules(): array
     {
         return [
@@ -23,7 +38,10 @@ class UpdateMaterialProductRequest extends FormRequest
             'category' => ['sometimes', 'string', Rule::in(config('material_market.product_category_keys', []))],
             'price' => ['sometimes', 'numeric', 'min:0'],
             'stock' => ['sometimes', 'integer', 'min:0'],
-            'status' => ['sometimes', Rule::in([MaterialProduct::STATUS_ACTIVE, MaterialProduct::STATUS_INACTIVE])],
+            'status' => ['sometimes', Rule::in([
+                MaterialProduct::STATUS_ACTIVE,
+                MaterialProduct::STATUS_INACTIVE
+            ])],
         ];
     }
 }

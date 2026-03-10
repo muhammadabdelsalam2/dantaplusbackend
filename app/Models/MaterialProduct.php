@@ -12,8 +12,8 @@ class MaterialProduct extends Model
 {
     use HasFactory, SoftDeletes;
 
-    public const STATUS_ACTIVE = 'Active';
-    public const STATUS_INACTIVE = 'Inactive';
+    public const STATUS_ACTIVE = 'active';
+    public const STATUS_INACTIVE = 'inactive';
 
     protected $fillable = [
         'company_id',
@@ -25,6 +25,11 @@ class MaterialProduct extends Model
         'price',
         'stock',
         'status',
+    ];
+
+    protected $appends = [
+        'category_object',
+        'status_object',
     ];
 
     protected function casts(): array
@@ -44,8 +49,28 @@ class MaterialProduct extends Model
     {
         return $this->hasMany(MaterialOrderItem::class, 'product_id');
     }
+
     public function getImageUrlAttribute($value)
-{
-    return $value ? asset($value) : null;
-}
+    {
+        return $value ? asset($value) : null;
+    }
+
+    public function getCategoryObjectAttribute(): ?array
+    {
+        $item = collect(config('material_market.product_category_items', []))
+            ->firstWhere('key', $this->category);
+
+        return $item ? [
+            'key' => $item['key'],
+            'label' => $item['label'],
+        ] : null;
+    }
+
+    public function getStatusObjectAttribute(): array
+    {
+        return [
+            'key' => $this->status,
+            'label' => ucfirst($this->status),
+        ];
+    }
 }
