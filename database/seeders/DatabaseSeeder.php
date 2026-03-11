@@ -23,10 +23,16 @@ class DatabaseSeeder extends Seeder
             SuperAdminSeeder::class,
             DoctorSeeder::class,
             PatientSeeder::class,
-             ClinicSeeder::class,
-    MaterialCompanySeeder::class,
-    MaterialProductSeeder::class,
-    MaterialOrderSeeder::class,
+            ClinicSeeder::class,
+            MaterialCompanySeeder::class,
+            MaterialProductSeeder::class,
+            MaterialOrderSeeder::class,
+            CommunicationConversationSeeder::class,
+            NotificationSeeder::class,
+            NotificationLogSeeder::class,
+            FeedbackReportSeeder::class,
+            SupportTicketSeeder::class,
+            SupportReplySeeder::class,
         ]);
     }
 }

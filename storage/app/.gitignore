@@ -1,4 +1,6 @@
 *
 !private/
 !public/
+!api-docs/
+!api-docs/**
 !.gitignore

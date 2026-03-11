@@ -5,11 +5,15 @@ use App\Http\Controllers\Api\Owner\ClinicManagementController;
 use App\Http\Controllers\Api\Owner\CommunicationCenterController;
 use App\Http\Controllers\Api\Owner\DentalLabManagementController;
 use App\Http\Controllers\Api\Owner\EquipmentMaintenanceController;
+use App\Http\Controllers\Api\Owner\FeedbackReportController;
 use App\Http\Controllers\Api\Owner\MaterialCommissionController;
 use App\Http\Controllers\Api\Owner\MaterialCompanyController;
 use App\Http\Controllers\Api\Owner\MaterialOrderController;
 use App\Http\Controllers\Api\Owner\MaterialProductController;
+use App\Http\Controllers\Api\Owner\NotificationCenterController;
+use App\Http\Controllers\Api\Owner\NotificationLogController;
 use App\Http\Controllers\Api\Owner\RenewalAlertsController;
+use App\Http\Controllers\Api\Owner\SupportCenterController;
 use App\Http\Controllers\Api\SuperAdmin\RoleController;
 use App\Http\Controllers\Api\SuperAdmin\Settings\BackupSettingsController;
 use App\Http\Controllers\Api\SuperAdmin\Settings\BillingPlansController;
@@ -86,6 +90,26 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/conversations/{id}/messages', [CommunicationCenterController::class, 'storeMessage']);
             Route::patch('/conversations/{id}', [CommunicationCenterController::class, 'update']);
             Route::get('/analytics', [CommunicationCenterController::class, 'analytics']);
+        });
+
+        Route::prefix('notifications')->group(function () {
+            Route::get('/', [NotificationCenterController::class, 'index']);
+            Route::post('/', [NotificationCenterController::class, 'store']);
+            Route::post('/test', [NotificationCenterController::class, 'test']);
+            Route::patch('/{id}/read', [NotificationCenterController::class, 'markRead']);
+        });
+
+        Route::get('/notification-logs', [NotificationLogController::class, 'index']);
+
+        Route::get('/feedback-reports', [FeedbackReportController::class, 'index']);
+
+        Route::get('/support-agents', [SupportCenterController::class, 'agents']);
+        Route::prefix('support-tickets')->group(function () {
+            Route::get('/', [SupportCenterController::class, 'index']);
+            Route::get('/analytics', [SupportCenterController::class, 'analytics']);
+            Route::get('/{id}', [SupportCenterController::class, 'show']);
+            Route::patch('/{id}', [SupportCenterController::class, 'update']);
+            Route::post('/{id}/replies', [SupportCenterController::class, 'storeReply']);
         });
 
         Route::prefix('alerts')->group(function () {
