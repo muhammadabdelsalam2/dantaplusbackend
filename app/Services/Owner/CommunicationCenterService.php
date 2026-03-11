@@ -12,34 +12,35 @@ class CommunicationCenterService
 {
     public function __construct(private CommunicationConversationRepository $conversationRepository) {}
 
-    public function listConversations(array $filters): array
-    {
-        $perPage = (int) ($filters['per_page'] ?? 15);
-        $conversations = $this->conversationRepository->paginateConversations($filters, $perPage);
+public function listConversations(array $filters): array
+{
+    $perPage = (int) ($filters['per_page'] ?? 10);
+    $conversations = $this->conversationRepository->paginateConversations($filters, $perPage);
 
-        $items = collect($conversations->items())->map(fn (CommunicationConversation $conversation) => [
+    $items = collect($conversations->items())->map(function (CommunicationConversation $conversation) {
+        return [
             'id' => $conversation->id,
             'clinicId' => $conversation->clinic_id,
             'labId' => $conversation->lab_id,
-            'name' => $conversation->clinic?->name ?? $conversation->lab?->name ?? 'Conversation #'.$conversation->id,
+            'name' => ($conversation->clinic?->name ?? 'Unknown Clinic') . ' ↔ ' . ($conversation->lab?->name ?? 'Unknown Lab'),
             'avatarUrl' => null,
             'lastMessageText' => $conversation->last_message_text,
-            'lastMessageTimestamp' => optional($conversation->last_message_at)->toISOString(),
+            'lastMessageTimestamp' => optional($conversation->last_message_at)?->toISOString(),
             'unreadCount' => (int) ($conversation->unread_count ?? 0),
             'status' => $conversation->status,
-        ])->all();
+        ];
+    })->values()->all();
 
-        return ServiceResult::success([
-            'items' => $items,
-            'pagination' => [
-                'current_page' => $conversations->currentPage(),
-                'last_page' => $conversations->lastPage(),
-                'per_page' => $conversations->perPage(),
-                'total' => $conversations->total(),
-            ],
-        ], 'Conversations fetched successfully');
-    }
-
+    return ServiceResult::success([
+        'items' => $items,
+        'pagination' => [
+            'current_page' => $conversations->currentPage(),
+            'last_page' => $conversations->lastPage(),
+            'per_page' => $conversations->perPage(),
+            'total' => $conversations->total(),
+        ],
+    ], 'Conversations fetched successfully');
+}
     public function listMessages(int $conversationId, int $perPage = 30): array
     {
         $conversation = $this->conversationRepository->findConversationById($conversationId);
@@ -89,7 +90,7 @@ class CommunicationCenterService
             ]);
 
             $this->conversationRepository->updateConversation($conversation, [
-                'last_message_text' => $message->text,
+                'last_message_text' => $message->text ?: 'Attachment',
                 'last_message_at' => now(),
                 'last_message_sender_id' => $sender?->id,
             ]);
@@ -118,34 +119,37 @@ class CommunicationCenterService
         ], 'Conversation updated successfully');
     }
 
-    public function analytics(): array
-    {
-        $totals = [
-            'total_conversations' => CommunicationConversation::query()->count(),
-            'open_conversations' => CommunicationConversation::query()
-                ->whereIn('status', [CommunicationConversation::STATUS_OPEN, CommunicationConversation::STATUS_PENDING])
-                ->count(),
-            'closed_conversations' => CommunicationConversation::query()
-                ->whereIn('status', [CommunicationConversation::STATUS_RESOLVED, CommunicationConversation::STATUS_CLOSED])
-                ->count(),
-            'my_interventions' => CommunicationMessage::query()
-                ->where('sender_id', auth()->id())
-                ->where('sender_type', 'super-admin')
-                ->count(),
-            'unread_messages' => CommunicationMessage::query()
-                ->where('sender_type', '!=', 'super-admin')
-                ->where('is_read', false)
-                ->count(),
-        ];
+ public function analytics(): array
+{
+    $totals = [
+        'total_conversations' => CommunicationConversation::query()->count(),
+        'active_conversations' => CommunicationConversation::query()
+            ->where('status', CommunicationConversation::STATUS_ACTIVE)
+            ->count(),
+        'resolved_conversations' => CommunicationConversation::query()
+            ->where('status', CommunicationConversation::STATUS_RESOLVED)
+            ->count(),
+        'escalated_conversations' => CommunicationConversation::query()
+            ->where('status', CommunicationConversation::STATUS_ESCALATED)
+            ->count(),
+        'my_interventions' => CommunicationMessage::query()
+            ->where('sender_id', auth()->id())
+            ->where('sender_type', 'super-admin')
+            ->count(),
+        'unread_messages' => CommunicationMessage::query()
+            ->where('sender_type', '!=', 'super-admin')
+            ->where('is_read', false)
+            ->count(),
+    ];
 
-        return ServiceResult::success($totals, 'Communication analytics fetched successfully');
-    }
+    return ServiceResult::success($totals, 'Communication analytics fetched successfully');
+}
 
     private function mapMessage(CommunicationMessage $message): array
     {
         return [
             'id' => $message->id,
-            'contactId' => $message->conversation_id,
+            'conversationId' => $message->conversation_id,
             'senderId' => $message->sender_id,
             'senderName' => $message->sender_name,
             'senderType' => $message->sender_type,

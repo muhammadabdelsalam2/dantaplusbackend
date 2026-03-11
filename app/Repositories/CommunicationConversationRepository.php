@@ -5,6 +5,7 @@ namespace App\Repositories;
 use App\Models\CommunicationConversation;
 use App\Models\CommunicationMessage;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 
 class CommunicationConversationRepository
 {
@@ -17,13 +18,13 @@ class CommunicationConversationRepository
                     ->where('is_read', false)
                     ->where('sender_type', '!=', 'super-admin'),
             ])
-            ->when($filters['tab'] ?? null, fn ($query, $tab) => $this->applyTabFilter($query, $tab))
-            ->when($filters['clinic_id'] ?? null, fn ($query, $clinicId) => $query->where('clinic_id', $clinicId))
-            ->when($filters['lab_id'] ?? null, fn ($query, $labId) => $query->where('lab_id', $labId))
-            ->when($filters['search'] ?? null, function ($query, $search) {
-                $query->where(function ($q) use ($search) {
-                    $q->whereHas('clinic', fn ($clinic) => $clinic->where('name', 'like', "%{$search}%"))
-                        ->orWhereHas('lab', fn ($lab) => $lab->where('name', 'like', "%{$search}%"))
+            ->when($filters['tab'] ?? null, fn (Builder $query, $tab) => $this->applyTabFilter($query, $tab))
+            ->when($filters['clinic_id'] ?? null, fn (Builder $query, $clinicId) => $query->where('clinic_id', $clinicId))
+            ->when($filters['lab_id'] ?? null, fn (Builder $query, $labId) => $query->where('lab_id', $labId))
+            ->when($filters['search'] ?? null, function (Builder $query, $search) {
+                $query->where(function (Builder $q) use ($search) {
+                    $q->whereHas('clinic', fn (Builder $clinic) => $clinic->where('name', 'like', "%{$search}%"))
+                        ->orWhereHas('lab', fn (Builder $lab) => $lab->where('name', 'like', "%{$search}%"))
                         ->orWhere('last_message_text', 'like', "%{$search}%");
                 });
             })
@@ -36,7 +37,8 @@ class CommunicationConversationRepository
     {
         return CommunicationMessage::query()
             ->where('conversation_id', $conversationId)
-            ->orderByDesc('id')
+            ->orderBy('created_at')
+            ->orderBy('id')
             ->paginate($perPage);
     }
 
@@ -49,7 +51,7 @@ class CommunicationConversationRepository
 
     public function createMessage(array $data): CommunicationMessage
     {
-        return CommunicationMessage::create($data);
+        return CommunicationMessage::query()->create($data);
     }
 
     public function updateConversation(CommunicationConversation $conversation, array $data): CommunicationConversation
@@ -71,14 +73,18 @@ class CommunicationConversationRepository
             ]);
     }
 
-    private function applyTabFilter($query, string $tab): void
+    private function applyTabFilter(Builder $query, string $tab): void
     {
         match ($tab) {
-            'open' => $query->whereIn('status', ['Open', 'Pending']),
-            'closed' => $query->whereIn('status', ['Resolved', 'Closed']),
-            'unread' => $query->whereHas('messages', fn ($messages) => $messages
-                ->where('sender_type', '!=', 'super-admin')
-                ->where('is_read', false)),
+            'resolved' => $query->where('status', CommunicationConversation::STATUS_RESOLVED),
+
+            'interventions' => $query->whereHas('messages', function (Builder $messages) {
+                $messages->where('sender_type', 'super-admin')
+                    ->where('sender_id', auth()->id());
+            }),
+
+            'all', null, '' => null,
+
             default => null,
         };
     }
