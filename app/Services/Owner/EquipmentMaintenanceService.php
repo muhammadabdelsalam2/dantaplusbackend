@@ -25,18 +25,23 @@ class EquipmentMaintenanceService
         $perPage = (int) ($filters['per_page'] ?? 15);
         $requests = $this->maintenanceRequestRepository->paginate($filters, $perPage);
 
-        $items = collect($requests->items())->map(fn (OwnerMaintenanceRequest $request) => [
-            'id' => $request->id,
-            'requestId' => $request->request_code,
-            'clinicId' => $request->clinic_id,
-            'clinicName' => $request->clinic?->name,
-            'equipment' => $request->equipment,
-            'issueDescription' => $request->issue_description,
-            'assignedCompanyId' => $request->assigned_company_id,
-            'status' => $request->status,
-            'dateCreated' => optional($request->created_at)->toISOString(),
-            'lastUpdate' => optional($request->updated_at)->toISOString(),
-        ])->all();
+       $items = collect($requests->items())->map(fn (OwnerMaintenanceRequest $request) => [
+    'id' => $request->id,
+    'requestId' => $request->request_code,
+    'clinicId' => $request->clinic_id,
+    'clinicName' => $request->clinic?->name,
+    'equipment' => $request->equipment,
+    'issueDescription' => $request->issue_description,
+    'assignedCompanyId' => $request->assigned_company_id,
+    'assignedCompanyName' => $request->company?->name,
+    // 'assignedCompany' => $request->company ? [
+    //     'id' => $request->company->id,
+    //     'name' => $request->company->name,
+    // ] : null,
+    'status' => $request->status,
+    'dateCreated' => optional($request->created_at)->toISOString(),
+    'lastUpdate' => optional($request->updated_at)->toISOString(),
+])->all();
 
         return ServiceResult::success([
             'items' => $items,
@@ -58,7 +63,7 @@ class EquipmentMaintenanceService
                 'equipment' => $data['equipment'],
                 'issue_description' => $data['issue_description'],
                 'assigned_company_id' => $data['assigned_company_id'] ?? null,
-                'status' => $data['status'] ?? OwnerMaintenanceRequest::STATUS_OPEN,
+                'status' => $data['status'] ?? OwnerMaintenanceRequest::STATUS_PENDING,
                 'created_by' => auth()->id(),
             ]);
 

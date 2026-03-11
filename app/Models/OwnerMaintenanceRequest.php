@@ -11,19 +11,16 @@ class OwnerMaintenanceRequest extends Model
 {
     use HasFactory;
 
-    public const STATUS_OPEN = 'Open';
-
+    public const STATUS_PENDING = 'Pending';
     public const STATUS_IN_PROGRESS = 'In Progress';
-
-    public const STATUS_RESOLVED = 'Resolved';
-
-    public const STATUS_CLOSED = 'Closed';
+    public const STATUS_COMPLETED = 'Completed';
+    public const STATUS_OVERDUE = 'Overdue';
 
     public const STATUSES = [
-        self::STATUS_OPEN,
+        self::STATUS_PENDING,
         self::STATUS_IN_PROGRESS,
-        self::STATUS_RESOLVED,
-        self::STATUS_CLOSED,
+        self::STATUS_COMPLETED,
+        self::STATUS_OVERDUE,
     ];
 
     protected $fillable = [

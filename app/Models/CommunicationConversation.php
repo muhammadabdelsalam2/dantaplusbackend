@@ -11,19 +11,14 @@ class CommunicationConversation extends Model
 {
     use HasFactory;
 
-    public const STATUS_OPEN = 'Open';
-
-    public const STATUS_PENDING = 'Pending';
-
+    public const STATUS_ACTIVE = 'Active';
     public const STATUS_RESOLVED = 'Resolved';
-
-    public const STATUS_CLOSED = 'Closed';
+    public const STATUS_ESCALATED = 'Escalated';
 
     public const STATUSES = [
-        self::STATUS_OPEN,
-        self::STATUS_PENDING,
+        self::STATUS_ACTIVE,
         self::STATUS_RESOLVED,
-        self::STATUS_CLOSED,
+        self::STATUS_ESCALATED,
     ];
 
     protected $fillable = [
