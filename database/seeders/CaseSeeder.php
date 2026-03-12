@@ -55,7 +55,7 @@ class CaseSeeder extends Seeder
                 'priority' => $i % 2 === 0 ? CaseModel::PRIORITY_URGENT : CaseModel::PRIORITY_NORMAL,
                 'due_date' => now()->addDays(3 + $i),
                 'case_type' => $i % 2 === 0 ? 'Crown' : 'Bridge',
-                'tooth_numbers' => $i % 2 === 0 ? '11,12' : '21',
+                'tooth_numbers' => $i % 2 === 0 ? ['11', '12'] : ['21'],
                 'description' => 'Case description for case #' . $i,
                 'assigned_technician_id' => $technician?->id,
                 'assigned_delivery_id' => $delivery?->id,

@@ -61,6 +61,7 @@ class CaseModel extends Model
             'due_date' => 'date',
             'completed_at' => 'datetime',
             'delivered_at' => 'datetime',
+            'tooth_numbers' => 'array',
         ];
     }
 
