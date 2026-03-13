@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -17,12 +18,11 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'phone',
         'password',
         'is_active',
-
         'clinic_id',
         'lab_id',
-
     ];
 
     protected $hidden = [
@@ -39,26 +39,17 @@ class User extends Authenticatable
         ];
     }
 
-    /**
-     * Check if user has super-admin role
-     */
     public function isSuperAdmin(): bool
     {
         return $this->hasRole('super-admin');
     }
 
-    /**
-     * Doctor relation
-     */
-    public function doctor()
+    public function doctor(): HasOne
     {
         return $this->hasOne(Doctor::class);
     }
 
-    /**
-     * Patient relation
-     */
-    public function patient()
+    public function patient(): HasOne
     {
         return $this->hasOne(Patient::class);
     }
@@ -76,5 +67,10 @@ class User extends Authenticatable
     public function communicationMessages(): HasMany
     {
         return $this->hasMany(CommunicationMessage::class, 'sender_id');
+    }
+
+    public function deliveryRepProfile(): HasOne
+    {
+        return $this->hasOne(LabDeliveryRep::class, 'user_id');
     }
 }
