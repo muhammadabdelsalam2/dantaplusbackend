@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Clinic;
 use App\Models\CommunicationConversation;
 use App\Models\CommunicationMessage;
+use App\Models\CaseModel;
 use App\Models\DentalLab;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -16,6 +17,7 @@ class CommunicationConversationSeeder extends Seeder
     {
         $clinics = Clinic::query()->take(5)->get();
         $labs = DentalLab::query()->take(5)->get();
+        $cases = CaseModel::query()->get();
         $admin = User::query()->first();
 
         if ($clinics->isEmpty() || $labs->isEmpty()) {
@@ -25,10 +27,16 @@ class CommunicationConversationSeeder extends Seeder
 
         foreach ($clinics as $index => $clinic) {
             $lab = $labs[$index % $labs->count()];
+            $linkedCase = $cases->first(fn ($case) => (int) $case->clinic_id === (int) $clinic->id && (int) $case->lab_id === (int) $lab->id);
+            if (! $linkedCase) {
+                $linkedCase = $cases->first();
+            }
 
             $conversation = CommunicationConversation::query()->create([
                 'clinic_id' => $clinic->id,
                 'lab_id' => $lab->id,
+                'context_type' => $linkedCase ? 'case' : null,
+                'context_id' => $linkedCase?->id,
                 'status' => CommunicationConversation::STATUS_ACTIVE,
                 'last_message_text' => null,
                 'last_message_at' => null,

@@ -21,6 +21,7 @@ class User extends Authenticatable
         'phone',
         'password',
         'is_active',
+        'is_verified',
         'clinic_id',
         'lab_id',
     ];
@@ -36,6 +37,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
+            'is_verified' => 'boolean',
         ];
     }
 
@@ -72,5 +74,20 @@ class User extends Authenticatable
     public function deliveryRepProfile(): HasOne
     {
         return $this->hasOne(LabDeliveryRep::class, 'user_id');
+    }
+
+    public function assignedCasesAsTechnician(): HasMany
+    {
+        return $this->hasMany(CaseModel::class, 'assigned_technician_id');
+    }
+
+    public function assignedCasesAsDelivery(): HasMany
+    {
+        return $this->hasMany(CaseModel::class, 'assigned_delivery_id');
+    }
+
+    public function createdCases(): HasMany
+    {
+        return $this->hasMany(CaseModel::class, 'created_by');
     }
 }
