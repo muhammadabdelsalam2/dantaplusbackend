@@ -73,6 +73,24 @@ class CommunicationConversationRepository
             ]);
     }
 
+    public function markIncomingAsReadForUser(int $conversationId, ?int $viewerId): void
+    {
+        $query = CommunicationMessage::query()
+            ->where('conversation_id', $conversationId)
+            ->where('is_read', false);
+
+        if ($viewerId) {
+            $query->where(function ($q) use ($viewerId) {
+                $q->whereNull('sender_id')->orWhere('sender_id', '!=', $viewerId);
+            });
+        }
+
+        $query->update([
+            'is_read' => true,
+            'read_at' => now(),
+        ]);
+    }
+
     private function applyTabFilter(Builder $query, string $tab): void
     {
         match ($tab) {

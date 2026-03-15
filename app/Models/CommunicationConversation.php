@@ -24,6 +24,8 @@ class CommunicationConversation extends Model
     protected $fillable = [
         'clinic_id',
         'lab_id',
+        'context_type',
+        'context_id',
         'status',
         'last_message_text',
         'last_message_at',

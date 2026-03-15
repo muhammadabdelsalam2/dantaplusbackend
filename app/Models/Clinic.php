@@ -71,4 +71,9 @@ class Clinic extends Model
     {
         return $this->hasMany(CommunicationConversation::class);
     }
+
+    public function cases(): HasMany
+    {
+        return $this->hasMany(CaseModel::class);
+    }
 }

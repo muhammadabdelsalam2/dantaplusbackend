@@ -106,4 +106,9 @@ class DentalLab extends Model
     {
         return $this->hasMany(CommunicationConversation::class, 'lab_id');
     }
+
+    public function cases(): HasMany
+    {
+        return $this->hasMany(CaseModel::class, 'lab_id');
+    }
 }

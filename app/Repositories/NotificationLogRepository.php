@@ -22,4 +22,9 @@ class NotificationLogRepository
             ->orderByDesc('id')
             ->paginate($perPage);
     }
+
+    public function create(array $data): NotificationLog
+    {
+        return NotificationLog::query()->create($data);
+    }
 }
