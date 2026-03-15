@@ -1,8 +1,10 @@
 <?php
 
-use App\Http\Controllers\Api\Lab\DeliveryRepController;
-use App\Http\Controllers\Api\Lab\SupportController;
 use App\Http\Controllers\Api\Lab\CaseController;
+use App\Http\Controllers\Api\Lab\DeliveryRepController;
+use App\Http\Controllers\Api\Lab\DeliveryReportController;
+use App\Http\Controllers\Api\Lab\LabEquipmentController;
+use App\Http\Controllers\Api\Lab\SupportController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('lab')
@@ -34,4 +36,15 @@ Route::prefix('lab')
             Route::post('/{id}', [DeliveryRepController::class, 'update']);
             Route::delete('/{id}', [DeliveryRepController::class, 'destroy']);
         });
+
+        Route::prefix('equipments')->group(function () {
+            Route::get('/', [LabEquipmentController::class, 'index']);
+            Route::post('/', [LabEquipmentController::class, 'store']);
+            Route::get('/{id}', [LabEquipmentController::class, 'show']);
+            Route::post('/{id}', [LabEquipmentController::class, 'update']);
+            Route::delete('/{id}', [LabEquipmentController::class, 'destroy']);
+            Route::post('/{id}/record-maintenance', [LabEquipmentController::class, 'recordMaintenance']);
+        });
+
+        Route::get('/delivery-reports', [DeliveryReportController::class, 'index']);
     });
