@@ -1,10 +1,10 @@
 <?php
 
+use App\Http\Controllers\Api\Lab\CaseController;
 use App\Http\Controllers\Api\Lab\DeliveryRepController;
 use App\Http\Controllers\Api\Lab\DeliveryReportController;
 use App\Http\Controllers\Api\Lab\LabEquipmentController;
 use App\Http\Controllers\Api\Lab\SupportController;
-use App\Http\Controllers\Api\Lab\CaseController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('lab')
