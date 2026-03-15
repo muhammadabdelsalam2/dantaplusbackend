@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Requests\Owner\Lab;
+namespace App\Http\Requests\Lab;
 
 use App\Models\DentalLab;
 use Illuminate\Foundation\Http\FormRequest;
