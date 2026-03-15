@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\Lab\DeliveryRepController;
+use App\Http\Controllers\Api\Lab\DeliveryReportController;
 use App\Http\Controllers\Api\Lab\SupportController;
 use Illuminate\Support\Facades\Route;
 
@@ -20,4 +21,6 @@ Route::prefix('lab')
             Route::post('/{id}', [DeliveryRepController::class, 'update']);
             Route::delete('/{id}', [DeliveryRepController::class, 'destroy']);
         });
+
+        Route::get('/delivery-reports', [DeliveryReportController::class, 'index']);
     });
