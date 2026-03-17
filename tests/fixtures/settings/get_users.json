@@ -1,0 +1,92 @@
+{
+  "success": true,
+  "message": "Users fetched successfully",
+  "data": {
+    "data": [
+      {
+        "id": "01HX1A2B3C4D5E6F7G8H9J0K1L",
+        "full_name": "Lab Admin (Precision)",
+        "username": "labprecision",
+        "email": "lab.precision@example.com",
+        "role": "lab_admin",
+        "status": "Active",
+        "avatar_url": "https://cdn.example.com/avatars/u8.png",
+        "last_login": "2026-03-16T00:00:00Z",
+        "commission_rates": null
+      },
+      {
+        "id": "01HX1A2B3C4D5E6F7G8H9J0K2M",
+        "full_name": "Memo Ahmed",
+        "username": "memoahmed",
+        "email": "memoahmed321@gmail.com",
+        "role": "lab_admin",
+        "status": "Active",
+        "avatar_url": "https://cdn.example.com/avatars/default.png",
+        "last_login": "2026-03-16T00:00:00Z",
+        "commission_rates": null
+      },
+      {
+        "id": "01HX1A2B3C4D5E6F7G8H9J0K3N",
+        "full_name": "Lab Reception",
+        "username": "labreception",
+        "email": "lab.reception@example.com",
+        "role": "lab_receptionist",
+        "status": "Active",
+        "avatar_url": "https://cdn.example.com/avatars/u10.png",
+        "last_login": "2026-03-14T08:30:00Z",
+        "commission_rates": null
+      },
+      {
+        "id": "01HX1A2B3C4D5E6F7G8H9J0K4P",
+        "full_name": "Techie Tom",
+        "username": "techietom",
+        "email": "tom.tech@precisionlabs.com",
+        "role": "lab_technician",
+        "status": "Active",
+        "avatar_url": "https://cdn.example.com/avatars/u9.png",
+        "last_login": "2026-03-15T09:00:00Z",
+        "commission_rates": {
+          "zirconia": 10,
+          "pfm": 8,
+          "emax": 10,
+          "pmma": 7,
+          "other": 5
+        }
+      },
+      {
+        "id": "01HX1A2B3C4D5E6F7G8H9J0K5Q",
+        "full_name": "John Express",
+        "username": "johnexpress",
+        "email": "DEL-001@dentaplus.delivery.com",
+        "role": "delivery_rep",
+        "status": "Active",
+        "avatar_url": "https://cdn.example.com/avatars/u11.png",
+        "last_login": "2026-03-16T07:15:00Z",
+        "commission_rates": null
+      },
+      {
+        "id": "01HX1A2B3C4D5E6F7G8H9J0K6R",
+        "full_name": "Speedy Sara",
+        "username": "speedysara",
+        "email": "DEL-002@dentaplus.delivery.com",
+        "role": "delivery_rep",
+        "status": "Active",
+        "avatar_url": "https://cdn.example.com/avatars/u13.png",
+        "last_login": "2026-03-16T06:15:00Z",
+        "commission_rates": null
+      },
+      {
+        "id": "01HX1A2B3C4D5E6F7G8H9J0K7S",
+        "full_name": "Rapid Ron",
+        "username": "rapidron",
+        "email": "DEL-003@dentaplus.delivery.com",
+        "role": "delivery_rep",
+        "status": "Inactive",
+        "avatar_url": "https://cdn.example.com/avatars/u12.png",
+        "last_login": "2026-02-28T11:00:00Z",
+        "commission_rates": null
+      }
+    ],
+    "meta": { "page": 1, "per_page": 20, "total": 7 }
+  }
+}

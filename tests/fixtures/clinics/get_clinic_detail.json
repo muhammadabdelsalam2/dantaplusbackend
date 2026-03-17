@@ -1,0 +1,24 @@
+{
+  "success": true,
+  "message": "Clinic details fetched successfully",
+  "data": {
+    "id": "01HX1Y2Z3A4B5C6D7E8F9G",
+    "name": "Bright Smiles Dental",
+    "owner_name": "Dr. Emily Adams",
+    "email": "emily.adams@clinic.com",
+    "phone": "555-0111",
+    "address": "123 Main St, Metropolis",
+    "subdomain": "brightsmiles.dentaplus.com",
+    "clinic_type": "General Dentist",
+    "is_external": false,
+    "notes": "Referred by Dr. Hassan",
+    "registration_date": "2025-01-10",
+    "partnership": {
+      "id": 1,
+      "status": "Active",
+      "partnership_start_date": "2025-11-05",
+      "total_cases_sent": 12,
+      "last_case_date": "2026-03-13"
+    }
+  }
+}

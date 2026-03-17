@@ -12,6 +12,12 @@ use App\Http\Controllers\Api\Lab\MaterialController;
 use App\Http\Controllers\Api\Lab\DeliveryRepController;
 use App\Http\Controllers\Api\Lab\DeliveryReportController;
 use App\Http\Controllers\Api\Lab\LabEquipmentController;
+use App\Http\Controllers\Api\Lab\Settings\GalleryController;
+use App\Http\Controllers\Api\Lab\Settings\LabProfileController;
+use App\Http\Controllers\Api\Lab\Settings\NotificationSettingsController;
+use App\Http\Controllers\Api\Lab\Settings\ServiceController;
+use App\Http\Controllers\Api\Lab\Settings\UserController;
+use App\Http\Controllers\Api\Lab\Settings\WhatsAppSettingsController;
 use App\Http\Controllers\Api\Lab\SupportController;
 use Illuminate\Support\Facades\Route;
 
@@ -74,4 +80,36 @@ Route::prefix('lab')
         });
 
         Route::get('/delivery-reports', [DeliveryReportController::class, 'index']);
+
+        // Lab Settings
+        Route::prefix('settings')->group(function () {
+            Route::get('users', [UserController::class, 'index']);
+            Route::post('users', [UserController::class, 'store']);
+            Route::post('users/{user}', [UserController::class, 'update']);
+            Route::patch('users/{user}/status', [UserController::class, 'updateStatus']);
+
+            Route::get('services', [ServiceController::class, 'index']);
+            Route::post('services', [ServiceController::class, 'store']);
+            Route::post('services/{service}', [ServiceController::class, 'update']);
+            Route::delete('services/{service}', [ServiceController::class, 'destroy']);
+
+            Route::get('profile', [LabProfileController::class, 'show']);
+            Route::post('profile', [LabProfileController::class, 'update']);
+
+            Route::get('gallery', [GalleryController::class, 'index']);
+            Route::post('gallery', [GalleryController::class, 'store']);
+            Route::delete('gallery/{image}', [GalleryController::class, 'destroy']);
+
+            Route::get('whatsapp', [WhatsAppSettingsController::class, 'show']);
+            Route::post('whatsapp', [WhatsAppSettingsController::class, 'update']);
+            Route::post('whatsapp/test', [WhatsAppSettingsController::class, 'test']);
+            Route::get('whatsapp/logs', [WhatsAppSettingsController::class, 'logs']);
+
+            Route::get('notifications', [NotificationSettingsController::class, 'show']);
+            Route::post('notifications', [NotificationSettingsController::class, 'update']);
+        });
     });
+
+// WhatsApp Webhook — no auth, called by Meta/Twilio directly
+Route::match(['get', 'post'], 'lab/api/whatsapp/webhook', [WhatsAppSettingsController::class, 'webhook'])
+    ->name('lab.whatsapp.webhook');

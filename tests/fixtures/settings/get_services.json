@@ -1,0 +1,24 @@
+{
+  "success": true,
+  "message": "Services fetched successfully",
+  "data": [
+    {
+      "id": 1,
+      "service_name": "Zirconia Crown",
+      "price": 120.00,
+      "turnaround_time_days": 4
+    },
+    {
+      "id": 2,
+      "service_name": "E-Max Crown",
+      "price": 150.00,
+      "turnaround_time_days": 5
+    },
+    {
+      "id": 3,
+      "service_name": "PFM Crown",
+      "price": 90.00,
+      "turnaround_time_days": 5
+    }
+  ]
+}

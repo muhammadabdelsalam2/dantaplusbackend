@@ -27,6 +27,7 @@ use App\Http\Controllers\Api\SuperAdmin\Settings\WhatsappSettingsController;
 use App\Http\Controllers\Api\SuperAdmin\SubscriptionDashboardController;
 use App\Http\Controllers\Api\SuperAdmin\UserController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\SuperAdmin\LabNotificationsController;
 
 Route::post('login', [AuthController::class, 'login']);
 
@@ -73,6 +74,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
             Route::get('/orders', [MaterialOrderController::class, 'index']);
             Route::get('/orders/{order}', [MaterialOrderController::class, 'show']);
+            Route::delete('/orders/{order}', [MaterialOrderController::class, 'destroy']);
         });
 
         Route::prefix('maintenance')->group(function () {
@@ -130,6 +132,7 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::prefix('superadmin')
     ->middleware(['auth:sanctum', 'role:super-admin'])
     ->group(function () {
+        Route::get('/labs/{lab}/notifications', [LabNotificationsController::class, 'index']);
 
         /*
         |--------------------------------------------------------------------------

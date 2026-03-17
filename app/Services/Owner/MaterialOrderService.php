@@ -49,4 +49,17 @@ class MaterialOrderService
 
         return ServiceResult::success($order, 'Material order fetched successfully');
     }
+
+    public function destroy(int $orderId): array
+    {
+        $order = $this->materialOrderRepository->findById($orderId);
+
+        if (!$order) {
+            return ServiceResult::error('Material order not found', null, null, 404);
+        }
+
+        $this->materialOrderRepository->delete($order);
+
+        return ServiceResult::success(null, 'Material order deleted successfully');
+    }
 }

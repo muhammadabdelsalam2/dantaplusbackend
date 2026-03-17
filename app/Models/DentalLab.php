@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 
@@ -110,5 +111,30 @@ class DentalLab extends Model
     public function cases(): HasMany
     {
         return $this->hasMany(CaseModel::class, 'lab_id');
+    }
+
+    public function setting(): HasOne
+    {
+        return $this->hasOne(LabSetting::class, 'lab_id');
+    }
+
+    public function labServices(): HasMany
+    {
+        return $this->hasMany(LabService::class, 'lab_id');
+    }
+
+    public function galleryImages(): HasMany
+    {
+        return $this->hasMany(LabGalleryImage::class, 'lab_id');
+    }
+
+    public function whatsappLogs(): HasMany
+    {
+        return $this->hasMany(LabWhatsAppApiLog::class, 'lab_id');
+    }
+
+    public function users(): HasMany
+    {
+        return $this->hasMany(User::class, 'lab_id');
     }
 }

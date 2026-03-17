@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Enums\ClinicType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -18,6 +20,12 @@ class Clinic extends Model
         'email',
         'phone',
         'address',
+        'subdomain',
+        'clinic_type',
+        'is_external',
+        'notes',
+        'added_by',
+        'registration_date',
         'subscription_plan',
         'payment_method',
         'status',
@@ -32,6 +40,9 @@ class Clinic extends Model
         return [
             'start_date' => 'datetime',
             'expiry_date' => 'datetime',
+            'registration_date' => 'date',
+            'is_external' => 'boolean',
+            'clinic_type' => ClinicType::class,
         ];
     }
 
@@ -53,6 +64,18 @@ class Clinic extends Model
     public function labPartnerships(): HasMany
     {
         return $this->hasMany(ClinicLabPartnership::class);
+    }
+
+    public function partneredLabs(): BelongsToMany
+    {
+        return $this->belongsToMany(DentalLab::class, 'clinic_lab_partnerships', 'clinic_id', 'lab_id')
+            ->withPivot(['status', 'total_cases_sent', 'partnership_start_date', 'last_case_date', 'invited_by'])
+            ->withTimestamps();
+    }
+
+    public function addedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'added_by');
     }
 
     public function dentalLabs(): BelongsToMany

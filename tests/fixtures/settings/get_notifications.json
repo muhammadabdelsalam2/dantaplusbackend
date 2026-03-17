@@ -1,0 +1,14 @@
+{
+  "success": true,
+  "message": "Notification settings fetched successfully",
+  "data": {
+    "new_case_alerts": {
+      "in_app_notification": true,
+      "email_notification": false
+    },
+    "case_update_alerts": {
+      "in_app_notification": true,
+      "email_notification": true
+    }
+  }
+}

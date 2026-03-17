@@ -1,0 +1,14 @@
+{
+  "success": true,
+  "message": "Lab profile fetched successfully",
+  "data": {
+    "lab_id": 1,
+    "lab_name": "Precision Dental Labs",
+    "contact_person": "Mike Ross",
+    "phone": "555-0201",
+    "email": "contact@precisionlabs.com",
+    "address": "789 Tech Park, Metropolis",
+    "working_hours": "9am - 6pm, Mon-Fri",
+    "logo_url": "https://cdn.example.com/labs/l1/logo.png"
+  }
+}

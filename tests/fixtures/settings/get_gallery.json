@@ -1,0 +1,18 @@
+{
+  "success": true,
+  "message": "Gallery images fetched successfully",
+  "data": [
+    {
+      "id": 10,
+      "type": "before",
+      "url": "https://cdn.example.com/labs/l1/before/img_10.webp",
+      "sort_order": 1
+    },
+    {
+      "id": 11,
+      "type": "after",
+      "url": "https://cdn.example.com/labs/l1/after/img_11.webp",
+      "sort_order": 1
+    }
+  ]
+}

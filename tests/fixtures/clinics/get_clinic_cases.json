@@ -1,0 +1,30 @@
+{
+  "success": true,
+  "message": "Clinic cases fetched successfully",
+  "data": {
+    "data": [
+      {
+        "id": "LO-001",
+        "patient": {
+          "name": "Olivia Johnson"
+        },
+        "due_date": "2026-03-25",
+        "status": "Delivered"
+      },
+      {
+        "id": "LO-004",
+        "patient": {
+          "name": "Liam Smith"
+        },
+        "due_date": "2026-03-20",
+        "status": "Delivered"
+      }
+    ],
+    "meta": {
+      "page": 1,
+      "per_page": 15,
+      "total": 2,
+      "last_page": 1
+    }
+  }
+}

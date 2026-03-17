@@ -1,0 +1,55 @@
+{
+  "success": true,
+  "message": "Lab notifications fetched successfully",
+  "data": {
+    "lab": {
+      "id": "l1",
+      "name": "Precision Dental Labs"
+    },
+    "notifications": [
+      {
+        "id": "notif-001",
+        "type": "NewCaseAssigned",
+        "title": "New Case Assigned",
+        "body": "Case LO-001 (Zirconia Crown) has been assigned to your lab.",
+        "read": false,
+        "created_at": "2026-03-16T08:00:00Z",
+        "recipient": {
+          "id": "01HX1A2B3C4D5E6F7G8H9J0K1L",
+          "full_name": "Lab Admin (Precision)",
+          "role": "lab_admin"
+        }
+      },
+      {
+        "id": "notif-002",
+        "type": "DeliveryScheduled",
+        "title": "Delivery Scheduled",
+        "body": "A delivery for Case LO-001 has been scheduled for today at 3:00 PM.",
+        "read": true,
+        "created_at": "2026-03-16T09:30:00Z",
+        "recipient": {
+          "id": "01HX1A2B3C4D5E6F7G8H9J0K5Q",
+          "full_name": "John Express",
+          "role": "delivery_rep"
+        }
+      },
+      {
+        "id": "notif-003",
+        "type": "LabSettingsChanged",
+        "title": "Lab Settings Updated",
+        "body": "WhatsApp integration settings have been updated by the administrator.",
+        "read": false,
+        "created_at": "2026-03-15T12:00:00Z",
+        "recipient": {
+          "id": "01HX1A2B3C4D5E6F7G8H9J0K1L",
+          "full_name": "Lab Admin (Precision)",
+          "role": "lab_admin"
+        }
+      }
+    ],
+    "meta": {
+      "total": 3,
+      "unread": 2
+    }
+  }
+}

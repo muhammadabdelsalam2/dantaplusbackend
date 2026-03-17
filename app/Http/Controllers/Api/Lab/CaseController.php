@@ -90,7 +90,7 @@ class CaseController extends Controller
 
     public function messages(Request $request, int $id)
     {
-        $perPage = (int) ($request->get('per_page', 30));
+        $perPage = (int) ($request->input('per_page', 30));
         $result = $this->communicationService->listMessages($id, $perPage);
 
         if (! $result['success']) {

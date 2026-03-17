@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\LabRole;
+use App\Enums\UserStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -17,11 +19,17 @@ class User extends Authenticatable
 
     protected $fillable = [
         'name',
+        'username',
         'email',
         'phone',
         'password',
+        'avatar_url',
         'is_active',
         'is_verified',
+        'status',
+        'role',
+        'commission_rates',
+        'last_login_at',
         'clinic_id',
         'lab_id',
     ];
@@ -38,6 +46,10 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_active' => 'boolean',
             'is_verified' => 'boolean',
+            'commission_rates' => 'array',
+            'role' => LabRole::class,
+            'status' => UserStatus::class,
+            'last_login_at' => 'datetime',
         ];
     }
 

@@ -5,6 +5,7 @@ namespace App\Repositories;
 use App\Models\Notification;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 
 class NotificationRepository
 {
@@ -31,6 +32,20 @@ class NotificationRepository
             ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->paginate($perPage);
+    }
+
+    public function listForAudienceUsers(array $userIds): Collection
+    {
+        if (empty($userIds)) {
+            return collect();
+        }
+
+        return Notification::query()
+            ->where('audience_type', 'user')
+            ->whereIn('audience_id', $userIds)
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->get();
     }
 
     public function findById(int $id): ?Notification

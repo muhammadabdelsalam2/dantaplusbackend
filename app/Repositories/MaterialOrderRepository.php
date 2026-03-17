@@ -35,4 +35,9 @@ class MaterialOrderRepository
             'items.product:id,company_id,name,category,price,image_url',
         ])->find($orderId);
     }
+
+    public function delete(MaterialOrder $order): void
+    {
+        $order->delete();
+    }
 }
