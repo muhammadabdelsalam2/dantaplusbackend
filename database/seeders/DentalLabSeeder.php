@@ -30,15 +30,17 @@ class DentalLabSeeder extends Seeder
                 'rejection_rate' => 3.0,
             ]);
 
-            $user = User::query()->create([
-                'name' => 'Lab Admin ' . $i,
-                'email' => 'labadmin' . $i . '@example.com',
-                'password' => Hash::make('Lab@12345'),
-                'is_active' => true,
-                'is_verified' => true,
-                'lab_id' => $lab->id,
-                'role' => 'lab_admin',
-            ]);
+            $user = User::query()->updateOrCreate(
+    ['email' => 'labadmin' . $i . '@example.com'],
+    [
+        'name' => 'Lab Admin ' . $i,
+        'password' => Hash::make('Lab@12345'),
+        'is_active' => true,
+        'is_verified' => true,
+        'lab_id' => $lab->id,
+        'role' => 'lab_admin',
+    ]
+);
 
             $user->syncRoles(['lab_admin']);
         }
