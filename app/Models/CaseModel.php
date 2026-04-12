@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class CaseModel extends Model
 {
@@ -113,5 +114,15 @@ class CaseModel extends Model
     public function activityLogs(): HasMany
     {
         return $this->hasMany(CaseActivityLog::class, 'case_id');
+    }
+
+    public function deliveryTasks(): HasMany
+    {
+        return $this->hasMany(DeliveryTask::class, 'case_id');
+    }
+
+    public function latestDeliveryTask(): HasOne
+    {
+        return $this->hasOne(DeliveryTask::class, 'case_id')->latestOfMany();
     }
 }

@@ -58,4 +58,9 @@ class CommunicationConversation extends Model
     {
         return $this->hasMany(CommunicationMessage::class, 'conversation_id');
     }
+
+    public function case(): BelongsTo
+    {
+        return $this->belongsTo(CaseModel::class, 'context_id');
+    }
 }

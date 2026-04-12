@@ -1,0 +1,198 @@
+{
+  "info": {
+    "name": "Delivery & Live Tracking",
+    "description": "Delivery and Live Tracking endpoints for Lab Module",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Delivery & Live Tracking",
+      "item": [
+        {
+          "name": "Get All Delivery Tasks",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/lab/delivery-tasks",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "lab",
+                "delivery-tasks"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Delivery Task",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"case_id\": 1,\n  \"delivery_date\": \"2026-04-10\",\n  \"description\": \"Sample delivery task\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/lab/delivery-tasks",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "lab",
+                "delivery-tasks"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Assign Delivery Task",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"delivery_rep_user_id\": 5\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/lab/delivery-tasks/1/assign",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "lab",
+                "delivery-tasks",
+                "1",
+                "assign"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Delivery Task Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"in_progress\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/lab/delivery-tasks/1/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "lab",
+                "delivery-tasks",
+                "1",
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Live Location",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"latitude\": 30.0444,\n  \"longitude\": 31.2357\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/lab/delivery-tasks/1/location",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "lab",
+                "delivery-tasks",
+                "1",
+                "location"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000/api",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

@@ -6,12 +6,12 @@ use App\Models\DentalLab;
 use App\Models\User;
 use App\Repositories\DentalLabRepository;
 use App\Support\ServiceResult;
+use App\Support\UserRoleManager;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Spatie\Permission\Models\Role;
 
 class DentalLabManagementService
 {
@@ -106,10 +106,7 @@ class DentalLabManagementService
             // Backward-compatible:
             // create lab login account only if admin credentials are sent
             if (!empty($adminEmail) && !empty($adminPassword)) {
-                $labRole = Role::firstOrCreate([
-                    'name' => 'lab',
-                    'guard_name' => 'web',
-                ]);
+                UserRoleManager::ensureRoleExists('lab_admin');
 
                 $createdUser = User::create([
                     'name' => $adminName ?: ($data['contact_person'] ?? $data['name']),
@@ -117,9 +114,10 @@ class DentalLabManagementService
                     'password' => $adminPassword,
                     'is_active' => $adminIsActive,
                     'lab_id' => $lab->id,
+                    'role' => 'lab_admin',
                 ]);
 
-                $createdUser->syncRoles([$labRole->name]);
+                $createdUser->syncRoles(['lab_admin']);
             }
 
             $fresh = $this->dentalLabRepository->findById($lab->id, [
@@ -135,7 +133,7 @@ class DentalLabManagementService
                 'email' => $createdUser->email,
                 'is_active' => (bool) $createdUser->is_active,
                 'lab_id' => $createdUser->lab_id,
-                'role' => 'lab',
+                'role' => 'lab_admin',
             ] : null;
 
             return ServiceResult::success($payload, 'Dental lab created successfully', 201);

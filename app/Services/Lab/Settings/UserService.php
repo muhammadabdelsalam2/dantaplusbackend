@@ -7,6 +7,7 @@ use App\Enums\UserStatus;
 use App\Http\Resources\Lab\Settings\UserResource;
 use App\Repositories\Lab\Settings\UserRepositoryInterface;
 use App\Support\ServiceResult;
+use App\Support\UserRoleManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -20,7 +21,7 @@ class UserService
     public function getLabUsers(array $filters): array
     {
         $labId = $this->currentLabId();
-        if (!$labId) {
+        if (! $labId) {
             return ServiceResult::error('Lab account is not linked to a dental lab', null, null, 403);
         }
 
@@ -42,11 +43,17 @@ class UserService
     public function createUser(array $data): array
     {
         $labId = $this->currentLabId();
-        if (!$labId) {
+        if (! $labId) {
             return ServiceResult::error('Lab account is not linked to a dental lab', null, null, 403);
         }
 
-        $role = LabRole::from($data['role']);
+        $normalizedRole = UserRoleManager::normalize($data['role']);
+        if (! in_array($normalizedRole, UserRoleManager::labAssignableRoles(), true)) {
+            return ServiceResult::error('Invalid lab role selected.', null, ['role' => ['Invalid lab role selected.']], 422);
+        }
+
+        $role = LabRole::from($normalizedRole);
+        UserRoleManager::ensureRoleExists($role->value);
         $commissionRates = $role === LabRole::LabTechnician
             ? ($data['commission_rates'] ?? null)
             : null;
@@ -65,9 +72,7 @@ class UserService
             'is_active' => true,
         ]);
 
-        if (!$user->hasRole('lab')) {
-            $user->assignRole('lab');
-        }
+        $user->syncRoles([$role->value]);
 
         return ServiceResult::success(
             (new UserResource($user->fresh()))->resolve(),
@@ -79,12 +84,12 @@ class UserService
     public function updateUser(int $userId, Request $request): array
     {
         $labId = $this->currentLabId();
-        if (!$labId) {
+        if (! $labId) {
             return ServiceResult::error('Lab account is not linked to a dental lab', null, null, 403);
         }
 
         $user = $this->userRepository->findByLabAndId($labId, $userId);
-        if (!$user) {
+        if (! $user) {
             return ServiceResult::error('User not found', null, null, 404);
         }
 
@@ -100,7 +105,12 @@ class UserService
         }
 
         if (array_key_exists('role', $data)) {
-            $payload['role'] = $data['role'];
+            $normalizedRole = UserRoleManager::normalize($data['role']);
+            if (! in_array($normalizedRole, UserRoleManager::labAssignableRoles(), true)) {
+                return ServiceResult::error('Invalid lab role selected.', null, ['role' => ['Invalid lab role selected.']], 422);
+            }
+
+            $payload['role'] = $normalizedRole;
         }
 
         if ($request->hasFile('avatar_url')) {
@@ -109,8 +119,8 @@ class UserService
         }
 
         $effectiveRole = array_key_exists('role', $data)
-            ? $data['role']
-            : $user->role?->value;
+            ? UserRoleManager::normalize($data['role'])
+            : UserRoleManager::primaryRole($user);
 
         if ($effectiveRole !== LabRole::LabTechnician->value) {
             $payload['commission_rates'] = null;
@@ -118,9 +128,15 @@ class UserService
             $payload['commission_rates'] = $data['commission_rates'];
         }
 
-        $updated = !empty($payload)
+        $updated = ! empty($payload)
             ? $this->userRepository->update($user, $payload)
             : $user->refresh();
+
+        if (array_key_exists('role', $data)) {
+            $normalizedRole = UserRoleManager::normalize($data['role']);
+            UserRoleManager::ensureRoleExists($normalizedRole);
+            $updated->syncRoles([$normalizedRole]);
+        }
 
         return ServiceResult::success(
             (new UserResource($updated))->resolve(),
@@ -131,12 +147,12 @@ class UserService
     public function updateStatus(int $userId, array $data): array
     {
         $labId = $this->currentLabId();
-        if (!$labId) {
+        if (! $labId) {
             return ServiceResult::error('Lab account is not linked to a dental lab', null, null, 403);
         }
 
         $user = $this->userRepository->findByLabAndId($labId, $userId);
-        if (!$user) {
+        if (! $user) {
             return ServiceResult::error('User not found', null, null, 404);
         }
 

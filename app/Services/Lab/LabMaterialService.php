@@ -3,6 +3,7 @@
 namespace App\Services\Lab;
 
 use App\Http\Resources\Lab\Material\LabMaterialResource;
+use App\Models\LabMaterial;
 use App\Repositories\LabMaterialRepository;
 use App\Support\ServiceResult;
 use Illuminate\Support\Facades\DB;
@@ -117,6 +118,16 @@ class LabMaterialService
         $this->materialRepository->delete($material);
 
         return ServiceResult::success(null, 'Material deleted successfully');
+    }
+
+    public function materialById(int $materialId): ?LabMaterial
+    {
+        $labId = $this->currentLabId();
+        if (! $labId) {
+            return null;
+        }
+
+        return $this->materialRepository->findForLabById($labId, $materialId);
     }
 
     private function currentLabId(): ?int

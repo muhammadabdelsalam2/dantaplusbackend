@@ -6,17 +6,11 @@ use App\Models\DentalLab;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
-use Spatie\Permission\Models\Role;
 
 class DentalLabSeeder extends Seeder
 {
     public function run(): void
     {
-        $role = Role::firstOrCreate([
-            'name' => 'lab',
-            'guard_name' => 'web',
-        ]);
-
         for ($i = 1; $i <= 3; $i++) {
             $lab = DentalLab::query()->create([
                 'name' => 'Dental Lab ' . $i,
@@ -43,9 +37,10 @@ class DentalLabSeeder extends Seeder
                 'is_active' => true,
                 'is_verified' => true,
                 'lab_id' => $lab->id,
+                'role' => 'lab_admin',
             ]);
 
-            $user->assignRole($role);
+            $user->syncRoles(['lab_admin']);
         }
     }
 }

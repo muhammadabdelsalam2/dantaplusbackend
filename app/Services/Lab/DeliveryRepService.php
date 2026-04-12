@@ -68,9 +68,7 @@ class DeliveryRepService
                 'lab_id' => (int) $authUser->lab_id,
             ]);
 
-            if (!$user->hasRole('lab')) {
-                $user->assignRole('lab');
-            }
+            $user->syncRoles(['delivery_representative']);
 
             $profilePhotoPath = null;
             if (isset($data['profile_photo']) && $data['profile_photo'] instanceof UploadedFile) {
@@ -308,3 +306,4 @@ class DeliveryRepService
         }
     }
 }
+

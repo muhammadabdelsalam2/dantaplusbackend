@@ -17,6 +17,7 @@ class UpdateUserRequest extends FormRequest
     {
         $userId = (int) $this->route('user');
         $labId = auth()->user()?->lab_id;
+        $assignableRoles = \App\Support\UserRoleManager::labAssignableRoles();
 
         return [
             'full_name' => ['sometimes', 'string', 'min:2', 'max:120'],
@@ -27,7 +28,7 @@ class UpdateUserRequest extends FormRequest
                     ->where(fn ($q) => $q->where('lab_id', $labId))
                     ->ignore($userId),
             ],
-            'role' => ['sometimes', Rule::enum(LabRole::class)],
+            'role' => ['sometimes', 'string', Rule::in($assignableRoles)],
             'avatar_url' => ['sometimes', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'commission_rates' => ['nullable', 'array'],
             'commission_rates.*' => ['numeric', 'min:0', 'max:100'],

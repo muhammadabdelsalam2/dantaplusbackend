@@ -9,7 +9,7 @@ Route::middleware('api.error')->group(function () {
 
     // Auth
     Route::middleware('guest')->group(function () {
-        Route::post('/login', [AuthController::class, 'login']);
+        Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
     });
 
     Route::middleware(['auth:sanctum'])->group(function () {

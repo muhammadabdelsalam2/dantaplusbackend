@@ -10,6 +10,7 @@ use App\Repositories\NotificationRepository;
 use App\Support\ServiceResult;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class CaseService
 {
@@ -21,9 +22,14 @@ class CaseService
 
     public function listCases(array $filters): array
     {
+        $user = auth()->user();
         $labId = $this->currentLabId();
         if (! $labId) {
             return ServiceResult::error('Lab account is not linked to a dental lab', null, null, 403);
+        }
+
+        if ($user?->hasRole('lab_technician')) {
+            $filters['restricted_user_id'] = (int) $user->id;
         }
 
         $perPage = (int) ($filters['per_page'] ?? 15);
@@ -118,6 +124,10 @@ class CaseService
                 return ServiceResult::error('Case not found', null, null, 404);
             }
 
+            if ((int) auth()->user()?->lab_id !== (int) $case->lab_id) {
+                return ServiceResult::error('Unauthorized case access', null, null, 403);
+            }
+
             $updated = $this->caseRepository->update($case, $data);
 
             $user = auth()->user();
@@ -150,16 +160,13 @@ class CaseService
                 return ServiceResult::error('Case not found', null, null, 404);
             }
 
+            if ((int) auth()->user()?->lab_id !== (int) $case->lab_id) {
+                return ServiceResult::error('Unauthorized case access', null, null, 403);
+            }
+
             $oldStatus = $case->status;
             $status = $data['status'];
-
-            $payload = ['status' => $status];
-            if ($status === CaseModel::STATUS_COMPLETED) {
-                $payload['completed_at'] = now();
-            }
-            if ($status === CaseModel::STATUS_DELIVERED) {
-                $payload['delivered_at'] = now();
-            }
+            $payload = $this->buildStatusPayload($case->load('latestDeliveryTask'), $status);
 
             $updated = $this->caseRepository->update($case, $payload);
 
@@ -218,6 +225,10 @@ class CaseService
                 return ServiceResult::error('Case not found', null, null, 404);
             }
 
+            if ((int) auth()->user()?->lab_id !== (int) $case->lab_id) {
+                return ServiceResult::error('Unauthorized case access', null, null, 403);
+            }
+
             $updated = $this->caseRepository->update($case, [
                 'assigned_technician_id' => $data['assigned_technician_id'],
             ]);
@@ -234,6 +245,12 @@ class CaseService
                     'assigned_technician_id' => $updated->assigned_technician_id,
                 ],
             ]);
+
+            if ($updated->status === CaseModel::STATUS_PENDING) {
+                $updated = $this->caseRepository->update($updated, [
+                    'status' => CaseModel::STATUS_ACCEPTED,
+                ]);
+            }
 
             $notification = $this->notificationRepository->create([
                 'title' => 'Case Assigned',
@@ -278,5 +295,40 @@ class CaseService
     private function currentLabId(): ?int
     {
         return auth()->user()?->lab_id;
+    }
+
+    private function buildStatusPayload(CaseModel $case, string $targetStatus): array
+    {
+        $allowedTransitions = [
+            CaseModel::STATUS_PENDING => [CaseModel::STATUS_ACCEPTED],
+            CaseModel::STATUS_ACCEPTED => [CaseModel::STATUS_IN_PROGRESS, CaseModel::STATUS_COMPLETED],
+            CaseModel::STATUS_IN_PROGRESS => [CaseModel::STATUS_COMPLETED],
+            CaseModel::STATUS_COMPLETED => [CaseModel::STATUS_DELIVERED],
+            CaseModel::STATUS_DELIVERED => [],
+        ];
+
+        if ($case->status !== $targetStatus && ! in_array($targetStatus, $allowedTransitions[$case->status] ?? [], true)) {
+            throw ValidationException::withMessages([
+                'status' => ["Invalid case transition from {$case->status} to {$targetStatus}."],
+            ]);
+        }
+
+        if ($targetStatus === CaseModel::STATUS_IN_PROGRESS && ! $case->assigned_technician_id) {
+            throw ValidationException::withMessages([
+                'status' => ['A technician must be assigned before moving the case to In Progress.'],
+            ]);
+        }
+
+        if ($targetStatus === CaseModel::STATUS_DELIVERED && ! $case->latestDeliveryTask?->delivered_at) {
+            throw ValidationException::withMessages([
+                'status' => ['Delivery must be completed before marking the case as delivered.'],
+            ]);
+        }
+
+        return array_filter([
+            'status' => $targetStatus,
+            'completed_at' => $targetStatus === CaseModel::STATUS_COMPLETED ? now() : null,
+            'delivered_at' => $targetStatus === CaseModel::STATUS_DELIVERED ? now() : null,
+        ], fn ($value) => $value !== null);
     }
 }

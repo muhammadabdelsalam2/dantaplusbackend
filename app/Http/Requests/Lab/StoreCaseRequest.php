@@ -20,7 +20,7 @@ class StoreCaseRequest extends FormRequest
         }
 
         if (! $this->has('priority')) {
-            $this->merge(['priority' => CaseModel::PRIORITY_MEDIUM]);
+            $this->merge(['priority' => CaseModel::PRIORITY_NORMAL]);
         }
     }
 
@@ -32,7 +32,8 @@ class StoreCaseRequest extends FormRequest
             'dentist_id' => ['required', 'integer', 'exists:doctors,id'],
             'due_date' => ['required', 'date'],
             'case_type' => ['required', 'string', 'max:255'],
-            'tooth_numbers' => ['nullable', 'string', 'max:255'],
+            'tooth_numbers' => ['nullable', 'array'],
+            'tooth_numbers.*' => ['integer'],
             'description' => ['nullable', 'string', 'max:5000'],
             'status' => ['required', Rule::in(CaseModel::STATUSES)],
             'priority' => ['required', Rule::in(CaseModel::PRIORITIES)],

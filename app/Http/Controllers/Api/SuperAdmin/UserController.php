@@ -39,7 +39,7 @@ class UserController extends Controller
 
     public function store(StoreUserRequest $request)
     {
-        $user = $this->service->create($request->validated());
+        $user = $this->service->create($request->validated(), $request->user());
 
         return response()->json([
             'success' => true,
@@ -59,7 +59,7 @@ class UserController extends Controller
 
     public function update(UpdateUserRequest $request, User $user)
     {
-        $updated = $this->service->update($user, $request->validated());
+        $updated = $this->service->update($user, $request->validated(), $request->user());
 
         return response()->json([
             'success' => true,
@@ -69,7 +69,7 @@ class UserController extends Controller
 
     public function toggleStatus(User $user)
     {
-        $updated = $this->service->toggleStatus($user);
+        $updated = $this->service->toggleStatus($user, request()->user());
 
         return response()->json([
             'success' => true,
@@ -79,7 +79,7 @@ class UserController extends Controller
 
     public function destroy(User $user)
     {
-        $this->service->delete($user);
+        $this->service->delete($user, request()->user());
 
         return response()->json([
             'success' => true,

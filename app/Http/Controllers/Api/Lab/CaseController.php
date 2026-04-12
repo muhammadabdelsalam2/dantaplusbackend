@@ -8,6 +8,7 @@ use App\Http\Requests\Lab\StoreCaseMessageRequest;
 use App\Http\Requests\Lab\StoreCaseRequest;
 use App\Http\Requests\Lab\UpdateCaseRequest;
 use App\Http\Requests\Lab\UpdateCaseStatusRequest;
+use App\Models\CaseModel;
 use App\Services\Lab\CaseCommunicationService;
 use App\Services\Lab\CaseService;
 use App\Support\ApiResponse;
@@ -35,6 +36,9 @@ class CaseController extends Controller
 
     public function show(int $id)
     {
+        $case = $this->case($id);
+        $this->authorize('view', $case);
+
         $result = $this->caseService->showCase($id);
 
         if (! $result['success']) {
@@ -57,6 +61,9 @@ class CaseController extends Controller
 
     public function update(UpdateCaseRequest $request, int $id)
     {
+        $case = $this->case($id);
+        $this->authorize('update', $case);
+
         $result = $this->caseService->updateCase($id, $request->validated());
 
         if (! $result['success']) {
@@ -68,6 +75,9 @@ class CaseController extends Controller
 
     public function updateStatus(UpdateCaseStatusRequest $request, int $id)
     {
+        $case = $this->case($id);
+        $this->authorize('update', $case);
+
         $result = $this->caseService->updateStatus($id, $request->validated());
 
         if (! $result['success']) {
@@ -79,6 +89,9 @@ class CaseController extends Controller
 
     public function assignTechnician(AssignTechnicianRequest $request, int $id)
     {
+        $case = $this->case($id);
+        $this->authorize('update', $case);
+
         $result = $this->caseService->assignTechnician($id, $request->validated());
 
         if (! $result['success']) {
@@ -90,6 +103,9 @@ class CaseController extends Controller
 
     public function messages(Request $request, int $id)
     {
+        $case = $this->case($id);
+        $this->authorize('view', $case);
+
         $perPage = (int) ($request->input('per_page', 30));
         $result = $this->communicationService->listMessages($id, $perPage);
 
@@ -102,6 +118,9 @@ class CaseController extends Controller
 
     public function storeMessage(StoreCaseMessageRequest $request, int $id)
     {
+        $case = $this->case($id);
+        $this->authorize('update', $case);
+
         $result = $this->communicationService->sendMessage($id, $request->validated());
 
         if (! $result['success']) {
@@ -113,6 +132,9 @@ class CaseController extends Controller
 
     public function storeAttachment(StoreCaseMessageRequest $request, int $id)
     {
+        $case = $this->case($id);
+        $this->authorize('update', $case);
+
         $result = $this->communicationService->addAttachment($id, $request->validated());
 
         if (! $result['success']) {
@@ -124,6 +146,9 @@ class CaseController extends Controller
 
     public function activityLog(int $id)
     {
+        $case = $this->case($id);
+        $this->authorize('view', $case);
+
         $result = $this->communicationService->listActivityLogs($id);
 
         if (! $result['success']) {
@@ -131,5 +156,12 @@ class CaseController extends Controller
         }
 
         return ApiResponse::success($result['data'], $result['message'], $result['code']);
+    }
+
+    private function case(int $id): CaseModel
+    {
+        return CaseModel::query()
+            ->where('lab_id', auth()->user()?->lab_id)
+            ->findOrFail($id);
     }
 }

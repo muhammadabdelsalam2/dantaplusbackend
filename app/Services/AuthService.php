@@ -34,24 +34,6 @@ class AuthService
 
         $user = auth()->user();
 
-        // تحقق إذا المستخدم لم يفعّل حسابه
-        if (!$user->is_verified) {
-            // أرسل OTP مرة تانية
-            app()->make(OtpService::class)->generate(
-                $user->email,
-                OtpType::REGISTER->value,
-                'email',
-                $user->id
-            );
-
-            return ServiceResult::error(
-                'Your account is not verified. OTP has been resent to your email.',
-                route('api.auth.verifyAccount'), // next API endpoint
-                null,
-                403
-            );
-        }
-
         return ServiceResult::success([
             'token' => $user->createToken('api')->plainTextToken,
             'user' => $user,
@@ -108,10 +90,6 @@ class AuthService
         $user = User::where('email', $identifier)
             ->orWhere('phone', $identifier)
             ->firstOrFail();
-
-        if (!$user->is_verified) {
-            throw new Exception('User not verified yet.');
-        }
 
         // Generate OTP for login using Enum
         $this->otpService->generate(

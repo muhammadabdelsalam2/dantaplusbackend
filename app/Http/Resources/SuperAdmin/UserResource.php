@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\SuperAdmin;
 
+use App\Support\UserRoleManager;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -9,7 +10,7 @@ class UserResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        $roles = $this->whenLoaded('roles', fn () => $this->roles->pluck('name')->values(), []);
+        
         $entityType = null;
         $entityId = null;
 
@@ -25,8 +26,11 @@ class UserResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'email' => $this->email,
+            'phone' => $this->phone,
             'is_active' => (bool) $this->is_active,
-            'roles' => $roles,
+            'role' => UserRoleManager::primaryRole($this->resource),
+            'roles' => $this->getRoleNames()->values()->all(),
+            'lab_id' => $this->lab_id,
             'entity' => [
                 'type' => $entityType,
                 'id' => $entityId,

@@ -4,6 +4,7 @@ namespace App\Http\Resources\Lab\Settings;
 
 use App\Enums\LabRole;
 use App\Enums\UserStatus;
+use App\Support\UserRoleManager;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Str;
@@ -12,7 +13,7 @@ class UserResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        $role = $this->role?->value ?: ($this->getRoleNames()->first() ?? null);
+        $role = UserRoleManager::primaryRole($this->resource);
         $status = $this->status?->value ?: ($this->is_active ? UserStatus::Active->value : UserStatus::Inactive->value);
 
         $username = $this->username;
@@ -31,6 +32,8 @@ class UserResource extends JsonResource
             'username' => $username ?? '',
             'email' => $this->email ?? '',
             'role' => $role ?? '',
+            'roles' => $this->getRoleNames()->values()->all(),
+            'lab_id' => $this->lab_id,
             'status' => $status ?? '',
             'avatar_url' => $this->avatar_url ?? '',
             'last_login' => optional($this->last_login_at)->toISOString() ?? '',

@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Services\AuthService;
 use App\Services\OtpService;
 use App\Support\ApiResponse;
+use App\Support\UserRoleManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -51,13 +52,25 @@ class AuthController extends Controller
             return ApiResponse::error('Account is inactive', 403);
         }
 
+        $user = $user->fresh();
         $token = $user->createToken('postman')->plainTextToken;
 
         return ApiResponse::success([
             'user' => $user,
+            'lab_id' => $user->lab_id,
+            'role' => UserRoleManager::primaryRole($user),
+            'roles' => UserRoleManager::allRoles($user)->all(),
+            // 'permissions' => $user->getAllPermissions()->pluck('name')->values()->all(),
             'token' => $token,
             'token_type' => 'Bearer',
         ], 'Logged in');
+    }
+
+    public function logout(Request $request)
+    {
+        $request->user()?->currentAccessToken()?->delete();
+
+        return ApiResponse::success(null, 'Logged out successfully');
     }
 
     public function registerDoctor(RegisterDoctorRequest $request)

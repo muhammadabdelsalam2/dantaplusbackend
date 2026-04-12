@@ -15,7 +15,6 @@ use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
-use Spatie\Permission\Models\Role;
 
 class LabSettingsSeeder extends Seeder
 {
@@ -32,11 +31,6 @@ class LabSettingsSeeder extends Seeder
             'address' => '789 Tech Park, Metropolis',
             'working_hours' => '9am - 6pm, Mon-Fri',
             'status' => DentalLab::STATUS_ACTIVE,
-        ]);
-
-        $labRole = Role::firstOrCreate([
-            'name' => 'lab',
-            'guard_name' => 'web',
         ]);
 
         $users = [
@@ -89,7 +83,7 @@ class LabSettingsSeeder extends Seeder
             [
                 'full_name' => 'John Express',
                 'email' => 'DEL-001@dentaplus.com',
-                'role' => LabRole::DeliveryRep->value,
+                'role' => LabRole::DeliveryRepresentative->value,
                 'status' => UserStatus::Active->value,
                 'username' => 'johnexpress',
                 'avatar_url' => 'https://cdn.example.com/avatars/u11.png',
@@ -99,7 +93,7 @@ class LabSettingsSeeder extends Seeder
             [
                 'full_name' => 'Speedy Sara',
                 'email' => 'DEL-002@dentaplus.com',
-                'role' => LabRole::DeliveryRep->value,
+                'role' => LabRole::DeliveryRepresentative->value,
                 'status' => UserStatus::Active->value,
                 'username' => 'speedysara',
                 'avatar_url' => 'https://cdn.example.com/avatars/u13.png',
@@ -109,7 +103,7 @@ class LabSettingsSeeder extends Seeder
             [
                 'full_name' => 'Rapid Ron',
                 'email' => 'DEL-003@dentaplus.com',
-                'role' => LabRole::DeliveryRep->value,
+                'role' => LabRole::DeliveryRepresentative->value,
                 'status' => UserStatus::Inactive->value,
                 'username' => 'rapidron',
                 'avatar_url' => 'https://cdn.example.com/avatars/u12.png',
@@ -136,9 +130,15 @@ class LabSettingsSeeder extends Seeder
                 'is_verified' => true,
             ]);
 
-            if (!$user->hasRole($labRole->name)) {
-                $user->assignRole($labRole);
-            }
+            $roles = match ($payload['role']) {
+                LabRole::LabAdmin->value => ['lab_admin'],
+                LabRole::LabReceptionist->value => ['lab_receptionist'],
+                LabRole::LabTechnician->value => ['lab_technician'],
+                LabRole::DeliveryRepresentative->value => ['delivery_representative'],
+                default => ['lab_admin'],
+            };
+
+            $user->syncRoles($roles);
         }
 
         $services = [

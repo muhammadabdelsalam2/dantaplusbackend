@@ -28,9 +28,24 @@ class UpdateUserRequest extends FormRequest
         return [
             'name' => ['sometimes', 'string', 'max:255'],
             'email' => ['sometimes', 'email', 'max:255', Rule::unique('users', 'email')->ignore($userId)],
+            'phone' => ['sometimes', 'nullable', 'string', 'max:50'],
             'password' => ['sometimes', 'nullable', 'string', 'min:8', 'max:255'],
             'is_active' => ['sometimes', 'boolean'],
-            'role' => ['sometimes', 'string', Rule::exists('roles', 'name')],
+            'role' => [
+                'sometimes',
+                'string',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if ($value === 'lab') {
+                        return;
+                    }
+
+                    if (! \Spatie\Permission\Models\Role::query()->where('name', $value)->where('guard_name', 'web')->exists()) {
+                        $fail('The selected role is invalid.');
+                    }
+                },
+            ],
+            'lab_id' => ['sometimes', 'nullable', 'integer', Rule::exists('dental_labs', 'id')],
+            'lab_name' => ['sometimes', 'nullable', 'string', 'max:255'],
         ];
     }
 
