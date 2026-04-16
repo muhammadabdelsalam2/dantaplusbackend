@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Enums\LabRole;
 use App\Enums\UserStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,6 +17,7 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, HasRoles, Notifiable;
 
     protected $fillable = [
+        'company_id',
         'name',
         'username',
         'email',
@@ -47,7 +47,6 @@ class User extends Authenticatable
             'is_active' => 'boolean',
             'is_verified' => 'boolean',
             'commission_rates' => 'array',
-            'role' => LabRole::class,
             'status' => UserStatus::class,
             'last_login_at' => 'datetime',
         ];
@@ -71,6 +70,11 @@ class User extends Authenticatable
     public function clinic(): BelongsTo
     {
         return $this->belongsTo(Clinic::class);
+    }
+
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
     }
 
     public function lab(): BelongsTo

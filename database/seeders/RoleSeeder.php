@@ -22,6 +22,9 @@ class RoleSeeder extends Seeder
             'lab_receptionist',
             'lab_technician',
             'delivery_representative',
+            'material_company_admin',
+            'sales_rep',
+            'delivery_staff',
         ];
 
         $permissions = [
@@ -42,6 +45,11 @@ class RoleSeeder extends Seeder
             'support.view',
             'support.create',
             'users.manage',
+            'products.manage',
+            'orders.manage',
+            'billing.manage',
+            'reports.view',
+            'settings.manage',
         ];
 
         foreach ($permissions as $permission) {
@@ -88,6 +96,25 @@ class RoleSeeder extends Seeder
                 'delivery.update-location',
                 'delivery.update-status',
                 'support.view',
+            ],
+            'material_company_admin' => [
+                'products.manage',
+                'inventory.view',
+                'inventory.manage',
+                'orders.manage',
+                'billing.manage',
+                'reports.view',
+                'settings.manage',
+                'users.manage',
+            ],
+            'sales_rep' => [
+                'products.manage',
+                'orders.manage',
+                'billing.manage',
+                'reports.view',
+            ],
+            'delivery_staff' => [
+                'orders.manage',
             ],
         ];
 

@@ -158,7 +158,7 @@ class UserService
 
         $status = $data['status'];
 
-        if ($user->role?->value === LabRole::LabAdmin->value && $status === UserStatus::Inactive->value) {
+        if ($user->role === LabRole::LabAdmin->value && $status === UserStatus::Inactive->value) {
             $activeAdmins = $this->userRepository->countActiveLabAdmins($labId, $user->id);
             if ($activeAdmins <= 0) {
                 return ServiceResult::error('Cannot deactivate the only active lab admin.', null, null, 422);

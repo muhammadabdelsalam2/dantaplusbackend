@@ -54,16 +54,13 @@ class AuthController extends Controller
 
         $user = $user->fresh();
         $token = $user->createToken('postman')->plainTextToken;
+        $role = UserRoleManager::primaryRole($user);
 
         return ApiResponse::success([
-            'user' => $user,
-            'lab_id' => $user->lab_id,
-            'role' => UserRoleManager::primaryRole($user),
-            'roles' => UserRoleManager::allRoles($user)->all(),
-            // 'permissions' => $user->getAllPermissions()->pluck('name')->values()->all(),
+            'user' => $this->formatAuthenticatedUser($user, $role),
             'token' => $token,
             'token_type' => 'Bearer',
-        ], 'Logged in');
+        ], 'Logged in successfully');
     }
 
     public function logout(Request $request)
@@ -134,5 +131,25 @@ class AuthController extends Controller
 
             return ApiResponse::error($message, 400);
         }
+    }
+
+    private function formatAuthenticatedUser(User $user, ?string $role): array
+    {
+        $payload = [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'role' => $role,
+        ];
+
+        if (UserRoleManager::isLabScopedRole($role) && $user->lab_id) {
+            $payload['lab_id'] = $user->lab_id;
+        }
+
+        if (UserRoleManager::isCompanyScopedRole($role) && $user->company_id) {
+            $payload['company_id'] = $user->company_id;
+        }
+
+        return array_filter($payload, static fn ($value) => $value !== null);
     }
 }

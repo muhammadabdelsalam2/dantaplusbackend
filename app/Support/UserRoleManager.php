@@ -11,6 +11,11 @@ use Spatie\Permission\Models\Role;
 class UserRoleManager
 {
     public const LEGACY_LAB_ROLE = 'lab';
+    public const COMPANY_ROLES = [
+        'material_company_admin',
+        'sales_rep',
+        'delivery_staff',
+    ];
 
     public static function normalize(?string $role): ?string
     {
@@ -43,6 +48,16 @@ class UserRoleManager
             LabRole::LabTechnician->value,
             LabRole::DeliveryRepresentative->value,
         ];
+    }
+
+    public static function companyRoles(): array
+    {
+        return self::COMPANY_ROLES;
+    }
+
+    public static function isCompanyScopedRole(?string $role): bool
+    {
+        return in_array(self::normalize($role), self::companyRoles(), true);
     }
 
     /**
