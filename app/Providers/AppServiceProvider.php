@@ -8,6 +8,8 @@ use App\Repositories\Contracts\SuperAdmin\SubscriptionDashboardRepositoryInterfa
 use App\Repositories\Contracts\SuperAdmin\UserManagementRepositoryInterface;
 use App\Repositories\Lab\Clinic\ClinicRepository;
 use App\Repositories\Lab\Clinic\ClinicRepositoryInterface;
+use App\Repositories\Lab\Lookup\LookupRepository;
+use App\Repositories\Lab\Lookup\LookupRepositoryInterface;
 use App\Repositories\Lab\Settings\ServiceRepository;
 use App\Repositories\Lab\Settings\ServiceRepositoryInterface;
 use App\Repositories\Lab\Settings\SettingsRepository;
@@ -34,6 +36,7 @@ class AppServiceProvider extends ServiceProvider
         );
 
         $this->app->bind(ClinicRepositoryInterface::class, ClinicRepository::class);
+        $this->app->bind(LookupRepositoryInterface::class, LookupRepository::class);
 
         $this->app->bind(UserRepositoryInterface::class, UserRepository::class);
         $this->app->bind(ServiceRepositoryInterface::class, ServiceRepository::class);

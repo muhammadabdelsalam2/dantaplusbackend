@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\Lab\ClinicInviteController;
 use App\Http\Controllers\Api\Lab\ClinicPartnershipController;
 use App\Http\Controllers\Api\Lab\DeliveryTaskController;
 use App\Http\Controllers\Api\Lab\MaterialController;
+use App\Http\Controllers\Api\Lab\LookupController;
 
 use App\Http\Controllers\Api\Lab\DeliveryRepController;
 use App\Http\Controllers\Api\Lab\DeliveryReportController;
@@ -47,6 +48,12 @@ Route::prefix('lab')
             Route::post('/{id}/messages', [CaseController::class, 'storeMessage']);
             Route::post('/{id}/attachments', [CaseController::class, 'storeAttachment']);
             Route::get('/{id}/activity-log', [CaseController::class, 'activityLog']);
+        });
+
+        Route::middleware(['role:lab_admin|lab_receptionist|lab_technician'])->group(function () {
+            Route::get('/patients', [LookupController::class, 'patients']);
+            Route::get('/dentists', [LookupController::class, 'dentists']);
+            Route::get('/technicians', [LookupController::class, 'technicians']);
         });
 
         Route::middleware(['role:lab_admin|lab_receptionist|lab_technician'])->prefix('materials')->group(function () {
