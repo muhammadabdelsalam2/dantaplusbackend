@@ -25,6 +25,11 @@ class RoleSeeder extends Seeder
             'material_company_admin',
             'sales_rep',
             'delivery_staff',
+            'clinic_admin',
+            'nurse',
+            'accountant',
+            'receptionist',
+            'staff',
         ];
 
         $permissions = [
@@ -50,6 +55,16 @@ class RoleSeeder extends Seeder
             'billing.manage',
             'reports.view',
             'settings.manage',
+            'patients.view',
+            'patients.create',
+            'patients.update',
+            'appointments.view',
+            'appointments.create',
+            'appointments.update',
+            'treatments.manage',
+            'labs.send',
+            'labs.track',
+            'communication.send',
         ];
 
         foreach ($permissions as $permission) {
@@ -115,6 +130,58 @@ class RoleSeeder extends Seeder
             ],
             'delivery_staff' => [
                 'orders.manage',
+            ],
+            'clinic_admin' => [
+                'users.manage',
+                'reports.view',
+                'settings.manage',
+                'patients.view',
+                'patients.create',
+                'patients.update',
+                'appointments.view',
+                'appointments.create',
+                'appointments.update',
+                'treatments.manage',
+                'billing.manage',
+                'labs.send',
+                'labs.track',
+                'communication.send',
+            ],
+            'doctor' => [
+                'patients.view',
+                'appointments.view',
+                'appointments.update',
+                'treatments.manage',
+                'labs.send',
+                'labs.track',
+                'reports.view',
+                'communication.send',
+            ],
+            'nurse' => [
+                'patients.view',
+                'patients.create',
+                'patients.update',
+                'appointments.view',
+                'appointments.create',
+                'appointments.update',
+                'communication.send',
+            ],
+            'accountant' => [
+                'patients.view',
+                'billing.manage',
+                'reports.view',
+            ],
+            'receptionist' => [
+                'patients.view',
+                'patients.create',
+                'appointments.view',
+                'appointments.create',
+                'appointments.update',
+                'communication.send',
+            ],
+            'staff' => [
+                'patients.view',
+                'appointments.view',
             ],
         ];
 

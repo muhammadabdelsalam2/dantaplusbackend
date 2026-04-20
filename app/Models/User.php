@@ -106,4 +106,19 @@ class User extends Authenticatable
     {
         return $this->hasMany(CaseModel::class, 'created_by');
     }
+
+    public function clinicAppointments(): HasMany
+    {
+        return $this->hasMany(ClinicAppointment::class, 'doctor_user_id');
+    }
+
+    public function clinicTreatments(): HasMany
+    {
+        return $this->hasMany(ClinicTreatment::class, 'doctor_user_id');
+    }
+
+    public function recordedClinicPayments(): HasMany
+    {
+        return $this->hasMany(ClinicPayment::class, 'recorded_by');
+    }
 }

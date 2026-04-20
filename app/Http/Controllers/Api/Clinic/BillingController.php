@@ -1,0 +1,62 @@
+<?php
+
+namespace App\Http\Controllers\Api\Clinic;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Clinic\StoreClinicInvoiceRequest;
+use App\Http\Requests\Clinic\StoreClinicPaymentRequest;
+use App\Services\Clinic\BillingService;
+use App\Support\ApiResponse;
+
+class BillingController extends Controller
+{
+    use ApiResponse;
+
+    public function __construct(private BillingService $service)
+    {
+    }
+
+    public function index()
+    {
+        $result = $this->service->indexInvoices();
+
+        if (! $result['success']) {
+            return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+        }
+
+        return ApiResponse::success($result['data'], $result['message'], $result['code']);
+    }
+
+    public function store(StoreClinicInvoiceRequest $request)
+    {
+        $result = $this->service->createInvoice($request->validated());
+
+        if (! $result['success']) {
+            return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+        }
+
+        return ApiResponse::success($result['data'], $result['message'], $result['code']);
+    }
+
+    public function show(int $id)
+    {
+        $result = $this->service->showInvoice($id);
+
+        if (! $result['success']) {
+            return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+        }
+
+        return ApiResponse::success($result['data'], $result['message'], $result['code']);
+    }
+
+    public function payment(StoreClinicPaymentRequest $request, int $invoice)
+    {
+        $result = $this->service->recordPayment($invoice, $request->validated());
+
+        if (! $result['success']) {
+            return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+        }
+
+        return ApiResponse::success($result['data'], $result['message'], $result['code']);
+    }
+}

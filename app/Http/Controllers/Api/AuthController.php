@@ -150,6 +150,10 @@ class AuthController extends Controller
             $payload['company_id'] = $user->company_id;
         }
 
+        if (UserRoleManager::isClinicScopedRole($role) && $user->clinic_id) {
+            $payload['clinic_id'] = $user->clinic_id;
+        }
+
         return array_filter($payload, static fn ($value) => $value !== null);
     }
 }

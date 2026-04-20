@@ -16,6 +16,14 @@ class UserRoleManager
         'sales_rep',
         'delivery_staff',
     ];
+    public const CLINIC_ROLES = [
+        'clinic_admin',
+        'doctor',
+        'nurse',
+        'accountant',
+        'receptionist',
+        'staff',
+    ];
 
     public static function normalize(?string $role): ?string
     {
@@ -55,9 +63,30 @@ class UserRoleManager
         return self::COMPANY_ROLES;
     }
 
+    public static function clinicRoles(): array
+    {
+        return self::CLINIC_ROLES;
+    }
+
     public static function isCompanyScopedRole(?string $role): bool
     {
         return in_array(self::normalize($role), self::companyRoles(), true);
+    }
+
+    public static function isClinicScopedRole(?string $role): bool
+    {
+        return in_array(self::normalize($role), self::clinicRoles(), true);
+    }
+
+    public static function clinicAssignableRoles(): array
+    {
+        return [
+            'doctor',
+            'nurse',
+            'accountant',
+            'receptionist',
+            'staff',
+        ];
     }
 
     /**
