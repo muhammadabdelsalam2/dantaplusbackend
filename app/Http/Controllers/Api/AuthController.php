@@ -37,14 +37,7 @@ class AuthController extends Controller
             return ApiResponse::error('Invalid credentials', 401);
         }
 
-        $ok = Auth::guard('web')->attempt([
-            'email' => $user->email,
-            'password' => $data['password'],
-        ]);
 
-        if (!$ok) {
-            return ApiResponse::error('Invalid credentials', 401);
-        }
 
         if ((int) ($user->is_active ?? 1) !== 1) {
             Auth::guard('web')->logout();
@@ -154,6 +147,6 @@ class AuthController extends Controller
             $payload['clinic_id'] = $user->clinic_id;
         }
 
-        return array_filter($payload, static fn ($value) => $value !== null);
+        return array_filter($payload, static fn($value) => $value !== null);
     }
 }

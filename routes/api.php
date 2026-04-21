@@ -14,8 +14,8 @@ Route::middleware('api.error')->group(function () {
 
     Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
-        Route::get('/me', fn () => auth()->user());
-        Route::get('/user', fn (Request $request) => $request->user());
+        Route::get('/me', fn() => auth()->user());
+        Route::get('/user', fn(Request $request) => $request->user());
 
         Route::prefix('communication')->group(function () {
             Route::get('/contacts', [CommunicationController::class, 'contacts']);

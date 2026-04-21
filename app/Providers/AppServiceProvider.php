@@ -2,10 +2,13 @@
 
 namespace App\Providers;
 
+use App\Repositories\Chat\Message\MessageRepository;
+use App\Repositories\Contracts\Chat\Message\MessageRepositoryInterface;
 use App\Repositories\Contracts\SuperAdmin\RoleManagementRepositoryInterface;
 use App\Repositories\Contracts\SuperAdmin\SettingsRepositoryInterface as SuperAdminSettingsRepositoryInterface;
 use App\Repositories\Contracts\SuperAdmin\SubscriptionDashboardRepositoryInterface;
 use App\Repositories\Contracts\SuperAdmin\UserManagementRepositoryInterface;
+
 use App\Repositories\Lab\Clinic\ClinicRepository;
 use App\Repositories\Lab\Clinic\ClinicRepositoryInterface;
 use App\Repositories\Lab\Lookup\LookupRepository;
@@ -41,6 +44,9 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(UserRepositoryInterface::class, UserRepository::class);
         $this->app->bind(ServiceRepositoryInterface::class, ServiceRepository::class);
         $this->app->bind(SettingsRepositoryInterface::class, SettingsRepository::class);
+
+        // Chat Repository Binding 
+        $this->app->bind(MessageRepositoryInterface::class, MessageRepository::class);
     }
 
     public function boot(): void
