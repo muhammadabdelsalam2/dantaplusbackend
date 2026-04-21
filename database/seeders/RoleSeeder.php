@@ -77,6 +77,9 @@ class RoleSeeder extends Seeder
                 'guard_name' => 'web',
             ]);
         }
+        // Console roles Details in table format
+        $this->command->info('Assigning permissions to roles...');
+        // Show Roles and their permissions in a table format
 
         $matrix = [
             'lab_admin' => $permissions,
@@ -187,6 +190,18 @@ class RoleSeeder extends Seeder
 
         foreach ($matrix as $roleName => $rolePermissions) {
             Role::findByName($roleName, 'web')->syncPermissions($rolePermissions);
+
+            $this->command->info('Assigning permissions to roles...');
+
+            $this->command->table(
+                ['Role', 'Permissions'],
+                collect($roles)->map(function ($role) {
+                    return [
+                        'Role' => $role,
+                        'Permissions' => implode(', ', Role::findByName($role, 'web')->permissions->pluck('name')->toArray()),
+                    ];
+                })->toArray()
+            );
         }
     }
 }

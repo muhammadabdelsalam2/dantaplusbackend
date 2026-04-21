@@ -26,6 +26,12 @@ class LabSetting extends Model
         'whatsapp_meta_json',
         'whatsapp_twilio_json',
     ];
+    protected $casts = [
+        'notifications_json' => 'array',
+    ];
+    protected $attributes = [
+        'notifications_json' => '{"new_case_alerts":{"in_app_notification":true,"email_notification":false},"case_update_alerts":{"in_app_notification":true,"email_notification":false}}'
+    ];
 
     protected function casts(): array
     {

@@ -13,7 +13,9 @@ class MaterialCompanySeeder extends Seeder
             MaterialCompany::create([
                 'name' => 'Supplier Company ' . $i,
                 'email' => 'supplier' . $i . '@example.com',
-                'phone' => '0111111' . str_pad((string)$i, 4, '0', STR_PAD_LEFT),
+                'phone' => '0111111' . str_pad((string) $i, 4, '0', STR_PAD_LEFT),
+                'commission_percentage' => '4',
+                'country' => 'Alexandria',
             ]);
         }
     }
