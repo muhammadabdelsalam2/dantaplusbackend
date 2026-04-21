@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\Clinic\AppointmentController;
 use App\Http\Controllers\Api\Clinic\BillingController;
+use App\Http\Controllers\Api\Clinic\ClinicController;
 use App\Http\Controllers\Api\Clinic\PatientController;
 use App\Http\Controllers\Api\Clinic\TreatmentController;
 use App\Http\Controllers\Api\Clinic\UserController;
@@ -11,6 +12,8 @@ Route::prefix('clinic')
     ->middleware(['auth:sanctum', 'role:clinic_admin|doctor|nurse|accountant|receptionist|staff'])
     ->group(function () {
         Route::middleware('role:clinic_admin')->group(function () {
+            Route::get('/my-clinic', [ClinicController::class, 'getMyClinic']);
+            Route::post('/update-my-clinic', [ClinicController::class, 'updateMyClinic']);
             Route::get('/users', [UserController::class, 'index']);
             Route::post('/users', [UserController::class, 'store']);
             Route::get('/users/{id}', [UserController::class, 'show']);
