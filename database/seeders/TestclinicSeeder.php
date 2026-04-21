@@ -89,10 +89,14 @@ class TestclinicSeeder extends Seeder
         $this->command->info('Clinic Admin created/updated: ' . $clinicAdmin->email);
 
         // ─── 5. Staff — واحد من كل role clinic موجودة ───────────────
-        $allRoles      = Role::query()->pluck('name')->all();
-        $skipRoles     = ['super-admin', 'Admin', 'clinic_admin', 'patient'];
-        $clinicRoles   = array_filter($allRoles, fn($r) => ! in_array($r, $skipRoles, true));
-
+       $clinicRoles = [
+    'doctor',
+    'nurse',
+    'accountant',
+    'receptionist',
+    'delivery_representative',
+    'delivery_staff',
+];
         $roleUsers = ['clinic_admin' => $clinicAdmin];
 
         foreach ($clinicRoles as $roleName) {
