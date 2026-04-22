@@ -2,10 +2,10 @@
 
 namespace App\Repositories\Contracts\Chat\Message;
 
-use App\DTOs\Message\CreateMessageDTO;
+use App\DTOs\CreateMessageDTO;
 
 interface MessageRepositoryInterface
 {
     public function create(CreateMessageDTO $dto);
-    public function getChatMessages(int $chatId);
+    public function getChatMessages(int $chatId, int $userId);
 }

@@ -14,6 +14,9 @@ return new class extends Migration {
             $table->id();
             $table->enum('type', ['direct', 'group']);
             $table->foreignId('team_id')->nullable()->constrained()->cascadeOnDelete();
+            $table->foreignId('clinic_id')->nullable()->constrained('clinics')->nullOnDelete();
+            $table->foreignId('owner_id')->constrained('users')->cascadeOnDelete();
+            $table->index(['clinic_id', 'owner_id']);
             $table->string('name')->nullable(); // group name
             $table->timestamps();
         });

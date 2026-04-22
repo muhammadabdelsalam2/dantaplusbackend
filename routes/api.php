@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CommunicationController;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('api.error')->group(function () {
@@ -26,3 +27,7 @@ Route::middleware('api.error')->group(function () {
         });
     });
 });
+
+Broadcast::routes([
+    'middleware' => ['auth:sanctum'],
+]);

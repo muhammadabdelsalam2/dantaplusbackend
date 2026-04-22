@@ -3,7 +3,9 @@
 namespace App\Providers;
 
 use App\Repositories\Chat\Message\MessageRepository;
+use App\Repositories\Chat\Team\TeamRepository;
 use App\Repositories\Contracts\Chat\Message\MessageRepositoryInterface;
+use App\Repositories\Contracts\Chat\Team\TeamRepositoryInterface;
 use App\Repositories\Contracts\SuperAdmin\RoleManagementRepositoryInterface;
 use App\Repositories\Contracts\SuperAdmin\SettingsRepositoryInterface as SuperAdminSettingsRepositoryInterface;
 use App\Repositories\Contracts\SuperAdmin\SubscriptionDashboardRepositoryInterface;
@@ -47,6 +49,7 @@ class AppServiceProvider extends ServiceProvider
 
         // Chat Repository Binding 
         $this->app->bind(MessageRepositoryInterface::class, MessageRepository::class);
+        $this->app->bind(TeamRepositoryInterface::class, TeamRepository::class);
     }
 
     public function boot(): void

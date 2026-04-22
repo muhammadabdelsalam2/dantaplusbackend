@@ -12,12 +12,12 @@ class ClinicFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => $this->faker->company.' Dental',
+            'name' => $this->faker->company . ' Dental',
             'owner_name' => $this->faker->name,
             'email' => $this->faker->unique()->safeEmail,
             'phone' => $this->faker->phoneNumber,
             'address' => $this->faker->address,
-            'subdomain' => $this->faker->slug.'.dentaplus.com',
+            'subdomain' => $this->faker->slug . '.dentaplus.com',
             'clinic_type' => $this->faker->randomElement([
                 'General Dentist',
                 'Orthodontics',

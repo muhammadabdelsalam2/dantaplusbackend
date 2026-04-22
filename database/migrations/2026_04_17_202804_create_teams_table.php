@@ -13,7 +13,10 @@ return new class extends Migration {
         Schema::create('teams', function (Blueprint $table) {
             $table->id();
             $table->string('name');
+            $table->foreignId('clinic_id')->nullable()->constrained('clinics')->nullOnDelete();
             $table->foreignId('owner_id')->constrained('users')->cascadeOnDelete();
+            $table->index(['clinic_id', 'owner_id']);
+
             $table->timestamps();
         });
     }

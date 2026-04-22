@@ -84,4 +84,19 @@ class MessageChat extends Model
             $q->where('owner_id', $ownerId);
         });
     }
+
+    public function scopeAccessibleBy($query, $userId)
+    {
+        return $query->whereHas('chat.team', function ($q) use ($userId) {
+
+            $q->where('owner_id', $userId)
+
+                ->orWhereHas('users', function ($q2) use ($userId) {
+                    $q2->where('user_id', $userId);
+                });
+
+        });
+    }
+
+    
 }

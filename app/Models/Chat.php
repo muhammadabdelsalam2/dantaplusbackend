@@ -28,4 +28,20 @@ class Chat extends Model
     {
         return $this->hasMany(Message::class);
     }
+
+    public function scopeAccessibleBy($query, $userId)
+    {
+        return $query->where(function ($q) use ($userId) {
+
+            $q->whereHas('team', function ($q2) use ($userId) {
+                $q2->where('owner_id', $userId);
+            })
+
+                ->orWhereHas('participants', function ($q3) use ($userId) {
+                    $q3->where('user_id', $userId);
+                });
+
+        });
+    }
+
 }

@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Clinic;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -18,11 +19,23 @@ class TeamChatSeeder extends Seeder
     {
 
         DB::transaction(function () {
+            $clinic = Clinic::where('name', 'moamen')->first();
 
-            // 👤 1. Create Users
-            $users = User::factory()->count(6)->create();
+            if (!$clinic) {
+                $this->command->warn('Clinic Not Found');
 
-            // 🎭 2. Assign Roles (IMPORTANT)
+            }
+            $this->command->info('This users In This Clinic Is' . $clinic->users);
+
+            //  1. Create Users
+            $users = User::factory()
+                ->count(6)
+                ->create([
+                    'clinic_id' => $clinic->id,
+                ]);
+            $this->command->info('Users created for clinic ID: ' . $clinic->id);
+
+            //  2. Assign Roles (IMPORTANT)
             $roles = ['Admin', 'doctor', 'nurse', 'receptionist', 'accountant', 'staff'];
 
             foreach ($users as $index => $user) {
@@ -51,6 +64,7 @@ class TeamChatSeeder extends Seeder
 
             // 💬 5. Create Chat
             $chatId = DB::table('chats')->insertGetId([
+                'owner_id' => $users->first()->id,
                 'type' => 'group',
                 'team_id' => $teamId,
                 'name' => 'General',

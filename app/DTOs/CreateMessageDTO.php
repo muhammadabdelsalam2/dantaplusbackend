@@ -1,25 +1,17 @@
 <?php
 
 
-namespace App\DTOs\Message;
+namespace App\DTOs;
 
 class CreateMessageDTO
 {
     public function __construct(
-        public readonly int $chatId,
-        public readonly int $senderId,
-        public readonly string $message,
-        public readonly string $type = 'text',
+        public int $chat_id,
+        public int $sender_id,
+        public ?string $message,
+        public string $type,
+        public ?int $reply_to_id,
+        public ?array $metadata,
     ) {
-    }
-
-    public static function fromRequest($request): self
-    {
-        return new self(
-            chatId: $request->chat_id,
-            senderId: auth()->id(),
-            message: $request->message,
-            type: $request->type ?? 'text',
-        );
     }
 }
