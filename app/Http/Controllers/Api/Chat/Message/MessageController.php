@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Api\Chat\Message;
 // use App\DTOs\Message\CreateMessageDTO;
 use App\DTOs\SendMessageDTO;
 use App\Http\Controllers\Controller;
+use App\Services\Chat\ChatAuthorizationService;
 use App\Services\Chat\MessageService;
+use App\Support\ApiResponse;
 use Illuminate\Http\Request;
 
 class MessageController extends Controller
@@ -49,6 +51,7 @@ class MessageController extends Controller
 
     public function store(Request $request)
     {
+
         $validated = $request->validate([
             'chat_id' => ['required', 'exists:chats,id'],
             'message' => ['nullable', 'string'],
@@ -60,9 +63,12 @@ class MessageController extends Controller
         // 🔐 NEVER trust client
         $validated['sender_id'] = $request->user()->id;
 
+        $user = $request->user();
+
+
         $dto = SendMessageDTO::fromArray($validated);
 
-        $message = $this->messageService->sendMessage($dto);
+        $message = $this->messageService->sendMessage($dto, $user);
 
         return response()->json([
             'status' => true,

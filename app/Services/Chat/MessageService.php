@@ -7,8 +7,10 @@ namespace App\Services\Chat;
 use App\DTOs\SendMessageDTO;
 use App\Events\MessageSent;
 use App\Factories\Chat\Message\MessageFactory;
+use App\Models\Chat;
 use App\Repositories\Chat\Message\MessageRepository;
 use App\Repositories\Contracts\Chat\Message\MessageRepositoryInterface;
+use App\Support\ApiResponse;
 use App\Support\ServiceResult;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -80,20 +82,36 @@ class MessageService
 
 
     }
-    public function sendMessage(SendMessageDTO $dto)
+    public function sendMessage(SendMessageDTO $dto, $user)
     {
-        return DB::transaction(function () use ($dto) {
+        return DB::transaction(function () use ($dto, $user) {
 
             // 🔐 security check
+            // 1️⃣ get chat
+
+            $chat = Chat::findOrFail($dto->chat_id);
+
+            $role = $user->getRoleNames()->first();
+
             $is_owner = $this->ensureUserInChat($dto->chat_id, $dto->sender_id);
             if (!$is_owner) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Unauthorized access to this chat.',
-                    'error_code' => 'CHAT_ACCESS_DENIED'
-                ], 403);
+                return ServiceResult::error(
+                    message: 'Unauthorized access to this chat.',
+                    nextEndpoint: null,
+                    errors: 'CHAT_ACCESS_DENIED',
+                    code: 403,
+                );
             }
             // 🏭 factory
+            $has_permession = $this->ensureHavePermission($user, $chat);
+            if ($has_permession) {
+                return ServiceResult::error(
+                    message: 'This User Dont Have Permession To Send',
+                    nextEndpoint: null,
+                    errors: null,
+                    code: 403,
+                );
+            }
             $createDTO = MessageFactory::make($dto);
 
             // 🗄️ save message
@@ -107,9 +125,31 @@ class MessageService
             return $message;
         });
     }
+    protected function ensureHavePermission($user, $chat, string $action = 'text')
+    {
+        // 1. check participant
+        $isParticipant = DB::table('chat_participants')
+            ->where('chat_id', $chat->id)
+            ->where('user_id', $user->id)
+            ->exists();
 
+        if (!$isParticipant) {
+            return false;
+        }
+
+        // 2. business rules service
+        $service = app(ChatAuthorizationService::class);
+
+        if (!$service->canSend($user, $chat, $action)) {
+            return false;
+        }
+
+        return true;
+    }
     protected function ensureUserInChat($chatId, $userId)
     {
+
+
         $isParticipant = DB::table('chat_participants')
             ->where('chat_id', $chatId)
             ->where('user_id', $userId)
@@ -124,5 +164,7 @@ class MessageService
         if (!$isParticipant && !$isOwner) {
             return false;
         }
+
+        return true;
     }
 }

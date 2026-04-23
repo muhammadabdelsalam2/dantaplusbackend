@@ -11,7 +11,10 @@ class Chat extends Model
     protected $fillable = [
         'type',
         'team_id',
+        'clinic_id',
+        'owner_id',
         'name',
+        'description'
     ];
 
     public function team()

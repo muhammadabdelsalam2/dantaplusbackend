@@ -18,6 +18,7 @@ return new class extends Migration {
             $table->foreignId('owner_id')->constrained('users')->cascadeOnDelete();
             $table->index(['clinic_id', 'owner_id']);
             $table->string('name')->nullable(); // group name
+            $table->longText('description')->nullable(); // group description
             $table->timestamps();
         });
     }

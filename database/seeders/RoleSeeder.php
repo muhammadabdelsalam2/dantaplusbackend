@@ -65,6 +65,11 @@ class RoleSeeder extends Seeder
             'labs.send',
             'labs.track',
             'communication.send',
+            'send_text',
+            'send_voice',
+            'send_file',
+            'access_patient_discussion',
+            'delete_message'
         ];
 
         foreach ($permissions as $permission) {
