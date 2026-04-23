@@ -85,8 +85,14 @@ class MessageService
         return DB::transaction(function () use ($dto) {
 
             // 🔐 security check
-            $this->ensureUserInChat($dto->chat_id, $dto->sender_id);
-
+            $is_owner = $this->ensureUserInChat($dto->chat_id, $dto->sender_id);
+            if (!$is_owner) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Unauthorized access to this chat.',
+                    'error_code' => 'CHAT_ACCESS_DENIED'
+                ], 403);
+            }
             // 🏭 factory
             $createDTO = MessageFactory::make($dto);
 
@@ -116,7 +122,7 @@ class MessageService
             ->exists();
 
         if (!$isParticipant && !$isOwner) {
-            abort(403, 'Unauthorized');
+            return false;
         }
     }
 }

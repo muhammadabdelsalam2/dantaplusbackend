@@ -32,12 +32,26 @@ class MessageSent implements ShouldBroadcast
 
     public function broadcastWith()
     {
+        $user = $this->message->sender;
+
         return [
             'id' => $this->message->id,
             'chat_id' => $this->message->chat_id,
             'sender_id' => $this->message->sender_id,
+
             'message' => $this->message->message,
             'type' => $this->message->type,
+
+            // 👇 ADD USER INFO
+            'sender' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+
+                // 🔥 Spatie role (IMPORTANT)
+                'roles' => $user->getRoleNames(), // collection
+                'role' => $user->getRoleNames()->first(), // main role
+            ],
         ];
     }
 }

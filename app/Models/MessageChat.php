@@ -98,5 +98,10 @@ class MessageChat extends Model
         });
     }
 
-    
+
+    public function isReadBy($userId)
+    {
+        return $this->reads()->where('user_id', $userId)->exists();
+    }
+
 }
