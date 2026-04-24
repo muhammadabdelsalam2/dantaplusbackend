@@ -19,12 +19,12 @@ Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login'])->middleware('guest');
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
-        Route::get('/me', fn () => \App\Support\ApiResponse::success(auth()->user(), 'User fetched successfully'));
+        Route::get('/me', fn() => \App\Support\ApiResponse::success(auth()->user(), 'User fetched successfully'));
     });
 });
 
 Route::prefix('company')
-    ->middleware(['auth:sanctum', 'role:material_company_admin|sales_rep|delivery_staff'])
+    ->middleware(['auth:sanctum', 'api.error', 'role_or_permission:material_company_admin|sales_rep|delivery_staff', 'role:material_company_admin|sales_rep|delivery_staff'])
     ->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index']);
         Route::get('/dashboard/order-trends', [DashboardController::class, 'orderTrends']);
@@ -120,3 +120,7 @@ Route::prefix('company')
             Route::patch('/shipping-zones/{id}/toggle-status', [ShippingZoneController::class, 'toggleStatus']);
         });
     });
+
+// Route::get('/login', function () {
+//     return response()->json(['message' => 'Please login'], 401);
+// })->name('login');
