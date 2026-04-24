@@ -32,7 +32,6 @@ class AuthController extends Controller
             ->where('email', $identifier)
             ->orWhere('phone', $identifier)
             ->first();
-        $user->removeRole('Admin');
 
 
         if (!$user) {
