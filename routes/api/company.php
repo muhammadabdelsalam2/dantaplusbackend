@@ -24,7 +24,7 @@ Route::prefix('auth')->group(function () {
 });
 
 Route::prefix('company')
-    ->middleware(['auth:sanctum', 'api.error', 'role_or_permission:material_company_admin|sales_rep|delivery_staff', 'role:material_company_admin|sales_rep|delivery_staff'])
+    ->middleware(['auth:sanctum', 'api.error', 'role:material_company_admin|sales_rep|delivery_staff'])
     ->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index']);
         Route::get('/dashboard/order-trends', [DashboardController::class, 'orderTrends']);
