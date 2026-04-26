@@ -2,25 +2,20 @@
 
 namespace App\Providers;
 
-<<<<<<< HEAD
+
 use App\Models\ClinicAppointment;
 use App\Observers\ClinicAppointmentObserver;
-=======
 use App\Repositories\Chat\Message\MessageRepository;
 use App\Repositories\Chat\Team\TeamRepository;
 use App\Repositories\Contracts\Chat\Message\MessageRepositoryInterface;
 use App\Repositories\Contracts\Chat\Team\TeamRepositoryInterface;
->>>>>>> e6f6ff06b1165b154159ba954ed4a3d81db0a042
 use App\Repositories\Contracts\SuperAdmin\RoleManagementRepositoryInterface;
 use App\Repositories\Contracts\SuperAdmin\SettingsRepositoryInterface as SuperAdminSettingsRepositoryInterface;
 use App\Repositories\Contracts\SuperAdmin\SubscriptionDashboardRepositoryInterface;
 use App\Repositories\Contracts\SuperAdmin\UserManagementRepositoryInterface;
-<<<<<<< HEAD
+
 use App\Repositories\Clinic\Settings\ClinicSettingsRepository;
 use App\Repositories\Clinic\Settings\ClinicSettingsRepositoryInterface;
-=======
-
->>>>>>> e6f6ff06b1165b154159ba954ed4a3d81db0a042
 use App\Repositories\Lab\Clinic\ClinicRepository;
 use App\Repositories\Lab\Clinic\ClinicRepositoryInterface;
 use App\Repositories\Lab\Lookup\LookupRepository;
