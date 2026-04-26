@@ -82,6 +82,52 @@ class AppointmentService
         return $this->show($appointment->id);
     }
 
+    public function update(int $id, array $data): array
+    {
+        $clinicId = $this->currentClinicId();
+        if (! $clinicId) {
+            return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
+        }
+
+        $appointment = $this->findClinicAppointment($id);
+        if (! $appointment) {
+            return ServiceResult::error('Appointment not found.', null, null, 404);
+        }
+
+        if (array_key_exists('patient_id', $data) && ! empty($data['patient_id'])) {
+            $patient = Patient::query()->where('clinic_id', $clinicId)->find($data['patient_id']);
+            if (! $patient) {
+                return ServiceResult::error('Patient not found.', null, ['patient_id' => ['Patient not found.']], 422);
+            }
+
+            $data['patient_name'] = $patient->user?->name ?? $appointment->patient_name;
+            $data['patient_phone'] = $patient->phone ?? $patient->user?->phone ?? $appointment->patient_phone;
+        }
+
+        if (array_key_exists('doctor_id', $data) && ! empty($data['doctor_id'])) {
+            $doctor = User::query()->where('clinic_id', $clinicId)->role('doctor')->find($data['doctor_id']);
+            if (! $doctor) {
+                return ServiceResult::error('Doctor not found.', null, ['doctor_id' => ['Doctor not found.']], 422);
+            }
+
+            $data['doctor_user_id'] = $doctor->id;
+        }
+
+        if (array_key_exists('duration', $data) && ! array_key_exists('duration_minutes', $data)) {
+            $data['duration_minutes'] = $data['duration'];
+        }
+
+        if (array_key_exists('duration_minutes', $data) && ! array_key_exists('duration', $data)) {
+            $data['duration'] = $data['duration_minutes'];
+        }
+
+        unset($data['doctor_id']);
+
+        $appointment->update($data);
+
+        return $this->show($appointment->id);
+    }
+
     private function findClinicAppointment(int $id): ?ClinicAppointment
     {
         return ClinicAppointment::query()

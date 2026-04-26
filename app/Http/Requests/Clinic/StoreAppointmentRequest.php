@@ -25,7 +25,7 @@ class StoreAppointmentRequest extends FormRequest
             'branch' => ['nullable', 'string', 'max:255'],
             'room' => ['nullable', 'string', 'max:255'],
             'payment_type' => ['nullable', 'string', 'max:50'],
-            'status' => ['nullable', 'in:scheduled,confirmed,completed,cancelled'],
+            'status' => ['nullable', 'in:scheduled,confirmed,arrived,attended,completed,cancelled'],
             'notes' => ['nullable', 'string'],
         ];
     }

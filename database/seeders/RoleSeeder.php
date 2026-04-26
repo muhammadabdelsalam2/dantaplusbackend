@@ -65,6 +65,10 @@ class RoleSeeder extends Seeder
             'labs.send',
             'labs.track',
             'communication.send',
+            'insurance.view',
+            'insurance.create',
+            'insurance.update',
+            'insurance.delete',
         ];
 
         foreach ($permissions as $permission) {
@@ -146,6 +150,10 @@ class RoleSeeder extends Seeder
                 'labs.send',
                 'labs.track',
                 'communication.send',
+                'insurance.view',
+                'insurance.create',
+                'insurance.update',
+                'insurance.delete',
             ],
             'doctor' => [
                 'patients.view',
@@ -156,6 +164,9 @@ class RoleSeeder extends Seeder
                 'labs.track',
                 'reports.view',
                 'communication.send',
+                'insurance.view',
+                'insurance.create',
+                'insurance.update',
             ],
             'nurse' => [
                 'patients.view',
@@ -165,11 +176,15 @@ class RoleSeeder extends Seeder
                 'appointments.create',
                 'appointments.update',
                 'communication.send',
+                'insurance.view',
+                'insurance.create',
             ],
             'accountant' => [
                 'patients.view',
                 'billing.manage',
                 'reports.view',
+                'insurance.view',
+                'insurance.update',
             ],
             'receptionist' => [
                 'patients.view',
@@ -178,10 +193,12 @@ class RoleSeeder extends Seeder
                 'appointments.create',
                 'appointments.update',
                 'communication.send',
+                'insurance.view',
             ],
             'staff' => [
                 'patients.view',
                 'appointments.view',
+                'insurance.view',
             ],
         ];
 

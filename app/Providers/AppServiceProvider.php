@@ -2,10 +2,14 @@
 
 namespace App\Providers;
 
+use App\Models\ClinicAppointment;
+use App\Observers\ClinicAppointmentObserver;
 use App\Repositories\Contracts\SuperAdmin\RoleManagementRepositoryInterface;
 use App\Repositories\Contracts\SuperAdmin\SettingsRepositoryInterface as SuperAdminSettingsRepositoryInterface;
 use App\Repositories\Contracts\SuperAdmin\SubscriptionDashboardRepositoryInterface;
 use App\Repositories\Contracts\SuperAdmin\UserManagementRepositoryInterface;
+use App\Repositories\Clinic\Settings\ClinicSettingsRepository;
+use App\Repositories\Clinic\Settings\ClinicSettingsRepositoryInterface;
 use App\Repositories\Lab\Clinic\ClinicRepository;
 use App\Repositories\Lab\Clinic\ClinicRepositoryInterface;
 use App\Repositories\Lab\Lookup\LookupRepository;
@@ -41,10 +45,11 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(UserRepositoryInterface::class, UserRepository::class);
         $this->app->bind(ServiceRepositoryInterface::class, ServiceRepository::class);
         $this->app->bind(SettingsRepositoryInterface::class, SettingsRepository::class);
+        $this->app->bind(ClinicSettingsRepositoryInterface::class, ClinicSettingsRepository::class);
     }
 
     public function boot(): void
     {
-        //
+        ClinicAppointment::observe(ClinicAppointmentObserver::class);
     }
 }

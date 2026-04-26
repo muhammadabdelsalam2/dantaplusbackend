@@ -99,4 +99,19 @@ class Clinic extends Model
     {
         return $this->hasMany(CaseModel::class);
     }
+
+    public function servicePrices(): HasMany
+    {
+        return $this->hasMany(ClinicServicePrice::class);
+    }
+
+    public function insurancePriceLists(): HasMany
+    {
+        return $this->hasMany(InsurancePriceList::class);
+    }
+
+    public function insuranceCompanies(): HasMany
+    {
+        return $this->hasMany(InsuranceCompany::class);
+    }
 }

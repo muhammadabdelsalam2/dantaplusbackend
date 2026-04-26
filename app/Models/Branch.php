@@ -16,7 +16,14 @@ class Branch extends Model
         'name',
         'code',
         'address',
+        'city',
+        'phone',
+        'email',
         'manager_id',
+        'working_hours_from',
+        'working_hours_to',
+        'notes',
+        'rooms_count',
         'status',
     ];
 

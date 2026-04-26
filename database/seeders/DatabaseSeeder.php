@@ -24,6 +24,8 @@ class DatabaseSeeder extends Seeder
             DoctorSeeder::class,
             PatientSeeder::class,
             ClinicSeeder::class,
+            ServicePricingSeeder::class,
+            InsuranceClinicSeeder::class,
             DentalLabSeeder::class,
             LabMaterialSeeder::class,
             LabSettingsSeeder::class,
