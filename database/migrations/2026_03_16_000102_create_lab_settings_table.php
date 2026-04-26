@@ -9,7 +9,11 @@ return new class extends Migration {
     {
         Schema::create('lab_settings', function (Blueprint $table) {
             $table->foreignId('lab_id')->constrained('dental_labs')->cascadeOnDelete()->primary();
-            $table->json('notifications_json')->default('{"new_case_alerts":{"in_app_notification":true,"email_notification":false},"case_update_alerts":{"in_app_notification":true,"email_notification":false}}');
+            $table->json('notifications_json')
+                ->default(DB::raw('(JSON_OBJECT(
+          "new_case_alerts", JSON_OBJECT("in_app_notification", true, "email_notification", false),
+          "case_update_alerts", JSON_OBJECT("in_app_notification", true, "email_notification", false)
+      ))'));
             $table->string('whatsapp_provider', 30)->nullable();
             $table->text('whatsapp_meta_json')->nullable();
             $table->text('whatsapp_twilio_json')->nullable();
