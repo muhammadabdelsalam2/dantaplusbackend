@@ -15,7 +15,7 @@ use Spatie\Permission\Models\Role;
 
 class ClinicModuleSeeder extends Seeder
 {
-    private const CLINIC_ID = 46;
+    private const CLINIC_ID = 26;
 
     public function run(): void
     {
