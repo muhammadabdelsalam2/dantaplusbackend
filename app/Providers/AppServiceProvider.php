@@ -16,6 +16,14 @@ use App\Repositories\Contracts\SuperAdmin\UserManagementRepositoryInterface;
 
 use App\Repositories\Clinic\Settings\ClinicSettingsRepository;
 use App\Repositories\Clinic\Settings\ClinicSettingsRepositoryInterface;
+use App\Repositories\Clinic\Billing\ClinicBillingRepository;
+use App\Repositories\Clinic\Billing\ClinicBillingRepositoryInterface;
+use App\Repositories\Clinic\DentalLab\ClinicDentalLabRepository;
+use App\Repositories\Clinic\DentalLab\ClinicDentalLabRepositoryInterface;
+use App\Repositories\Clinic\Select\ClinicSelectRepository;
+use App\Repositories\Clinic\Select\ClinicSelectRepositoryInterface;
+use App\Repositories\Clinic\Task\ClinicTaskRepository;
+use App\Repositories\Clinic\Task\ClinicTaskRepositoryInterface;
 use App\Repositories\Lab\Clinic\ClinicRepository;
 use App\Repositories\Lab\Clinic\ClinicRepositoryInterface;
 use App\Repositories\Lab\Lookup\LookupRepository;
@@ -53,6 +61,10 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(SettingsRepositoryInterface::class, SettingsRepository::class);
 
         $this->app->bind(ClinicSettingsRepositoryInterface::class, ClinicSettingsRepository::class);
+        $this->app->bind(ClinicBillingRepositoryInterface::class, ClinicBillingRepository::class);
+        $this->app->bind(ClinicDentalLabRepositoryInterface::class, ClinicDentalLabRepository::class);
+        $this->app->bind(ClinicTaskRepositoryInterface::class, ClinicTaskRepository::class);
+        $this->app->bind(ClinicSelectRepositoryInterface::class, ClinicSelectRepository::class);
 
 
         // Chat Repository Binding

@@ -23,4 +23,9 @@ class Doctor extends Model
     {
         return $this->hasMany(CaseModel::class, 'dentist_id');
     }
+
+    public function clinicTasks(): HasMany
+    {
+        return $this->hasMany(ClinicTask::class, 'assign_to_doctor_id');
+    }
 }

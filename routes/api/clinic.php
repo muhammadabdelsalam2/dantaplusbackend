@@ -3,9 +3,11 @@
 use App\Http\Controllers\Api\Clinic\AppointmentController;
 use App\Http\Controllers\Api\Clinic\BillingController;
 use App\Http\Controllers\Api\Clinic\ClinicController;
+use App\Http\Controllers\Api\Clinic\DentalLabController;
 use App\Http\Controllers\Api\Clinic\Insurance\InsuranceClaimController;
 use App\Http\Controllers\Api\Clinic\Insurance\InsuranceCompanyController;
 use App\Http\Controllers\Api\Clinic\PatientController;
+use App\Http\Controllers\Api\Clinic\SelectController;
 use App\Http\Controllers\Api\Clinic\Settings\ClinicDoctorReminderSettingsController;
 use App\Http\Controllers\Api\Clinic\Settings\ClinicFeedbackSettingsController;
 use App\Http\Controllers\Api\Clinic\Settings\ClinicAppointmentSettingsController;
@@ -23,6 +25,7 @@ use App\Http\Controllers\Api\Clinic\Settings\DentistController as SettingsDentis
 use App\Http\Controllers\Api\Clinic\Settings\GeneralSettingsController;
 use App\Http\Controllers\Api\Clinic\Settings\ProfileController as SettingsProfileController;
 use App\Http\Controllers\Api\Clinic\TreatmentController;
+use App\Http\Controllers\Api\Clinic\TaskController;
 use App\Http\Controllers\Api\Clinic\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -162,8 +165,33 @@ Route::prefix('clinic')
         Route::middleware('permission:treatments.manage')->post('/treatments', [TreatmentController::class, 'store']);
         Route::middleware('permission:treatments.manage')->get('/treatments/{id}', [TreatmentController::class, 'show']);
 
+        Route::get('/select/{resource}', [SelectController::class, 'show']);
+
+        Route::middleware('permission:tasks.view')->get('/tasks', [TaskController::class, 'index']);
+        Route::middleware('permission:tasks.manage')->post('/tasks', [TaskController::class, 'store']);
+        Route::middleware('permission:tasks.manage')->patch('/tasks/{id}', [TaskController::class, 'update']);
+        Route::middleware('permission:tasks.manage')->delete('/tasks/{id}', [TaskController::class, 'destroy']);
+
+        Route::middleware('permission:dental_labs.view')->get('/dental-labs/analytics', [DentalLabController::class, 'analytics']);
+        Route::middleware('permission:dental_labs.view')->get('/dental-labs', [DentalLabController::class, 'index']);
+        Route::middleware('permission:dental_labs.manage')->post('/dental-labs', [DentalLabController::class, 'store']);
+        Route::middleware('permission:dental_labs.view')->get('/dental-labs/{id}', [DentalLabController::class, 'show']);
+        Route::middleware('permission:dental_labs.manage')->patch('/dental-labs/{id}', [DentalLabController::class, 'update']);
+        Route::middleware('permission:dental_labs.manage')->delete('/dental-labs/{id}', [DentalLabController::class, 'destroy']);
+        Route::middleware('permission:dental_labs.manage')->post('/dental-labs/{id}/services', [DentalLabController::class, 'storeService']);
+        Route::middleware('permission:dental_labs.manage')->post('/dental-labs/{id}/gallery', [DentalLabController::class, 'storeGallery']);
+        Route::middleware('permission:dental_labs.manage')->delete('/dental-lab-services/{id}', [DentalLabController::class, 'destroyService']);
+        Route::middleware('permission:dental_labs.view')->get('/dental-lab-orders', [DentalLabController::class, 'orders']);
+        Route::middleware('permission:dental_labs.manage')->post('/dental-lab-orders', [DentalLabController::class, 'storeOrder']);
+        Route::middleware('permission:dental_labs.manage')->patch('/dental-lab-orders/{id}/status', [DentalLabController::class, 'updateOrderStatus']);
+
         Route::middleware('permission:billing.manage')->get('/billing/invoices', [BillingController::class, 'index']);
         Route::middleware('permission:billing.manage')->post('/billing/invoices', [BillingController::class, 'store']);
         Route::middleware('permission:billing.manage')->get('/billing/invoices/{id}', [BillingController::class, 'show']);
         Route::middleware('permission:billing.manage')->post('/billing/invoices/{invoice}/payments', [BillingController::class, 'payment']);
+        Route::middleware('permission:billing.manage')->get('/billing/payments', [BillingController::class, 'payments']);
+        Route::middleware('permission:billing.manage')->get('/billing/expenses', [BillingController::class, 'expenses']);
+        Route::middleware('permission:billing.manage')->post('/billing/expenses', [BillingController::class, 'storeExpense']);
+        Route::middleware('permission:billing.manage')->get('/billing/profit-loss', [BillingController::class, 'profitLoss']);
+        Route::middleware('permission:billing.manage')->get('/billing/expense-categories', [BillingController::class, 'expenseCategories']);
     });

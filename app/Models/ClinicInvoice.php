@@ -14,6 +14,7 @@ class ClinicInvoice extends Model
     protected $fillable = [
         'clinic_id',
         'patient_id',
+        'doctor_user_id',
         'appointment_id',
         'invoice_number',
         'total',
@@ -22,6 +23,7 @@ class ClinicInvoice extends Model
         'status',
         'payment_method',
         'issued_at',
+        'due_date',
         'notes',
     ];
 
@@ -32,6 +34,7 @@ class ClinicInvoice extends Model
             'paid' => 'decimal:2',
             'remaining' => 'decimal:2',
             'issued_at' => 'date',
+            'due_date' => 'date',
         ];
     }
 
@@ -50,8 +53,18 @@ class ClinicInvoice extends Model
         return $this->belongsTo(ClinicAppointment::class, 'appointment_id');
     }
 
+    public function doctor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'doctor_user_id');
+    }
+
     public function payments(): HasMany
     {
         return $this->hasMany(ClinicPayment::class);
+    }
+
+    public function items(): HasMany
+    {
+        return $this->hasMany(ClinicInvoiceItem::class, 'clinic_invoice_id');
     }
 }

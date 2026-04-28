@@ -4,11 +4,13 @@ use App\Http\Middleware\ApiErrorMiddleware;
 use App\Http\Middleware\RedirectIfAuthenticatedCustom;
 use App\Support\ApiResponse;
 use Illuminate\Auth\AuthenticationException;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Route;
-use League\Config\Exception\ValidationException;
 use Spatie\Permission\Exceptions\UnauthorizedException;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
@@ -61,6 +63,14 @@ return Application::configure(basePath: dirname(__DIR__))
         // Validation
         $exceptions->render(function (ValidationException $e, $request) {
             return ApiResponse::error('Validation failed', 422, $e->errors());
+        });
+
+        $exceptions->render(function (ModelNotFoundException $e, $request) {
+            return ApiResponse::error('Resource not found', 404);
+        });
+
+        $exceptions->render(function (AuthorizationException $e, $request) {
+            return ApiResponse::error($e->getMessage() ?: 'Forbidden', 403);
         });
 
         // Spatie permission

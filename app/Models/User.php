@@ -121,4 +121,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(ClinicPayment::class, 'recorded_by');
     }
+
+    public function clinicTasks(): HasMany
+    {
+        return $this->hasMany(ClinicTask::class, 'assign_to_user_id');
+    }
+
+    public function assignedClinicExpenses(): HasMany
+    {
+        return $this->hasMany(ClinicExpense::class, 'assigned_to_user_id');
+    }
 }

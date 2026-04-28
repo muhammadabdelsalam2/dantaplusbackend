@@ -43,6 +43,8 @@ class DatabaseSeeder extends Seeder
             FeedbackReportSeeder::class,
             SupportTicketSeeder::class,
             SupportReplySeeder::class,
+            ClinicModuleSeeder::class,
+            ClinicDentalLabModuleSeeder::class,
         ]);
     }
 }

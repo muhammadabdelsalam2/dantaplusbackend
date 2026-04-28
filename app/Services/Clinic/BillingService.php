@@ -2,40 +2,57 @@
 
 namespace App\Services\Clinic;
 
+use App\Http\Resources\Clinic\ClinicExpenseCategoryResource;
+use App\Http\Resources\Clinic\ClinicExpenseResource;
 use App\Http\Resources\Clinic\ClinicInvoiceResource;
 use App\Http\Resources\Clinic\ClinicPaymentResource;
 use App\Models\ClinicAppointment;
 use App\Models\ClinicInvoice;
-use App\Models\ClinicPayment;
 use App\Models\Patient;
+use App\Models\User;
+use App\Repositories\Clinic\Billing\ClinicBillingRepositoryInterface;
 use App\Support\ServiceResult;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
+use Throwable;
 
 class BillingService
 {
-    public function indexInvoices(): array
+    public function __construct(private ClinicBillingRepositoryInterface $repository)
     {
-        if (! $this->currentClinicId()) {
+    }
+
+    public function indexInvoices(array $filters = []): array
+    {
+        $clinicId = $this->currentClinicId();
+        if (! $clinicId) {
             return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
         }
 
-        $rows = ClinicInvoice::query()
-            ->with(['patient.user:id,name', 'payments.recorder:id,name'])
-            ->where('clinic_id', $this->currentClinicId())
-            ->latest('id')
-            ->get();
+        $this->syncInvoiceStatuses($clinicId);
 
-        return ServiceResult::success(ClinicInvoiceResource::collection($rows)->resolve(), 'Invoices fetched successfully');
+        $rows = $this->repository->paginateInvoices($clinicId, $filters);
+
+        return ServiceResult::success([
+            'items' => ClinicInvoiceResource::collection($rows->items())->resolve(),
+            'pagination' => [
+                'current_page' => $rows->currentPage(),
+                'last_page' => $rows->lastPage(),
+                'per_page' => $rows->perPage(),
+                'total' => $rows->total(),
+            ],
+        ], 'Invoices fetched successfully');
     }
 
     public function showInvoice(int $id): array
     {
-        if (! $this->currentClinicId()) {
+        $clinicId = $this->currentClinicId();
+        if (! $clinicId) {
             return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
         }
 
-        $invoice = $this->findClinicInvoice($id);
+        $this->syncInvoiceStatuses($clinicId);
+
+        $invoice = $this->repository->findInvoice($clinicId, $id);
         if (! $invoice) {
             return ServiceResult::error('Invoice not found.', null, null, 404);
         }
@@ -50,12 +67,15 @@ class BillingService
             return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
         }
 
-        $patient = ! empty($data['patient_id'])
-            ? Patient::query()->where('clinic_id', $clinicId)->find($data['patient_id'])
-            : null;
+        $patient = Patient::query()->where('clinic_id', $clinicId)->find($data['patient_id']);
 
-        if (! empty($data['patient_id']) && ! $patient) {
+        if (! $patient) {
             return ServiceResult::error('Patient not found.', null, ['patient_id' => ['Patient not found.']], 422);
+        }
+
+        $doctor = User::query()->where('clinic_id', $clinicId)->role('doctor')->find($data['doctor_user_id']);
+        if (! $doctor) {
+            return ServiceResult::error('Doctor not found.', null, ['doctor_user_id' => ['Doctor not found.']], 422);
         }
 
         $appointment = ! empty($data['appointment_id'])
@@ -66,39 +86,79 @@ class BillingService
             return ServiceResult::error('Appointment not found.', null, ['appointment_id' => ['Appointment not found.']], 422);
         }
 
-        $paid = (float) ($data['paid'] ?? 0);
-        $total = (float) $data['total'];
+        $items = collect($data['items']);
+        $total = round((float) $items->sum(fn (array $item) => (float) $item['amount']), 2);
+        $paid = min(round((float) ($data['paid'] ?? 0), 2), $total);
 
-        $invoice = ClinicInvoice::query()->create([
-            'clinic_id' => $clinicId,
-            'patient_id' => $patient?->id,
-            'appointment_id' => $appointment?->id,
-            'invoice_number' => $this->generateInvoiceNumber(),
-            'total' => $total,
-            'paid' => $paid,
-            'remaining' => max($total - $paid, 0),
-            'status' => $paid >= $total && $total > 0 ? 'paid' : 'pending',
-            'payment_method' => $data['payment_method'] ?? null,
-            'issued_at' => $data['issued_at'] ?? now()->toDateString(),
-            'notes' => $data['notes'] ?? null,
-        ]);
+        try {
+            $invoice = DB::transaction(function () use ($appointment, $clinicId, $data, $doctor, $items, $paid, $patient, $total) {
+                $invoice = $this->repository->createInvoice([
+                    'clinic_id' => $clinicId,
+                    'patient_id' => $patient->id,
+                    'doctor_user_id' => $doctor->id,
+                    'appointment_id' => $appointment?->id,
+                    'invoice_number' => $this->generateInvoiceNumber(),
+                    'total' => $total,
+                    'paid' => $paid,
+                    'remaining' => max($total - $paid, 0),
+                    'status' => $this->resolveInvoiceStatus($total, $paid, $data['due_date'] ?? null),
+                    'payment_method' => $data['payment_method'] ?? null,
+                    'issued_at' => $data['issued_at'] ?? now()->toDateString(),
+                    'due_date' => $data['due_date'] ?? null,
+                    'notes' => $data['notes'] ?? null,
+                ]);
+
+                foreach ($items as $item) {
+                    $this->repository->createInvoiceItem([
+                        'clinic_invoice_id' => $invoice->id,
+                        'description' => $item['description'],
+                        'amount' => $item['amount'],
+                    ]);
+                }
+
+                if ($paid > 0) {
+                    $this->repository->createPayment([
+                        'clinic_invoice_id' => $invoice->id,
+                        'clinic_id' => $clinicId,
+                        'recorded_by' => auth()->id(),
+                        'amount' => $paid,
+                        'method' => $data['payment_method'] ?? null,
+                        'paid_at' => $data['issued_at'] ?? now(),
+                        'notes' => 'Initial payment',
+                    ]);
+                }
+
+                return $invoice;
+            });
+        } catch (Throwable $exception) {
+            return ServiceResult::error('Failed to create invoice.', null, ['server' => [$exception->getMessage()]], 500);
+        }
 
         return $this->showInvoice($invoice->id);
     }
 
     public function recordPayment(int $invoiceId, array $data): array
     {
-        if (! $this->currentClinicId()) {
+        $clinicId = $this->currentClinicId();
+        if (! $clinicId) {
             return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
         }
 
-        $invoice = $this->findClinicInvoice($invoiceId);
+        $invoice = $this->repository->findInvoice($clinicId, $invoiceId);
         if (! $invoice) {
             return ServiceResult::error('Invoice not found.', null, null, 404);
         }
 
+        if ((float) $invoice->remaining <= 0) {
+            return ServiceResult::error('Invoice is already fully paid.', null, ['amount' => ['Invoice is already fully paid.']], 422);
+        }
+
+        if ((float) $data['amount'] > (float) $invoice->remaining) {
+            return ServiceResult::error('Payment amount exceeds remaining balance.', null, ['amount' => ['Payment amount exceeds remaining balance.']], 422);
+        }
+
         $payment = DB::transaction(function () use ($invoice, $data) {
-            $payment = ClinicPayment::query()->create([
+            $payment = $this->repository->createPayment([
                 'clinic_invoice_id' => $invoice->id,
                 'clinic_id' => $invoice->clinic_id,
                 'recorded_by' => auth()->id(),
@@ -108,11 +168,13 @@ class BillingService
                 'notes' => $data['notes'] ?? null,
             ]);
 
-            $newPaid = (float) $invoice->paid + (float) $payment->amount;
-            $invoice->update([
+            $newPaid = round((float) $invoice->paid + (float) $payment->amount, 2);
+            $remaining = max(round((float) $invoice->total - $newPaid, 2), 0);
+
+            $this->repository->updateInvoice($invoice, [
                 'paid' => $newPaid,
-                'remaining' => max((float) $invoice->total - $newPaid, 0),
-                'status' => $newPaid >= (float) $invoice->total ? 'paid' : 'pending',
+                'remaining' => $remaining,
+                'status' => $this->resolveInvoiceStatus((float) $invoice->total, $newPaid, optional($invoice->due_date)?->toDateString()),
             ]);
 
             return $payment->fresh('recorder:id,name');
@@ -121,12 +183,107 @@ class BillingService
         return ServiceResult::success((new ClinicPaymentResource($payment))->resolve(), 'Payment recorded successfully', 201);
     }
 
-    private function findClinicInvoice(int $id): ?ClinicInvoice
+    public function indexPayments(array $filters = []): array
     {
-        return ClinicInvoice::query()
-            ->with(['patient.user:id,name', 'payments.recorder:id,name'])
-            ->where('clinic_id', $this->currentClinicId())
-            ->find($id);
+        $clinicId = $this->currentClinicId();
+        if (! $clinicId) {
+            return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
+        }
+
+        $this->syncInvoiceStatuses($clinicId);
+
+        $rows = $this->repository->paginatePayments($clinicId, $filters);
+
+        return ServiceResult::success([
+            'items' => ClinicPaymentResource::collection($rows->items())->resolve(),
+            'pagination' => [
+                'current_page' => $rows->currentPage(),
+                'last_page' => $rows->lastPage(),
+                'per_page' => $rows->perPage(),
+                'total' => $rows->total(),
+            ],
+        ], 'Payments fetched successfully');
+    }
+
+    public function indexExpenses(array $filters = []): array
+    {
+        $clinicId = $this->currentClinicId();
+        if (! $clinicId) {
+            return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
+        }
+
+        $rows = $this->repository->paginateExpenses($clinicId, $filters);
+        $summary = $this->repository->expenseSummary($clinicId, $filters);
+
+        return ServiceResult::success([
+            'items' => ClinicExpenseResource::collection($rows->items())->resolve(),
+            'pagination' => [
+                'current_page' => $rows->currentPage(),
+                'last_page' => $rows->lastPage(),
+                'per_page' => $rows->perPage(),
+                'total' => $rows->total(),
+            ],
+            'summary' => $summary,
+        ], 'Expenses fetched successfully');
+    }
+
+    public function createExpense(array $data): array
+    {
+        $clinicId = $this->currentClinicId();
+        if (! $clinicId) {
+            return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
+        }
+
+        $category = $this->repository->findExpenseCategory($clinicId, (int) $data['expense_category_id']);
+        if (! $category) {
+            return ServiceResult::error('Expense category not found.', null, ['expense_category_id' => ['Expense category not found.']], 422);
+        }
+
+        if (! empty($data['assigned_to_user_id'])) {
+            $assignedUser = User::query()->where('clinic_id', $clinicId)->find($data['assigned_to_user_id']);
+            if (! $assignedUser) {
+                return ServiceResult::error('Assigned user not found.', null, ['assigned_to_user_id' => ['Assigned user not found.']], 422);
+            }
+        }
+
+        $expense = $this->repository->createExpense([
+            'clinic_id' => $clinicId,
+            'expense_category_id' => $category->id,
+            'title' => $data['title'],
+            'amount' => $data['amount'],
+            'payment_method' => $data['payment_method'] ?? null,
+            'expense_date' => $data['expense_date'],
+            'assigned_to_user_id' => $data['assigned_to_user_id'] ?? null,
+            'notes' => $data['notes'] ?? null,
+        ])->load(['category:id,name', 'assignee:id,name']);
+
+        return ServiceResult::success((new ClinicExpenseResource($expense))->resolve(), 'Expense created successfully', 201);
+    }
+
+    public function profitLoss(array $filters = []): array
+    {
+        $clinicId = $this->currentClinicId();
+        if (! $clinicId) {
+            return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
+        }
+
+        return ServiceResult::success(
+            $this->repository->profitLossSummary($clinicId, $filters),
+            'Profit and loss fetched successfully'
+        );
+    }
+
+    public function expenseCategories(): array
+    {
+        $clinicId = $this->currentClinicId();
+        if (! $clinicId) {
+            return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
+        }
+
+        return ServiceResult::success(
+            ClinicExpenseCategoryResource::collection($this->repository->listExpenseCategories($clinicId))->resolve(),
+            'Expense categories fetched successfully'
+        );
     }
 
     private function currentClinicId(): ?int
@@ -141,5 +298,43 @@ class BillingService
         } while (ClinicInvoice::query()->where('invoice_number', $number)->exists());
 
         return $number;
+    }
+
+    private function resolveInvoiceStatus(float $total, float $paid, ?string $dueDate): string
+    {
+        if ($total > 0 && $paid >= $total) {
+            return 'paid';
+        }
+
+        if ($paid > 0 && $paid < $total) {
+            return 'partial';
+        }
+
+        if ($dueDate && now()->toDateString() > $dueDate && $paid < $total) {
+            return 'overdue';
+        }
+
+        return 'pending';
+    }
+
+    private function syncInvoiceStatuses(int $clinicId): void
+    {
+        ClinicInvoice::query()
+            ->where('clinic_id', $clinicId)
+            ->get()
+            ->each(function (ClinicInvoice $invoice) {
+                $status = $this->resolveInvoiceStatus(
+                    (float) $invoice->total,
+                    (float) $invoice->paid,
+                    optional($invoice->due_date)?->toDateString()
+                );
+
+                if ($invoice->status !== $status || (float) $invoice->remaining !== max(round((float) $invoice->total - (float) $invoice->paid, 2), 0)) {
+                    $invoice->update([
+                        'remaining' => max(round((float) $invoice->total - (float) $invoice->paid, 2), 0),
+                        'status' => $status,
+                    ]);
+                }
+            });
     }
 }
