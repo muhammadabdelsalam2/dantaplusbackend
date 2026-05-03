@@ -9,27 +9,41 @@ return new class extends Migration
 {
     public function up(): void
     {
+        //  Add columns safely
         Schema::table('notifications', function (Blueprint $table) {
-            $table->json('delivery_method')->nullable()->after('priority');
 
-            $table->foreignId('user_id')
-                ->nullable()
-                ->after('delivery_methods')
-                ->constrained('users')
-                ->nullOnDelete();
+            if (!Schema::hasColumn('notifications', 'delivery_method')) {
+                $table->json('delivery_method')->nullable()->after('priority');
+            }
 
-            $table->string('role')->nullable()->after('user_id');
+            if (!Schema::hasColumn('notifications', 'user_id')) {
+                $table->foreignId('user_id')
+                    ->nullable()
+                    ->after('delivery_methods')
+                    ->constrained('users')
+                    ->nullOnDelete();
+            }
 
-            $table->index(['role', 'user_id']);
+            if (!Schema::hasColumn('notifications', 'role')) {
+                $table->string('role')->nullable()->after('user_id');
+            }
         });
 
-        //  migrate old data safely
+        //  Add index safely
+        try {
+            Schema::table('notifications', function (Blueprint $table) {
+                $table->index(['role', 'user_id']);
+            });
+        } catch (\Throwable $e) {
+            // ignore لو موجود بالفعل
+        }
+
+        // migrate old data safely
         DB::table('notifications')
             ->select(['id', 'audience_type', 'audience_id', 'delivery_methods'])
             ->orderBy('id')
             ->chunkById(200, function ($notifications) {
 
-                // نجيب كل user IDs مرة واحدة (performance)
                 $userIds = collect($notifications)
                     ->where('audience_type', 'user')
                     ->pluck('audience_id')
@@ -45,11 +59,13 @@ return new class extends Migration
 
                     $userId = null;
 
-
-                    if ($notification->audience_type === 'user' && $notification->audience_id) {
-                        if (isset($users[$notification->audience_id])) {
-                            $userId = $notification->audience_id;
-                        }
+                    //  check valid user
+                    if (
+                        $notification->audience_type === 'user' &&
+                        $notification->audience_id &&
+                        isset($users[$notification->audience_id])
+                    ) {
+                        $userId = $notification->audience_id;
                     }
 
                     $role = match ($notification->audience_type) {
@@ -64,7 +80,7 @@ return new class extends Migration
                         ->update([
                             'delivery_method' => $notification->delivery_methods
                                 ? json_encode($notification->delivery_methods)
-                                : json_encode(['system']), // fallback
+                                : json_encode(['system']),
 
                             'user_id' => $userId,
                             'role' => $role,
@@ -76,9 +92,24 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('notifications', function (Blueprint $table) {
-            $table->dropIndex(['role', 'user_id']);
-            $table->dropConstrainedForeignId('user_id');
-            $table->dropColumn(['delivery_method', 'role']);
+
+            if (Schema::hasColumn('notifications', 'user_id')) {
+                try {
+                    $table->dropConstrainedForeignId('user_id');
+                } catch (\Throwable $e) {}
+            }
+
+            if (Schema::hasColumn('notifications', 'delivery_method')) {
+                $table->dropColumn('delivery_method');
+            }
+
+            if (Schema::hasColumn('notifications', 'role')) {
+                $table->dropColumn('role');
+            }
+
+            try {
+                $table->dropIndex(['role', 'user_id']);
+            } catch (\Throwable $e) {}
         });
     }
 
