@@ -19,7 +19,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-                // RoleSeeder::class,
+            RoleSeeder::class,
             SuperAdminSeeder::class,
             DoctorSeeder::class,
             PatientSeeder::class,
@@ -43,8 +43,11 @@ class DatabaseSeeder extends Seeder
             FeedbackReportSeeder::class,
             SupportTicketSeeder::class,
             SupportReplySeeder::class,
+            ClinicSupportTicketSeeder::class,
             ClinicModuleSeeder::class,
             ClinicDentalLabModuleSeeder::class,
+            ClinicInventorySeeder::class,
+            ClinicOperationsSeeder::class,
         ]);
     }
 }

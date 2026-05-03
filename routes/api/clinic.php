@@ -4,6 +4,12 @@ use App\Http\Controllers\Api\Clinic\AppointmentController;
 use App\Http\Controllers\Api\Clinic\BillingController;
 use App\Http\Controllers\Api\Clinic\ClinicController;
 use App\Http\Controllers\Api\Clinic\DentalLabController;
+use App\Http\Controllers\Api\Clinic\EquipmentController;
+use App\Http\Controllers\Api\Clinic\InventoryController;
+use App\Http\Controllers\Api\Clinic\MaterialController;
+use App\Http\Controllers\Api\Clinic\NotificationCenterController;
+use App\Http\Controllers\Api\Clinic\OrderController;
+use App\Http\Controllers\Api\Clinic\ProcurementController;
 use App\Http\Controllers\Api\Clinic\Insurance\InsuranceClaimController;
 use App\Http\Controllers\Api\Clinic\Insurance\InsuranceCompanyController;
 use App\Http\Controllers\Api\Clinic\PatientController;
@@ -27,6 +33,7 @@ use App\Http\Controllers\Api\Clinic\Settings\ProfileController as SettingsProfil
 use App\Http\Controllers\Api\Clinic\TreatmentController;
 use App\Http\Controllers\Api\Clinic\TaskController;
 use App\Http\Controllers\Api\Clinic\UserController;
+use App\Http\Controllers\Api\Owner\SupportCenterController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('clinic')
@@ -161,11 +168,59 @@ Route::prefix('clinic')
         Route::middleware('permission:appointments.update')->patch('/appointments/{id}', [AppointmentController::class, 'update']);
         Route::middleware('permission:appointments.view')->get('/appointments/{id}', [AppointmentController::class, 'show']);
 
+        Route::get('/notifications', [NotificationCenterController::class, 'index']);
+        Route::get('/notifications/unread', [NotificationCenterController::class, 'unread']);
+        Route::patch('/notifications/{id}/read', [NotificationCenterController::class, 'markRead']);
+        Route::post('/notifications/mark-all-read', [NotificationCenterController::class, 'markAllRead']);
+
         Route::middleware('permission:treatments.manage')->get('/treatments', [TreatmentController::class, 'index']);
         Route::middleware('permission:treatments.manage')->post('/treatments', [TreatmentController::class, 'store']);
         Route::middleware('permission:treatments.manage')->get('/treatments/{id}', [TreatmentController::class, 'show']);
 
         Route::get('/select/{resource}', [SelectController::class, 'show']);
+
+        Route::middleware('permission:materials.view')->prefix('materials')->group(function () {
+            Route::get('/', [MaterialController::class, 'index']);
+            Route::get('/filters', [MaterialController::class, 'filters']);
+            Route::get('/{material}', [MaterialController::class, 'show']);
+        });
+
+        Route::middleware('permission:inventory.view')->prefix('inventory')->group(function () {
+            Route::get('/', [InventoryController::class, 'index']);
+            Route::get('/{inventory}', [InventoryController::class, 'show']);
+            Route::post('/scan', [InventoryController::class, 'scan']);
+        });
+
+        Route::middleware('permission:inventory.manage')->prefix('inventory')->group(function () {
+            Route::post('/', [InventoryController::class, 'store']);
+            Route::patch('/{inventory}', [InventoryController::class, 'update']);
+            Route::delete('/{inventory}', [InventoryController::class, 'destroy']);
+        });
+
+        Route::middleware('permission:inventory.manage')->prefix('procurement')->group(function () {
+            Route::get('/', [ProcurementController::class, 'index']);
+            Route::post('/', [ProcurementController::class, 'store']);
+            Route::patch('/{po}/approve', [ProcurementController::class, 'approve']);
+            Route::patch('/{po}/receive', [ProcurementController::class, 'receive']);
+            Route::delete('/{po}', [ProcurementController::class, 'cancel']);
+        });
+
+        Route::middleware('permission:orders.view')->prefix('orders')->group(function () {
+            Route::get('/', [OrderController::class, 'index']);
+            Route::get('/{order}', [OrderController::class, 'show']);
+        });
+
+        Route::middleware('permission:orders.manage')->prefix('orders')->group(function () {
+            Route::patch('/{order}/approve-changes', [OrderController::class, 'approveChanges']);
+            Route::patch('/{order}/reject-changes', [OrderController::class, 'rejectChanges']);
+            Route::patch('/{order}/pay', [OrderController::class, 'pay']);
+            Route::post('/{order}/restock', [OrderController::class, 'restock']);
+        });
+
+        Route::middleware('permission:equipment.view')->prefix('equipment')->group(function () {
+            Route::get('/', [EquipmentController::class, 'index']);
+            Route::post('/{equipment}/report', [EquipmentController::class, 'report']);
+        });
 
         Route::middleware('permission:tasks.view')->get('/tasks', [TaskController::class, 'index']);
         Route::middleware('permission:tasks.manage')->post('/tasks', [TaskController::class, 'store']);
@@ -194,4 +249,15 @@ Route::prefix('clinic')
         Route::middleware('permission:billing.manage')->post('/billing/expenses', [BillingController::class, 'storeExpense']);
         Route::middleware('permission:billing.manage')->get('/billing/profit-loss', [BillingController::class, 'profitLoss']);
         Route::middleware('permission:billing.manage')->get('/billing/expense-categories', [BillingController::class, 'expenseCategories']);
+
+        // Support Module
+        Route::middleware('permission:support.view')->prefix('support')->group(function () {
+            Route::get('/tickets', [SupportCenterController::class, 'index']);
+            Route::get('/tickets/{id}', [SupportCenterController::class, 'show']);
+        });
+
+        Route::middleware('permission:support.manage')->prefix('support')->group(function () {
+            Route::post('/tickets', [SupportCenterController::class, 'store']);
+            Route::post('/tickets/{id}/reply', [SupportCenterController::class, 'storeReply']);
+        });
     });

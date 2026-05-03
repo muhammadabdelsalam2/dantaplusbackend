@@ -4,26 +4,27 @@ namespace App\Providers;
 
 
 use App\Models\ClinicAppointment;
+use App\Models\MaterialProduct;
 use App\Observers\ClinicAppointmentObserver;
+use App\Observers\MaterialProductObserver;
 use App\Repositories\Chat\Message\MessageRepository;
 use App\Repositories\Chat\Team\TeamRepository;
-use App\Repositories\Contracts\Chat\Message\MessageRepositoryInterface;
-use App\Repositories\Contracts\Chat\Team\TeamRepositoryInterface;
-use App\Repositories\Contracts\SuperAdmin\RoleManagementRepositoryInterface;
-use App\Repositories\Contracts\SuperAdmin\SettingsRepositoryInterface as SuperAdminSettingsRepositoryInterface;
-use App\Repositories\Contracts\SuperAdmin\SubscriptionDashboardRepositoryInterface;
-use App\Repositories\Contracts\SuperAdmin\UserManagementRepositoryInterface;
-
-use App\Repositories\Clinic\Settings\ClinicSettingsRepository;
-use App\Repositories\Clinic\Settings\ClinicSettingsRepositoryInterface;
 use App\Repositories\Clinic\Billing\ClinicBillingRepository;
 use App\Repositories\Clinic\Billing\ClinicBillingRepositoryInterface;
 use App\Repositories\Clinic\DentalLab\ClinicDentalLabRepository;
 use App\Repositories\Clinic\DentalLab\ClinicDentalLabRepositoryInterface;
 use App\Repositories\Clinic\Select\ClinicSelectRepository;
 use App\Repositories\Clinic\Select\ClinicSelectRepositoryInterface;
+use App\Repositories\Clinic\Settings\ClinicSettingsRepository;
+use App\Repositories\Clinic\Settings\ClinicSettingsRepositoryInterface;
 use App\Repositories\Clinic\Task\ClinicTaskRepository;
 use App\Repositories\Clinic\Task\ClinicTaskRepositoryInterface;
+use App\Repositories\Contracts\Chat\Message\MessageRepositoryInterface;
+use App\Repositories\Contracts\Chat\Team\TeamRepositoryInterface;
+use App\Repositories\Contracts\SuperAdmin\RoleManagementRepositoryInterface;
+use App\Repositories\Contracts\SuperAdmin\SettingsRepositoryInterface as SuperAdminSettingsRepositoryInterface;
+use App\Repositories\Contracts\SuperAdmin\SubscriptionDashboardRepositoryInterface;
+use App\Repositories\Contracts\SuperAdmin\UserManagementRepositoryInterface;
 use App\Repositories\Lab\Clinic\ClinicRepository;
 use App\Repositories\Lab\Clinic\ClinicRepositoryInterface;
 use App\Repositories\Lab\Lookup\LookupRepository;
@@ -76,5 +77,6 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         ClinicAppointment::observe(ClinicAppointmentObserver::class);
+        MaterialProduct::observe(MaterialProductObserver::class);
     }
 }

@@ -140,4 +140,14 @@ class Clinic extends Model
         return $this->hasMany(ClinicExpense::class);
     }
 
+    public function procurementOrders(): HasMany
+    {
+        return $this->hasMany(ProcurementOrder::class);
+    }
+
+    public function equipments(): HasMany
+    {
+        return $this->hasMany(Equipment::class);
+    }
+
 }

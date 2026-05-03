@@ -2,17 +2,8 @@
 
 namespace App\Http\Requests\Owner\Notifications;
 
-use Illuminate\Foundation\Http\FormRequest;
+use App\Http\Requests\Notifications\MarkNotificationReadRequest as BaseMarkNotificationReadRequest;
 
-class MarkNotificationReadRequest extends FormRequest
+class MarkNotificationReadRequest extends BaseMarkNotificationReadRequest
 {
-    public function authorize(): bool
-    {
-        return true;
-    }
-
-    public function rules(): array
-    {
-        return [];
-    }
 }

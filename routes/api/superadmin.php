@@ -28,7 +28,8 @@ use App\Http\Controllers\Api\SuperAdmin\SubscriptionDashboardController;
 use App\Http\Controllers\Api\SuperAdmin\UserController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\SuperAdmin\LabNotificationsController;
-// Issue : ⚠️ Duplicated Login and Logout In System ('Look At File api.php') => Try Fix 🔁 Delete once Just
+use App\Http\Controllers\Api\SuperAdmin\MaintenanceRequestController;
+// Issue :  Duplicated Login and Logout In System ('Look At File api.php') => Try Fix 🔁 Delete once Just
 Route::post('login', [AuthController::class, 'login']);
 
 Route::middleware('auth:sanctum')->group(function () {
@@ -133,6 +134,8 @@ Route::prefix('superadmin')
     ->middleware(['auth:sanctum', 'role:super-admin'])
     ->group(function () {
         Route::get('/labs/{lab}/notifications', [LabNotificationsController::class, 'index']);
+        Route::get('/admin/maintenance-requests', [MaintenanceRequestController::class, 'index']);
+        Route::patch('/admin/maintenance-requests/{id}', [MaintenanceRequestController::class, 'update']);
 
         /*
         |--------------------------------------------------------------------------

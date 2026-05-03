@@ -18,7 +18,10 @@ class Notification extends Model
         'audience_type',
         'audience_id',
         'priority',
+        'delivery_method',
         'delivery_methods',
+        'user_id',
+        'role',
         'is_read',
         'read_at',
         'is_test',
@@ -30,11 +33,17 @@ class Notification extends Model
     protected function casts(): array
     {
         return [
+            'delivery_method' => 'array',
             'delivery_methods' => 'array',
             'is_read' => 'boolean',
             'read_at' => 'datetime',
             'is_test' => 'boolean',
         ];
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     public function sender(): BelongsTo

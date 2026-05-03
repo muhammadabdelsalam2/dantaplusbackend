@@ -3,31 +3,36 @@
 namespace App\Repositories;
 
 use App\Models\Notification;
+use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 class NotificationRepository
 {
-    public function paginate(array $filters, int $perPage = 15): LengthAwarePaginator
+    public function query(): Builder
     {
-        $query = Notification::query()
-            ->when($filters['type'] ?? null, fn (Builder $q, $type) => $q->where('type', $type))
-            ->when($filters['priority'] ?? null, fn (Builder $q, $priority) => $q->where('priority', $priority))
-            ->when($filters['audience_type'] ?? null, fn (Builder $q, $audienceType) => $q->where('audience_type', $audienceType));
+        return Notification::query()->with(['user:id,name,role', 'sender:id,name']);
+    }
 
-        if (array_key_exists('is_read', $filters)) {
-            $query->where('is_read', (bool) $filters['is_read']);
-        }
+    public function queryForUser(User $user, string $role): Builder
+    {
+        return $this->query()->where(function (Builder $query) use ($user, $role) {
+            $query->where('user_id', $user->id)
+                ->orWhere(function (Builder $roleQuery) use ($role) {
+                    $roleQuery->whereNull('user_id')
+                        ->where('role', $role);
+                })
+                ->orWhere(function (Builder $legacyQuery) use ($user, $role) {
+                    $legacyQuery->where('audience_type', 'user')
+                        ->where('audience_id', $user->id)
+                        ->orWhere('audience_type', $role);
+                });
+        });
+    }
 
-        if (! empty($filters['search'])) {
-            $search = $filters['search'];
-            $query->where(function (Builder $q) use ($search) {
-                $q->where('title', 'like', "%{$search}%")
-                    ->orWhere('message', 'like', "%{$search}%");
-            });
-        }
-
+    public function paginateQuery(Builder $query, int $perPage = 15): LengthAwarePaginator
+    {
         return $query
             ->orderByDesc('created_at')
             ->orderByDesc('id')
@@ -41,8 +46,13 @@ class NotificationRepository
         }
 
         return Notification::query()
-            ->where('audience_type', 'user')
-            ->whereIn('audience_id', $userIds)
+            ->where(function (Builder $query) use ($userIds) {
+                $query->whereIn('user_id', $userIds)
+                    ->orWhere(function (Builder $legacyQuery) use ($userIds) {
+                        $legacyQuery->where('audience_type', 'user')
+                            ->whereIn('audience_id', $userIds);
+                    });
+            })
             ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->get();
@@ -51,6 +61,13 @@ class NotificationRepository
     public function findById(int $id): ?Notification
     {
         return Notification::query()->find($id);
+    }
+
+    public function findForUser(User $user, string $role, int $id): ?Notification
+    {
+        return $this->queryForUser($user, $role)
+            ->whereKey($id)
+            ->first();
     }
 
     public function create(array $data): Notification
@@ -63,5 +80,14 @@ class NotificationRepository
         $notification->update($data);
 
         return $notification->refresh();
+    }
+
+    public function markAsRead(Builder $query): int
+    {
+        return $query->where('is_read', false)->update([
+            'is_read' => true,
+            'read_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 }

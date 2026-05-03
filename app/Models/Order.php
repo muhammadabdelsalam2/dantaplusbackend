@@ -17,6 +17,7 @@ class Order extends MaterialOrder
         'company_id', 'clinic_id', 'external_clinic_name', 'external_clinic_phone', 'status', 'notes', 'total_amount',
         'payment_method', 'payment_status', 'source', 'delivery_address', 'delivery_at', 'created_by',
         'order_code', 'supplier_company_id', 'order_date', 'amount_total', 'commission_amount', 'payment_reference',
+        'supplier_note', 'modified_by_supplier',
     ];
 
     public function company(): BelongsTo { return $this->belongsTo(Company::class, 'company_id'); }

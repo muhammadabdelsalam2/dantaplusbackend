@@ -31,14 +31,19 @@ class MaterialOrder extends Model
         'order_code',
         'clinic_id',
         'supplier_company_id',
+        'company_id',
         'order_date',
         'amount_total',
+        'total_amount',
         'status',
         'commission_amount',
         'notes',
+        'supplier_note',
+        'modified_by_supplier',
         'payment_method',
         'payment_status',
         'payment_reference',
+        'created_by',
     ];
 
     protected function casts(): array
@@ -46,7 +51,9 @@ class MaterialOrder extends Model
         return [
             'order_date' => 'datetime',
             'amount_total' => 'decimal:2',
+            'total_amount' => 'decimal:2',
             'commission_amount' => 'decimal:2',
+            'modified_by_supplier' => 'boolean',
         ];
     }
 

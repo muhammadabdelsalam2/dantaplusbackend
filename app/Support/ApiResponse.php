@@ -12,6 +12,7 @@ trait ApiResponse
         int $code = 200
     ): JsonResponse {
         return response()->json([
+            'status' => 'success',
             'success' => true,
             'message' => $message,
             'data' => $data,
@@ -24,6 +25,7 @@ trait ApiResponse
         mixed $errors = null
     ): JsonResponse {
         return response()->json([
+            'status' => 'error',
             'success' => false,
             'message' => $message,
             'errors' => $errors,

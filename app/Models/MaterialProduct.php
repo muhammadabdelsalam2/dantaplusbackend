@@ -17,6 +17,7 @@ class MaterialProduct extends Model
 
     protected $fillable = [
         'company_id',
+        'barcode',
         'image_url',
         'name',
         'brand',
@@ -73,4 +74,22 @@ class MaterialProduct extends Model
             'label' => ucfirst($this->status),
         ];
     }
+    // في MaterialProduct model
+protected static function booted(): void
+{
+    static::creating(function (MaterialProduct $product) {
+        if (empty($product->barcode)) {
+            // توليد مؤقت، هيحدث بعد الـ insert عشان نعرف الـ id
+            $product->barcode = '___PENDING___';
+        }
+    });
+
+    static::created(function (MaterialProduct $product) {
+        if ($product->barcode === '___PENDING___') {
+            $product->updateQuietly([
+                'barcode' => '200' . str_pad($product->id, 4, '0', STR_PAD_LEFT) . strtoupper(\Illuminate\Support\Str::random(6)),
+            ]);
+        }
+    });
+}
 }

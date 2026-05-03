@@ -13,7 +13,11 @@ class MaterialOrderItem extends Model
     protected $fillable = [
         'order_id',
         'product_id',
+        'item_name',
+        'unit',
         'quantity',
+        'qty_original',
+        'qty_modified',
         'unit_price',
         'line_total',
     ];
@@ -22,6 +26,8 @@ class MaterialOrderItem extends Model
     {
         return [
             'quantity' => 'integer',
+            'qty_original' => 'integer',
+            'qty_modified' => 'integer',
             'unit_price' => 'decimal:2',
             'line_total' => 'decimal:2',
         ];

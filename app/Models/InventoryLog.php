@@ -13,7 +13,7 @@ class InventoryLog extends Model
 
     public $timestamps = false;
 
-    protected $fillable = ['inventory_item_id', 'company_id', 'user_id', 'action', 'amount', 'reason', 'created_at'];
+    protected $fillable = ['inventory_item_id', 'company_id', 'clinic_id', 'user_id', 'action', 'amount', 'reason', 'created_at'];
 
     protected function casts(): array
     {
@@ -22,5 +22,6 @@ class InventoryLog extends Model
 
     public function inventoryItem(): BelongsTo { return $this->belongsTo(InventoryItem::class); }
     public function company(): BelongsTo { return $this->belongsTo(Company::class); }
+    public function clinic(): BelongsTo { return $this->belongsTo(Clinic::class); }
     public function user(): BelongsTo { return $this->belongsTo(User::class); }
 }

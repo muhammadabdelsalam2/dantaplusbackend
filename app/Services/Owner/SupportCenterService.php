@@ -14,8 +14,30 @@ class SupportCenterService
 {
     public function __construct(private SupportTicketRepository $repository) {}
 
+    /**
+     * Check if current user is a clinic user
+     */
+    private function isClinicUser(): bool
+    {
+        $user = auth()->user();
+        return $user && $user->clinic_id !== null;
+    }
+
+    /**
+     * Get clinic_id from authenticated user
+     */
+    private function getClinicId(): ?int
+    {
+        return auth()->user()?->clinic_id;
+    }
+
     public function listTickets(array $filters): array
     {
+        // Apply clinic filter for clinic users
+        if ($this->isClinicUser()) {
+            $filters['clinic_id'] = $this->getClinicId();
+        }
+
         $perPage = (int) ($filters['per_page'] ?? 15);
         $tickets = $this->repository->paginate($filters, $perPage);
 
@@ -40,6 +62,11 @@ class SupportCenterService
         $ticket = $this->repository->findById($id);
 
         if (! $ticket) {
+            return ServiceResult::error('Support ticket not found', null, null, 404);
+        }
+
+        // For clinic users, verify they can only view their own clinic's tickets
+        if ($this->isClinicUser() && $ticket->clinic_id !== $this->getClinicId()) {
             return ServiceResult::error('Support ticket not found', null, null, 404);
         }
 
@@ -78,8 +105,13 @@ class SupportCenterService
                 return ServiceResult::error('Support ticket not found', null, null, 404);
             }
 
+            // For clinic users, verify they can only reply to their own clinic's tickets
+            if ($this->isClinicUser() && $ticket->clinic_id !== $this->getClinicId()) {
+                return ServiceResult::error('Support ticket not found', null, null, 404);
+            }
+
             $sender = auth()->user();
-            $senderRole = $data['sender_role'] ?? ($sender?->getRoleNames()->first() ?? 'super-admin');
+            $senderRole = $data['sender_role'] ?? ($sender?->getRoleNames()->first() ?? 'clinic-admin');
 
             $reply = $this->repository->addReply($ticket, [
                 'sender_id' => $data['sender_id'] ?? $sender?->id,

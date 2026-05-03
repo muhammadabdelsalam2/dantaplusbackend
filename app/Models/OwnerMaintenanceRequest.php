@@ -26,12 +26,24 @@ class OwnerMaintenanceRequest extends Model
     protected $fillable = [
         'request_code',
         'clinic_id',
+        'equipment_id',
         'equipment',
+        'malfunction_type',
         'issue_description',
+        'urgency',
+        'attachment_url',
         'assigned_company_id',
         'status',
         'created_by',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'created_at' => 'datetime',
+            'updated_at' => 'datetime',
+        ];
+    }
 
     public function clinic(): BelongsTo
     {
@@ -41,6 +53,11 @@ class OwnerMaintenanceRequest extends Model
     public function company(): BelongsTo
     {
         return $this->belongsTo(MaintenanceCompany::class, 'assigned_company_id');
+    }
+
+    public function equipmentRecord(): BelongsTo
+    {
+        return $this->belongsTo(Equipment::class, 'equipment_id');
     }
 
     public function creator(): BelongsTo
