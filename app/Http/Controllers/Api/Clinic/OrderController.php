@@ -27,6 +27,7 @@ class OrderController extends Controller
         $validated = $request->validated();
         $orders = Order::query()
             ->withoutGlobalScope(\App\Scopes\CompanyScope::class)
+                ->with(['supplierCompany:id,name', 'items.product:id,name'])
             ->with(['supplierCompany:id,name'])
             ->where('clinic_id', $clinicId)
             ->when($validated['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
