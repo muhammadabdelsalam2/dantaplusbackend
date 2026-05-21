@@ -15,3 +15,11 @@ Route::get('/debug-orders', function () {
         'with_relation' => App\Models\Order::with('supplierCompany')->where('clinic_id', 26)->first(),
     ];
 });
+Route::get('/debug-auth', function () {
+    $user = auth()->user();
+    return [
+        'user_id' => $user?->id,
+        'clinic_id' => $user?->clinic_id,
+        'guard' => auth()->getDefaultDriver(),
+    ];
+});
