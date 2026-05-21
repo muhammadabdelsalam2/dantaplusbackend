@@ -39,6 +39,9 @@ use App\Repositories\SuperAdmin\RoleManagementRepository;
 use App\Repositories\SuperAdmin\SettingsRepository as SuperAdminSettingsRepository;
 use App\Repositories\SuperAdmin\SubscriptionDashboardRepository;
 use App\Repositories\SuperAdmin\UserManagementRepository;
+use App\Services\Clinic\WhatsappBot\Providers\MetaWhatsAppService;
+use App\Services\Clinic\WhatsappBot\Providers\TwilioWhatsAppService;
+use App\Services\Clinic\WhatsappBot\Providers\WhatsAppProviderInterface;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -71,6 +74,12 @@ class AppServiceProvider extends ServiceProvider
         // Chat Repository Binding
         $this->app->bind(MessageRepositoryInterface::class, MessageRepository::class);
         $this->app->bind(TeamRepositoryInterface::class, TeamRepository::class);
+        $this->app->bind(WhatsAppProviderInterface::class, function ($app) {
+            return match ((string) config('services.whatsapp.provider')) {
+                'twilio', 'twilio_whatsapp_api' => $app->make(TwilioWhatsAppService::class),
+                default => $app->make(MetaWhatsAppService::class),
+            };
+        });
 
     }
 

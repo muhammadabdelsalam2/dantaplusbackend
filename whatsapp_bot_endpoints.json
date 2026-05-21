@@ -1,0 +1,32 @@
+{
+  "module": "WhatsApp Bot",
+  "scope": "clinic_admin",
+  "base_path": "/api/clinic/whatsapp-bot",
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/api/clinic/whatsapp-bot",
+      "description": "Fetch the current clinic WhatsApp bot settings."
+    },
+    {
+      "method": "POST",
+      "path": "/api/clinic/whatsapp-bot/update",
+      "description": "Update the clinic WhatsApp bot settings."
+    },
+    {
+      "method": "POST",
+      "path": "/api/clinic/whatsapp-bot/toggle",
+      "description": "Enable or disable the clinic WhatsApp bot."
+    },
+    {
+      "method": "POST",
+      "path": "/api/clinic/whatsapp-bot/simulate",
+      "description": "Simulate a patient message and get the generated reply."
+    },
+    {
+      "method": "POST",
+      "path": "/api/webhook/whatsapp",
+      "description": "Receive incoming WhatsApp webhook messages and send automated replies."
+    }
+  ]
+}

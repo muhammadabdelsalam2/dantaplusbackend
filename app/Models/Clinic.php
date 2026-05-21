@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Clinic extends Model
@@ -150,4 +151,13 @@ class Clinic extends Model
         return $this->hasMany(Equipment::class);
     }
 
+    public function whatsappBotSetting(): HasOne
+    {
+        return $this->hasOne(WhatsappBotSetting::class);
+    }
+
+    public function whatsappMessages(): HasMany
+    {
+        return $this->hasMany(WhatsappMessage::class);
+    }
 }

@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\Clinic\MessageController;
 use App\Http\Controllers\Api\Clinic\NotificationCenterController;
 use App\Http\Controllers\Api\Clinic\OrderController;
 use App\Http\Controllers\Api\Clinic\ProcurementController;
+use App\Http\Controllers\Api\Clinic\WhatsappBotController;
 use App\Http\Controllers\Api\Clinic\Insurance\InsuranceClaimController;
 use App\Http\Controllers\Api\Clinic\Insurance\InsuranceCompanyController;
 use App\Http\Controllers\Api\Clinic\PatientController;
@@ -175,6 +176,13 @@ Route::prefix('clinic')
             Route::get('/users/{id}',         [UserController::class, 'show']);
             Route::patch('/users/{id}',       [UserController::class, 'update']);
             Route::delete('/users/{id}',      [UserController::class, 'destroy']);
+
+            Route::prefix('whatsapp-bot')->group(function () {
+                Route::get('/', [WhatsappBotController::class, 'index']);
+                Route::post('/update', [WhatsappBotController::class, 'update']);
+                Route::post('/toggle', [WhatsappBotController::class, 'toggle']);
+                Route::post('/simulate', [WhatsappBotController::class, 'simulate']);
+            });
         });
 
         // ─── Patients ────────────────────────────────────────────────────────
@@ -299,3 +307,6 @@ Route::prefix('clinic')
             Route::post('/tickets/{id}/reply', [SupportCenterController::class, 'storeReply']);
         });
     });
+
+Route::post('webhook/whatsapp', [WhatsappBotController::class, 'webhook'])
+    ->name('clinic.whatsapp-bot.webhook');

@@ -59,7 +59,7 @@ return new class extends Migration
                         ->on('message_templates')
                         ->nullOnDelete();
                 } catch (\Exception $e) {
-                    // لو معمول قبل كدا تجاهل
+                    // تجاهل لو موجود
                 }
             });
         }
@@ -110,7 +110,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        // في production منمسحش الداتا
-        // سيبها فاضية أو امسح FK بس لو عايز
+
     }
 };
