@@ -18,10 +18,7 @@ class OrderController extends Controller
 
     public function index(IndexClinicOrderRequest $request)
     {
-          return response()->json([
-        'user_id' => auth()->id(),
-        'clinic_id' => auth()->user()?->clinic_id,
-    ]);
+
         $clinicId = auth()->user()?->clinic_id;
         if (! $clinicId) {
             return ApiResponse::error('Clinic account is not linked to a clinic.', 403);
@@ -29,6 +26,7 @@ class OrderController extends Controller
 
         $validated = $request->validated();
         $orders = Order::query()
+            ->withoutGlobalScope(\App\Scopes\CompanyScope::class)
             ->with(['supplierCompany:id,name'])
             ->where('clinic_id', $clinicId)
             ->when($validated['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
@@ -164,6 +162,7 @@ class OrderController extends Controller
     private function findOrder(int $id): ?Order
     {
         return Order::query()
+            ->withoutGlobalScope(\App\Scopes\CompanyScope::class)
             ->with(['supplierCompany:id,name', 'items.product:id,name'])
             ->where('clinic_id', auth()->user()?->clinic_id)
             ->find($id);
