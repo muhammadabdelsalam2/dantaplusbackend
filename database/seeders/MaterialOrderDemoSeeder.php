@@ -157,68 +157,88 @@ class MaterialOrderDemoSeeder extends Seeder
         return MaterialCompany::query()->with('products')->get();
     }
 
-    private function seedOrders(Collection $clinics, Collection $companies): void
-    {
-        $statuses = MaterialOrder::STATUSES;
-        $paymentMethods = ['Cash', 'Card', 'Bank Transfer', 'Instapay', 'Wallet'];
-        $paymentStatuses = ['Pending', 'Paid', 'Failed', 'Refunded'];
+   private function seedOrders(Collection $clinics, Collection $companies): void
+{
+    $statuses = MaterialOrder::STATUSES;
+    $paymentMethods = ['Cash', 'Card', 'Bank Transfer', 'Instapay', 'Wallet'];
+    $paymentStatuses = ['Pending', 'Paid', 'Failed', 'Refunded'];
+    $units = ['box', 'piece', 'pack', 'set', 'tube'];
 
-        for ($i = 1; $i <= 150; $i++) {
-            $clinic = $clinics->random();
-            $company = $companies->random();
+    for ($i = 1; $i <= 150; $i++) {
+        $clinic = $clinics->random();
+        $company = $companies->random();
 
-            $products = MaterialProduct::query()
-                ->where('company_id', $company->id)
-                ->where('status', 'Active')
-                ->inRandomOrder()
-                ->take(rand(2, 6))
-                ->get();
+        $products = MaterialProduct::query()
+            ->where('company_id', $company->id)
+            ->where('status', 'Active')
+            ->inRandomOrder()
+            ->take(rand(2, 6))
+            ->get();
 
-            if ($products->isEmpty()) {
-                continue;
-            }
-
-            $order = MaterialOrder::create([
-                'order_code' => 'MO-' . now()->format('Ymd') . '-' . str_pad((string) $i, 5, '0', STR_PAD_LEFT),
-                'clinic_id' => $clinic->id,
-                'supplier_company_id' => $company->id,
-                'order_date' => Carbon::now()
-                    ->subDays(rand(0, 180))
-                    ->subHours(rand(0, 23))
-                    ->subMinutes(rand(0, 59)),
-                'amount_total' => 0,
-                'status' => $statuses[array_rand($statuses)],
-                'commission_amount' => 0,
-                'notes' => 'Demo material order #' . $i,
-                'payment_method' => $paymentMethods[array_rand($paymentMethods)],
-                'payment_status' => $paymentStatuses[array_rand($paymentStatuses)],
-                'payment_reference' => 'PAY-' . strtoupper(substr(md5(uniqid((string) $i, true)), 0, 10)),
-            ]);
-
-            $total = 0;
-
-            foreach ($products as $product) {
-                $quantity = rand(1, 8);
-                $unitPrice = (float) $product->price;
-                $lineTotal = round($quantity * $unitPrice, 2);
-
-                MaterialOrderItem::create([
-                    'order_id' => $order->id,
-                    'product_id' => $product->id,
-                    'quantity' => $quantity,
-                    'unit_price' => $unitPrice,
-                    'line_total' => $lineTotal,
-                ]);
-
-                $total += $lineTotal;
-            }
-
-            $commissionAmount = round($total * (((float) $company->commission_percentage) / 100), 2);
-
-            $order->update([
-                'amount_total' => round($total, 2),
-                'commission_amount' => $commissionAmount,
-            ]);
+        if ($products->isEmpty()) {
+            continue;
         }
+
+        $hasSupplierModification = (bool) rand(0, 1); // 50% فرصة يكون في تعديل
+
+        $order = MaterialOrder::create([
+            'order_code'         => 'MO-' . now()->format('Ymd') . '-' . str_pad((string) $i, 5, '0', STR_PAD_LEFT),
+            'clinic_id'          => $clinic->id,
+            'supplier_company_id'=> $company->id,
+            'order_date'         => Carbon::now()->subDays(rand(0, 180))->subHours(rand(0, 23))->subMinutes(rand(0, 59)),
+            'amount_total'       => 0,
+            'total_amount'       => 0,
+            'status'             => $statuses[array_rand($statuses)],
+            'commission_amount'  => 0,
+            'notes'              => 'Demo material order #' . $i,
+            'supplier_note'      => collect(['Please handle with care', 'Urgent delivery needed', 'Standard packaging', 'Fragile items inside', 'Call before delivery'])->random(),
+            'modified_by_supplier' => $hasSupplierModification,
+            'payment_method'     => $paymentMethods[array_rand($paymentMethods)],
+            'payment_status'     => $paymentStatuses[array_rand($paymentStatuses)],
+            'payment_reference'  => 'PAY-' . strtoupper(substr(md5(uniqid((string) $i, true)), 0, 10)),
+        ]);
+
+        $total = 0;
+
+        foreach ($products as $product) {
+            $quantity    = rand(1, 8);
+            $unitPrice   = (float) $product->price;
+            $qtyOriginal = $quantity;
+
+            // لو في تعديل من السبلاير، عدّل الكمية
+            $qtyModified = null;
+            if ($hasSupplierModification) {
+                $qtyModified = max(1, $quantity + rand(-2, 2));
+                if ($qtyModified === $quantity) {
+                    $qtyModified = max(1, $quantity + 1); // تأكد إنها مختلفة
+                }
+            }
+
+            $effectiveQty = $qtyModified ?? $quantity;
+            $lineTotal    = round($effectiveQty * $unitPrice, 2);
+
+            MaterialOrderItem::create([
+                'order_id'     => $order->id,
+                'product_id'   => $product->id,
+                'item_name'    => $product->name,
+                'unit'         => $units[array_rand($units)],
+                'quantity'     => $quantity,
+                'qty_original' => $qtyOriginal,
+                'qty_modified' => $qtyModified,
+                'unit_price'   => $unitPrice,
+                'line_total'   => $lineTotal,
+            ]);
+
+            $total += $lineTotal;
+        }
+
+        $commissionAmount = round($total * (((float) $company->commission_percentage) / 100), 2);
+
+        $order->update([
+            'amount_total'      => round($total, 2),
+            'total_amount'      => round($total, 2), // الاتنين بنفس القيمة
+            'commission_amount' => $commissionAmount,
+        ]);
     }
+}
 }
