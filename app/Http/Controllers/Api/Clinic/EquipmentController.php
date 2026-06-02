@@ -89,12 +89,15 @@ class EquipmentController extends Controller
 $validated = $request->validate([
     'name'   => 'required|string|max:255',
     'status' => 'nullable|string|in:operational,broken,under_maintenance',
-    'image'  => 'nullable|image|max:5120', 
+    'image'  => 'nullable|image|max:5120',
 ]);
 
 $imageUrl = null;
 if ($request->hasFile('image')) {
-    $imageUrl = $request->file('image')->store('equipment', 'public');
+    $file = $request->file('image');
+    $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+    $file->move(public_path('uploads/equipment'), $filename);
+    $imageUrl = 'uploads/equipment/' . $filename;
 }
 
 $equipment = Equipment::create([
