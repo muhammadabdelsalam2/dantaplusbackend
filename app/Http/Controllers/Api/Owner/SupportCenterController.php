@@ -36,20 +36,22 @@ class SupportCenterController extends Controller
             'description' => 'required|string',
             'priority' => 'nullable|string|in:Low,Medium,High,Urgent',
             'category' => 'nullable|string|max:100',
+             'assigned_to' => 'nullable|integer|exists:users,id',
         ]);
 
         $user = auth()->user();
 
-        $result = $this->service->createTicket([
-            'reporter_type' => 'clinic',
-            'reporter_id' => $user->id,
-            'clinic_id' => $user->clinic_id,
-            'title' => $validated['title'],
-            'description' => $validated['description'],
-            'priority' => $validated['priority'] ?? 'Medium',
-            'category' => $validated['category'] ?? 'General',
-            'status' => 'Open',
-        ]);
+    $result = $this->service->createTicket([
+    'reporter_type' => 'clinic',
+    'reporter_id'   => $user->id,
+    'clinic_id'     => $user->clinic_id,
+    'title'         => $validated['title'],
+    'description'   => $validated['description'],
+    'priority'      => $validated['priority'] ?? 'Medium',
+    'category'      => $validated['category'] ?? 'General',
+    'status'        => 'Open',
+    'assigned_to'   => $validated['assigned_to'] ?? null, 
+]);
 
         if (! $result['success']) {
             return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
