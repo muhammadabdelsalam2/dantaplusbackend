@@ -26,6 +26,7 @@ class Equipment extends Model
         'name',
         'clinic_id',
         'status',
+        'image_url'
     ];
 
     public function clinic(): BelongsTo

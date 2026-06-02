@@ -86,16 +86,23 @@ class EquipmentController extends Controller
         return ApiResponse::error('Clinic account is not linked to a clinic.', 403);
     }
 
-    $validated = $request->validate([
-        'name'   => 'required|string|max:255',
-        'status' => 'nullable|string|in:operational,broken,under_maintenance',
-    ]);
+$validated = $request->validate([
+    'name'   => 'required|string|max:255',
+    'status' => 'nullable|string|in:operational,broken,under_maintenance',
+    'image'  => 'nullable|image|max:5120', 
+]);
 
-    $equipment = Equipment::create([
-        'name'      => $validated['name'],
-        'clinic_id' => $clinicId,
-        'status'    => $validated['status'] ?? Equipment::STATUS_OPERATIONAL,
-    ]);
+$imageUrl = null;
+if ($request->hasFile('image')) {
+    $imageUrl = $request->file('image')->store('equipment', 'public');
+}
+
+$equipment = Equipment::create([
+    'name'      => $validated['name'],
+    'clinic_id' => $clinicId,
+    'status'    => $validated['status'] ?? Equipment::STATUS_OPERATIONAL,
+    'image_url' => $imageUrl,
+]);
 
     return ApiResponse::success(
         (new EquipmentResource($equipment->loadCount('maintenanceRequests')))->resolve(),
