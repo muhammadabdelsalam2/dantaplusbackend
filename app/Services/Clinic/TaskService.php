@@ -141,4 +141,42 @@ class TaskService
     {
         return auth()->user()?->clinic_id;
     }
+
+    public function show(int $taskId): array
+{
+    $clinicId = $this->currentClinicId();
+    if (! $clinicId) {
+        return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
+    }
+
+    $task = $this->repository->findForClinic($clinicId, $taskId);
+    if (! $task) {
+        return ServiceResult::error('Task not found.', null, null, 404);
+    }
+
+    return ServiceResult::success(
+        (new ClinicTaskResource($task))->resolve(),
+        'Task fetched successfully'
+    );
+}
+
+public function storeReply(int $taskId, array $data): array
+{
+    $clinicId = $this->currentClinicId();
+    if (! $clinicId) {
+        return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
+    }
+
+    $task = $this->repository->findForClinic($clinicId, $taskId);
+    if (! $task) {
+        return ServiceResult::error('Task not found.', null, null, 404);
+    }
+
+    $reply = $this->repository->createReply($task, [
+        'message'    => $data['message'],
+        'created_by' => auth()->id(),
+    ]);
+
+    return ServiceResult::success($reply, 'Reply added successfully', 201);
+}
 }

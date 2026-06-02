@@ -298,13 +298,13 @@ Route::prefix('clinic')
         });
 
         // ─── Support ─────────────────────────────────────────────────────────
-       // ─── Support ─────────────────────────────────────────────────────────
+       // routes - support section
 Route::middleware('permission:support.view')->prefix('support')->group(function () {
     Route::get('/tickets',      [SupportCenterController::class, 'index']);
     Route::get('/tickets/{id}', [SupportCenterController::class, 'show']);
 });
 Route::middleware('permission:support.manage')->prefix('support')->group(function () {
-    Route::post('/tickets',            [SupportCenterController::class, 'store']);       
+    Route::post('/tickets',            [SupportCenterController::class, 'store']);
     Route::post('/tickets/{id}/reply', [SupportCenterController::class, 'storeReply']);
 });
     });

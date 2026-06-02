@@ -51,4 +51,8 @@ class ClinicTaskRepository implements ClinicTaskRepositoryInterface
     {
         $task->delete();
     }
+    public function createReply(ClinicTask $task, array $data): mixed
+{
+    return $task->replies()->create($data);
+}
 }

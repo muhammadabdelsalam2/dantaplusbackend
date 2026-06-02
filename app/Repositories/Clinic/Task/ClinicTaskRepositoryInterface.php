@@ -16,4 +16,6 @@ interface ClinicTaskRepositoryInterface
     public function update(ClinicTask $task, array $data): ClinicTask;
 
     public function delete(ClinicTask $task): void;
+
+     public function createReply(ClinicTask $task, array $data): mixed;
 }

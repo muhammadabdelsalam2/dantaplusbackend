@@ -52,4 +52,25 @@ class TaskController extends Controller
             ? ApiResponse::success($result['data'], $result['message'], $result['code'])
             : ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
     }
+    public function show(int $id)
+{
+    $result = $this->service->show($id);
+
+    return $result['success']
+        ? ApiResponse::success($result['data'], $result['message'], $result['code'])
+        : ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+}
+
+public function storeReply(\Illuminate\Http\Request $request, int $id)
+{
+    $validated = $request->validate([
+        'message' => 'required|string',
+    ]);
+
+    $result = $this->service->storeReply($id, $validated);
+
+    return $result['success']
+        ? ApiResponse::success($result['data'], $result['message'], $result['code'])
+        : ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+}
 }

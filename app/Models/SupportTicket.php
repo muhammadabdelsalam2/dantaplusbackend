@@ -11,10 +11,10 @@ class SupportTicket extends Model
 {
     use HasFactory;
 
-    public const STATUS_OPEN = 'Open';
-    public const STATUS_IN_PROGRESS = 'In Progress';
-    public const STATUS_RESOLVED = 'Resolved';
-    public const STATUS_CLOSED = 'Closed';
+    public const STATUS_OPEN = 'open';
+    public const STATUS_IN_PROGRESS = 'in progress';
+    public const STATUS_RESOLVED = 'resolved';
+    public const STATUS_CLOSED = 'closed';
 
     public const STATUSES = [
         self::STATUS_OPEN,
@@ -23,10 +23,10 @@ class SupportTicket extends Model
         self::STATUS_CLOSED,
     ];
 
-    public const PRIORITY_LOW = 'Low';
-    public const PRIORITY_MEDIUM = 'Medium';
-    public const PRIORITY_HIGH = 'High';
-    public const PRIORITY_URGENT = 'Urgent';
+    public const PRIORITY_LOW = 'low';
+    public const PRIORITY_MEDIUM = 'medium';
+    public const PRIORITY_HIGH = 'high';
+    public const PRIORITY_URGENT = 'urgent';
 
     public const PRIORITIES = [
         self::PRIORITY_LOW,
