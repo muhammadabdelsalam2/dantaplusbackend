@@ -79,4 +79,28 @@ class EquipmentController extends Controller
             'equipment_status' => $equipmentRecord->fresh()->status,
         ], 'Maintenance request created successfully', 201);
     }
+    public function store(\Illuminate\Http\Request $request)
+{
+    $clinicId = auth()->user()?->clinic_id;
+    if (! $clinicId) {
+        return ApiResponse::error('Clinic account is not linked to a clinic.', 403);
+    }
+
+    $validated = $request->validate([
+        'name'   => 'required|string|max:255',
+        'status' => 'nullable|string|in:operational,broken,under_maintenance',
+    ]);
+
+    $equipment = Equipment::create([
+        'name'      => $validated['name'],
+        'clinic_id' => $clinicId,
+        'status'    => $validated['status'] ?? Equipment::STATUS_OPERATIONAL,
+    ]);
+
+    return ApiResponse::success(
+        (new EquipmentResource($equipment->loadCount('maintenanceRequests')))->resolve(),
+        'Equipment created successfully',
+        201
+    );
+}
 }

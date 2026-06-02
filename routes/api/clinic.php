@@ -263,7 +263,9 @@ Route::prefix('clinic')
             Route::get('/', [EquipmentController::class, 'index']);
             Route::post('/{equipment}/report', [EquipmentController::class, 'report']);
         });
-
+        Route::middleware('permission:equipment.manage')->prefix('equipment')->group(function () {
+    Route::post('/', [EquipmentController::class, 'store']); 
+});
         // ─── Tasks ───────────────────────────────────────────────────────────
         Route::middleware('permission:tasks.view')->get('/tasks',              [TaskController::class, 'index']);
         Route::middleware('permission:tasks.manage')->post('/tasks',            [TaskController::class, 'store']);
