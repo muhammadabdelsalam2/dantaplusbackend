@@ -298,14 +298,15 @@ Route::prefix('clinic')
         });
 
         // ─── Support ─────────────────────────────────────────────────────────
-        Route::middleware('permission:support.view')->prefix('support')->group(function () {
-            Route::get('/tickets',      [TaskController::class, 'index']);
-            Route::get('/tickets/{id}', [TaskController::class, 'show']);
-        });
-        Route::middleware('permission:support.manage')->prefix('support')->group(function () {
-            Route::post('/tickets',            [TaskController::class, 'store']);
-            Route::post('/tickets/{id}/reply', [TaskController::class, 'storeReply']);
-        });
+       // ─── Support ─────────────────────────────────────────────────────────
+Route::middleware('permission:support.view')->prefix('support')->group(function () {
+    Route::get('/tickets',      [SupportCenterController::class, 'index']);
+    Route::get('/tickets/{id}', [SupportCenterController::class, 'show']);
+});
+Route::middleware('permission:support.manage')->prefix('support')->group(function () {
+    Route::post('/tickets',            [SupportCenterController::class, 'store']);       
+    Route::post('/tickets/{id}/reply', [SupportCenterController::class, 'storeReply']);
+});
     });
 
 Route::post('webhook/whatsapp', [WhatsappBotController::class, 'webhook'])
