@@ -12,7 +12,7 @@ class NotificationSeeder extends Seeder
     public function run(): void
     {
         $sender = User::query()->role('super-admin')->first() ?? User::query()->first();
-        $clinicUsers = User::query()->role(['clinic_admin', 'doctor', 'nurse', 'accountant', 'receptionist', 'staff'])->take(4)->get();
+        $clinicUsers = User::query()->role(['clinic_admin', 'doctor', 'nurse', 'accountant', 'receptionist', 'staff'])->get();
         $superAdmins = User::query()->role('super-admin')->take(2)->get();
 
         $templates = collect([
