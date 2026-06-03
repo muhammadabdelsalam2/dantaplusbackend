@@ -139,25 +139,26 @@ class NotificationService
         ], 'Notifications marked as read successfully');
     }
 
-    public function getUserNotifications(User $actor, array $filters = [], bool $onlyUnread = false): array
-    {
-        $perPage = (int) ($filters['per_page'] ?? 15);
-        $query = $this->filterNotifications(
-            $this->notificationRepository->queryForUser($actor, $this->resolveActorRole($actor)),
-            $filters
-        );
+  public function getUserNotifications(User $actor, array $filters = [], bool $onlyUnread = false): array
+{
+    $perPage = (int) ($filters['per_page'] ?? 15);
 
-        if ($onlyUnread) {
-            $query->where('is_read', false);
-        }
+    $baseQuery = $this->notificationRepository->queryForUser($actor, $this->resolveActorRole($actor));
 
-        $notifications = $this->notificationRepository->paginateQuery($query, $perPage);
+    // الفلاتر تتطبق داخل نفس الـ query مش على query منفصل
+    $query = $this->filterNotifications($baseQuery, $filters);
 
-        return ServiceResult::success(
-            $this->buildCollectionPayload($notifications, $actor),
-            $onlyUnread ? 'Unread notifications fetched successfully' : 'Notifications fetched successfully'
-        );
+    if ($onlyUnread) {
+        $query->where('is_read', false);
     }
+
+    $notifications = $this->notificationRepository->paginateQuery($query, $perPage);
+
+    return ServiceResult::success(
+        $this->buildCollectionPayload($notifications, $actor),
+        $onlyUnread ? 'Unread notifications fetched successfully' : 'Notifications fetched successfully'
+    );
+}
 
     public function filterNotifications(Builder $query, array $filters): Builder
     {
@@ -300,13 +301,17 @@ class NotificationService
     }
 
     private function normalizeStoredDeliveryMethods(Notification $notification): array
-    {
-        return array_values(array_filter(
-            $notification->delivery_method
-            ?? $notification->delivery_methods
-            ?? []
-        ));
+{
+    $raw = $notification->delivery_method ?? $notification->delivery_methods ?? [];
+
+
+    if (is_string($raw)) {
+        $decoded = json_decode($raw, true);
+        $raw = is_array($decoded) ? $decoded : [$raw];
     }
+
+    return array_values(array_filter((array) $raw));
+}
 
     private function logNotificationDelivery(Notification $notification, User $recipient): void
     {

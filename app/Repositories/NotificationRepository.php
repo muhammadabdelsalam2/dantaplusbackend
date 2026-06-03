@@ -16,20 +16,23 @@ class NotificationRepository
     }
 
     public function queryForUser(User $user, string $role): Builder
-    {
-        return $this->query()->where(function (Builder $query) use ($user, $role) {
-            $query->where('user_id', $user->id)
-                ->orWhere(function (Builder $roleQuery) use ($role) {
-                    $roleQuery->whereNull('user_id')
-                        ->where('role', $role);
-                })
-                ->orWhere(function (Builder $legacyQuery) use ($user, $role) {
-                    $legacyQuery->where('audience_type', 'user')
-                        ->where('audience_id', $user->id)
-                        ->orWhere('audience_type', $role);
-                });
-        });
-    }
+{
+    return $this->query()->where(function (Builder $query) use ($user, $role) {
+        $query->where('user_id', $user->id)
+            ->orWhere(function (Builder $roleQuery) use ($role) {
+                $roleQuery->whereNull('user_id')
+                    ->where('role', $role);
+            })
+            ->orWhere(function (Builder $legacyQuery) use ($user, $role) {
+                $legacyQuery->where('audience_type', 'user')
+                    ->where('audience_id', $user->id);
+            })
+            ->orWhere(function (Builder $legacyQuery) use ($role) {
+                $legacyQuery->where('audience_type', $role)
+                    ->whereNull('user_id'); 
+            });
+    });
+}
 
     public function paginateQuery(Builder $query, int $perPage = 15): LengthAwarePaginator
     {
