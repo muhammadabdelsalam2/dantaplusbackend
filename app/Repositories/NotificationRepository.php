@@ -15,22 +15,28 @@ class NotificationRepository
         return Notification::query()->with(['user:id,name,role', 'sender:id,name']);
     }
 
-    public function queryForUser(User $user, string $role): Builder
+  public function queryForUser(User $user, string $role): Builder
 {
     return $this->query()->where(function (Builder $query) use ($user, $role) {
-        $query->where('user_id', $user->id)
-            ->orWhere(function (Builder $roleQuery) use ($role) {
-                $roleQuery->whereNull('user_id')
-                    ->where('role', $role);
-            })
-            ->orWhere(function (Builder $legacyQuery) use ($user, $role) {
-                $legacyQuery->where('audience_type', 'user')
-                    ->where('audience_id', $user->id);
-            })
-            ->orWhere(function (Builder $legacyQuery) use ($role) {
-                $legacyQuery->where('audience_type', $role)
-                    ->whereNull('user_id'); 
-            });
+        // notifications مرسلة لليوزر مباشرة
+        $query->where('user_id', $user->id);
+
+        
+        $query->orWhere(function (Builder $q) use ($role) {
+            $q->whereNull('user_id')->where('role', $role);
+        });
+
+        // legacy: audience_type = 'user' و audience_id = user id
+        $query->orWhere(function (Builder $q) use ($user) {
+            $q->where('audience_type', 'user')
+              ->where('audience_id', $user->id);
+        });
+
+        // legacy: audience_type = role
+        $query->orWhere(function (Builder $q) use ($role) {
+            $q->where('audience_type', $role)
+              ->whereNull('user_id');
+        });
     });
 }
 
