@@ -78,6 +78,11 @@ class Patient extends Model
         return $this->hasMany(PatientNote::class);
     }
 
+    public function documents(): HasMany
+    {
+        return $this->hasMany(PatientDocument::class);
+    }
+
     public function getAgeAttribute(): ?int
     {
         if ($this->date_of_birth) {

@@ -70,4 +70,43 @@ class InsuranceCompanyController extends Controller
 
         return ApiResponse::success($result['data'], $result['message'], $result['code']);
     }
+
+    public function priceListItems(int $id)
+    {
+        $clinicId = auth()->user()?->clinic_id;
+        if (!$clinicId) {
+            return ApiResponse::error('Clinic account is not linked to a clinic.', 403);
+        }
+
+        $company = \App\Models\InsuranceCompany::where('clinic_id', $clinicId)->find($id);
+        if (!$company) {
+            return ApiResponse::error('Insurance company not found.', 404);
+        }
+
+        $priceList = $company->syndicate_price_list_id
+            ? \App\Models\InsurancePriceList::find($company->syndicate_price_list_id)
+            : null;
+
+        if (!$priceList) {
+            return ApiResponse::success([], 'No price list found for this insurance company', 200);
+        }
+
+        $items = $priceList->items()
+            ->paginate(per_page: request()->integer('per_page', 50));
+
+        return ApiResponse::success([
+            'price_list' => [
+                'id' => $priceList->id,
+                'name' => $priceList->name,
+                'insurance_company_id' => $priceList->insurance_company_id,
+            ],
+            'items' => $items->items(),
+            'pagination' => [
+                'total' => $items->total(),
+                'per_page' => $items->perPage(),
+                'current_page' => $items->currentPage(),
+                'last_page' => $items->lastPage(),
+            ],
+        ], 'Price list items retrieved successfully', 200);
+    }
 }

@@ -30,6 +30,14 @@ class UpdateInsuranceClaimRequest extends FormRequest
             'status' => ['sometimes', Rule::in(InsuranceClaim::statuses())],
             'notes' => ['sometimes', 'nullable', 'string'],
             'status_notes' => ['sometimes', 'nullable', 'string'],
+            'patient_consent_required' => ['sometimes', 'boolean'],
+            'items' => ['sometimes', 'array'],
+            'items.*.insurance_price_list_item_id' => ['nullable', 'integer'],
+            'items.*.service_id' => ['nullable', 'integer'],
+            'items.*.quantity' => ['nullable', 'integer', 'min:1'],
+            'items.*.unit_price' => ['nullable', 'numeric', 'min:0'],
+            'items.*.service_name' => ['required_with:items', 'string', 'max:255'],
+            'items.*.notes' => ['nullable', 'string'],
         ];
     }
 }

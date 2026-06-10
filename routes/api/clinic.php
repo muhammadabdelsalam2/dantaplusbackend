@@ -147,9 +147,11 @@ Route::prefix('clinic')
 
         // ─── Insurance ───────────────────────────────────────────────────────
         Route::prefix('insurance')->group(function () {
-            Route::middleware('permission:insurance.view')->group(function () {
+            Route::middleware('permission:insurance.view|patients.view')->group(function () {
                 Route::get('/companies',    [InsuranceCompanyController::class, 'index']);
                 Route::get('/companies/{id}', [InsuranceCompanyController::class, 'show']);
+                Route::get('/companies/{id}/price-list-items', [InsuranceCompanyController::class, 'priceListItems']);
+                Route::get('/patients/lookup',    [InsuranceClaimController::class, 'patientLookup']);
                 Route::get('/claims',       [InsuranceClaimController::class, 'index']);
                 Route::get('/claims/{id}',  [InsuranceClaimController::class, 'show']);
             });
@@ -160,6 +162,7 @@ Route::prefix('clinic')
             Route::middleware('permission:insurance.update')->group(function () {
                 Route::patch('/companies/{id}', [InsuranceCompanyController::class, 'update']);
                 Route::patch('/claims/{id}',    [InsuranceClaimController::class, 'update']);
+                Route::post('/claims/{id}/patient-consent', [InsuranceClaimController::class, 'uploadConsent']);
             });
             Route::middleware('permission:insurance.delete')->group(function () {
                 Route::delete('/companies/{id}', [InsuranceCompanyController::class, 'destroy']);
@@ -264,7 +267,7 @@ Route::prefix('clinic')
             Route::post('/{equipment}/report', [EquipmentController::class, 'report']);
             Route::post('/', [EquipmentController::class, 'store']);
         });
-  
+
         // ─── Tasks ───────────────────────────────────────────────────────────
         Route::middleware('permission:tasks.view')->get('/tasks',              [TaskController::class, 'index']);
         Route::middleware('permission:tasks.manage')->post('/tasks',            [TaskController::class, 'store']);

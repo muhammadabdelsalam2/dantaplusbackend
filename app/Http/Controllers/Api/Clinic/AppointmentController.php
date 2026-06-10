@@ -7,6 +7,7 @@ use App\Http\Requests\Clinic\StoreAppointmentRequest;
 use App\Http\Requests\Clinic\UpdateAppointmentRequest;
 use App\Services\Clinic\AppointmentService;
 use App\Support\ApiResponse;
+use Illuminate\Http\Request;
 
 class AppointmentController extends Controller
 {
@@ -16,16 +17,16 @@ class AppointmentController extends Controller
     {
     }
 
-    public function index()
-    {
-        $result = $this->service->index();
+    public function index(Request $request)
+{
+    $result = $this->service->index($request->only(['search', 'year', 'month', 'day']));
 
-        if (! $result['success']) {
-            return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
-        }
-
-        return ApiResponse::success($result['data'], $result['message'], $result['code']);
+    if (! $result['success']) {
+        return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
     }
+
+    return ApiResponse::success($result['data'], $result['message'], $result['code']);
+}
 
     public function store(StoreAppointmentRequest $request)
     {

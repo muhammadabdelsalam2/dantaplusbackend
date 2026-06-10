@@ -20,6 +20,7 @@ class InsuranceClaim extends Model
     public const STATUS_SUBMITTED = 'submitted';
     public const STATUS_APPROVED = 'approved';
     public const STATUS_PARTIALLY_APPROVED = 'partially_approved';
+    public const STATUS_APPROVED_WITH_LIMIT = 'approved_with_limit';
     public const STATUS_REJECTED = 'rejected';
     public const STATUS_PAID = 'paid';
     public const STATUS_CANCELLED = 'cancelled';
@@ -48,6 +49,9 @@ class InsuranceClaim extends Model
         'settled_at',
         'created_by',
         'updated_by',
+        'patient_consent_required',
+        'patient_consent_document_id',
+        'patient_consent_uploaded_at',
     ];
 
     protected function casts(): array
@@ -73,6 +77,7 @@ class InsuranceClaim extends Model
             self::STATUS_SUBMITTED,
             self::STATUS_APPROVED,
             self::STATUS_PARTIALLY_APPROVED,
+            self::STATUS_APPROVED_WITH_LIMIT,
             self::STATUS_REJECTED,
             self::STATUS_PAID,
             self::STATUS_CANCELLED,
@@ -112,5 +117,15 @@ class InsuranceClaim extends Model
     public function updater(): BelongsTo
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    public function items(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(InsuranceClaimItem::class, 'insurance_claim_id');
+    }
+
+    public function patientConsent(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(\App\Models\PatientDocument::class, 'patient_consent_document_id');
     }
 }

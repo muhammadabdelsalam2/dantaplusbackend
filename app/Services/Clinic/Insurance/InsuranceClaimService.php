@@ -11,7 +11,9 @@ use App\Models\Patient;
 use App\Repositories\Clinic\Insurance\InsuranceClaimRepository;
 use App\Repositories\Clinic\Insurance\InsuranceCompanyRepository;
 use App\Support\ServiceResult;
+use Exception;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class InsuranceClaimService
@@ -68,11 +70,29 @@ class InsuranceClaimService
             return $validation;
         }
 
-        $claim = DB::transaction(function () use ($clinicId, $dto) {
-            $amounts = $this->calculateAmounts($dto->grossAmount, $dto->coveragePercentage, $dto->approvedAmount, $dto->paidAmount);
+        // Validate claim items if provided
+        $itemsValidation = $this->validateClaimItems($clinicId, $dto->insuranceCompanyId, $data['items'] ?? []);
+        if ($itemsValidation !== null) {
+            return $itemsValidation;
+        }
+
+        $claim = DB::transaction(function () use ($clinicId, $dto, $data) {
+            // Calculate gross_amount from items if provided
+            $grossAmount = $dto->grossAmount;
+            $itemsData = $data['items'] ?? [];
+            if (!empty($itemsData)) {
+                $grossAmount = 0;
+                foreach ($itemsData as $item) {
+                    $itemTotal = ((float) ($item['unit_price'] ?? 0)) * (int) ($item['quantity'] ?? 1);
+                    $grossAmount += $itemTotal;
+                }
+                $grossAmount = round($grossAmount, 2);
+            }
+
+            $amounts = $this->calculateAmounts($grossAmount, $dto->coveragePercentage, $dto->approvedAmount, $dto->paidAmount);
             $status = $dto->status ?? InsuranceClaim::STATUS_DRAFT;
 
-            return $this->repository->create([
+            $claim = $this->repository->create([
                 'clinic_id' => $clinicId,
                 'insurance_company_id' => $dto->insuranceCompanyId,
                 'patient_id' => $dto->patientId,
@@ -83,7 +103,7 @@ class InsuranceClaimService
                 'description' => $dto->description,
                 'service_date' => $dto->serviceDate,
                 'coverage_percentage' => $dto->coveragePercentage,
-                'gross_amount' => $dto->grossAmount,
+                'gross_amount' => $grossAmount,
                 'patient_share_amount' => $amounts['patient_share_amount'],
                 'insurance_share_amount' => $amounts['insurance_share_amount'],
                 'approved_amount' => $amounts['approved_amount'],
@@ -91,6 +111,7 @@ class InsuranceClaimService
                 'status' => $status,
                 'notes' => $dto->notes,
                 'status_notes' => $dto->statusNotes,
+                'patient_consent_required' => $data['patient_consent_required'] ?? false,
                 'submitted_at' => $status === InsuranceClaim::STATUS_SUBMITTED ? now() : null,
                 'reviewed_at' => in_array($status, [
                     InsuranceClaim::STATUS_APPROVED,
@@ -102,6 +123,13 @@ class InsuranceClaimService
                 'created_by' => auth()->id(),
                 'updated_by' => auth()->id(),
             ]);
+
+            // Create claim items if provided
+            if (!empty($itemsData)) {
+                $this->createItems($claim, $itemsData);
+            }
+
+            return $claim;
         });
 
         return $this->show($claim->id);
@@ -124,6 +152,12 @@ class InsuranceClaimService
             return $validation;
         }
 
+        // Validate claim items if provided
+        $itemsValidation = $this->validateClaimItems($clinicId, $claim->insurance_company_id, $data['items'] ?? []);
+        if ($itemsValidation !== null) {
+            return $itemsValidation;
+        }
+
         $nextStatus = $data['status'] ?? $claim->status;
         if ($nextStatus !== $claim->status && ! $this->isValidTransition($claim->status, $nextStatus)) {
             return ServiceResult::error(
@@ -134,15 +168,29 @@ class InsuranceClaimService
             );
         }
 
-        $updatedClaim = DB::transaction(function () use ($claim, $data, $nextStatus) {
+        $previousStatus = $claim->status;
+        $updatedClaim = DB::transaction(function () use ($claim, $data, $nextStatus, $clinicId) {
             $grossAmount = isset($data['gross_amount']) ? (float) $data['gross_amount'] : (float) $claim->gross_amount;
+            $itemsData = $data['items'] ?? [];
+
+            // Recalculate gross_amount from items if provided
+            if (!empty($itemsData)) {
+                $grossAmount = 0;
+                foreach ($itemsData as $item) {
+                    $itemTotal = ((float) ($item['unit_price'] ?? 0)) * (int) ($item['quantity'] ?? 1);
+                    $grossAmount += $itemTotal;
+                }
+                $grossAmount = round($grossAmount, 2);
+            }
+
             $coveragePercentage = isset($data['coverage_percentage']) ? (float) $data['coverage_percentage'] : (float) $claim->coverage_percentage;
             $approvedAmount = array_key_exists('approved_amount', $data) ? (($data['approved_amount'] === null) ? null : (float) $data['approved_amount']) : (float) $claim->approved_amount;
             $paidAmount = array_key_exists('paid_amount', $data) ? (($data['paid_amount'] === null) ? null : (float) $data['paid_amount']) : (float) $claim->paid_amount;
 
             $amounts = $this->calculateAmounts($grossAmount, $coveragePercentage, $approvedAmount, $paidAmount);
 
-            $attributes = array_merge($data, [
+            $attributes = array_filter($data, fn ($key) => !in_array($key, ['items'], true), ARRAY_FILTER_USE_KEY);
+            $attributes = array_merge($attributes, [
                 'gross_amount' => $grossAmount,
                 'coverage_percentage' => $coveragePercentage,
                 'patient_share_amount' => $amounts['patient_share_amount'],
@@ -160,6 +208,7 @@ class InsuranceClaimService
                 if (in_array($nextStatus, [
                     InsuranceClaim::STATUS_APPROVED,
                     InsuranceClaim::STATUS_PARTIALLY_APPROVED,
+                    InsuranceClaim::STATUS_APPROVED_WITH_LIMIT,
                     InsuranceClaim::STATUS_REJECTED,
                     InsuranceClaim::STATUS_PAID,
                 ], true)) {
@@ -174,8 +223,22 @@ class InsuranceClaimService
                 }
             }
 
-            return $this->repository->update($claim, $attributes);
+            $updatedClaim = $this->repository->update($claim, $attributes);
+
+            // Update claim items if provided
+            if (!empty($itemsData)) {
+                $updatedClaim->items()->delete();
+                $this->createItems($updatedClaim, $itemsData);
+                $updatedClaim = $updatedClaim->fresh();
+            }
+
+            return $updatedClaim;
         });
+
+        // Trigger WhatsApp notification on status change (non-blocking)
+        if ($nextStatus !== $previousStatus) {
+            $this->triggerStatusNotification($updatedClaim, $previousStatus, $nextStatus);
+        }
 
         return ServiceResult::success(
             (new InsuranceClaimResource($updatedClaim))->resolve(),
@@ -329,6 +392,7 @@ class InsuranceClaimService
             InsuranceClaim::STATUS_SUBMITTED => [
                 InsuranceClaim::STATUS_APPROVED,
                 InsuranceClaim::STATUS_PARTIALLY_APPROVED,
+                InsuranceClaim::STATUS_APPROVED_WITH_LIMIT,
                 InsuranceClaim::STATUS_REJECTED,
                 InsuranceClaim::STATUS_CANCELLED,
             ],
@@ -336,6 +400,9 @@ class InsuranceClaimService
                 InsuranceClaim::STATUS_PAID,
             ],
             InsuranceClaim::STATUS_PARTIALLY_APPROVED => [
+                InsuranceClaim::STATUS_PAID,
+            ],
+            InsuranceClaim::STATUS_APPROVED_WITH_LIMIT => [
                 InsuranceClaim::STATUS_PAID,
             ],
             InsuranceClaim::STATUS_REJECTED => [],
@@ -358,5 +425,105 @@ class InsuranceClaimService
     private function currentClinicId(): ?int
     {
         return auth()->user()?->clinic_id;
+    }
+
+    /**
+     * Create claim items from request data
+     */
+    public function createItems(InsuranceClaim $claim, array $itemsData): void
+    {
+        if (empty($itemsData)) {
+            return;
+        }
+
+        foreach ($itemsData as $itemData) {
+            $totalAmount = isset($itemData['unit_price'], $itemData['quantity'])
+                ? round((float) $itemData['unit_price'] * (int) $itemData['quantity'], 2)
+                : 0;
+
+            $claim->items()->create([
+                'insurance_price_list_item_id' => $itemData['insurance_price_list_item_id'] ?? null,
+                'service_id' => $itemData['service_id'] ?? null,
+                'code' => $itemData['code'] ?? null,
+                'service_name' => $itemData['service_name'] ?? '',
+                'category_id' => $itemData['category_id'] ?? null,
+                'category_name' => $itemData['category_name'] ?? null,
+                'unit_price' => (float) ($itemData['unit_price'] ?? 0),
+                'quantity' => (int) ($itemData['quantity'] ?? 1),
+                'total_amount' => $totalAmount,
+                'notes' => $itemData['notes'] ?? null,
+            ]);
+        }
+    }
+
+    /**
+     * Update gross amount based on claim items
+     */
+    public function calculateGrossAmountFromItems(InsuranceClaim $claim): float
+    {
+        return $claim->items()->sum('total_amount') ?: (float) $claim->gross_amount;
+    }
+
+    /**
+     * Send WhatsApp notification on status change (non-blocking)
+     */
+    public function triggerStatusNotification(InsuranceClaim $claim, string $previousStatus, string $newStatus): void
+    {
+        if (in_array($newStatus, [
+            InsuranceClaim::STATUS_APPROVED,
+            InsuranceClaim::STATUS_REJECTED,
+            InsuranceClaim::STATUS_PARTIALLY_APPROVED,
+            InsuranceClaim::STATUS_APPROVED_WITH_LIMIT,
+        ], true)) {
+            try {
+                $service = new ClaimStatusWhatsAppNotificationService($claim);
+                $service->sendNotification();
+            } catch (Exception $e) {
+                Log::error('Failed to send WhatsApp notification', [
+                    'claim_id' => $claim->id,
+                    'error' => $e->getMessage(),
+                ]);
+                // Non-blocking - don't throw exception
+            }
+        }
+    }
+
+    /**
+     * Validate that items belong to correct clinic and insurance company
+     */
+    public function validateClaimItems(int $clinicId, int $insuranceCompanyId, array $itemsData): ?array
+    {
+        if (empty($itemsData)) {
+            return null;
+        }
+
+        foreach ($itemsData as $index => $itemData) {
+            if (isset($itemData['insurance_price_list_item_id'])) {
+                // Verify price list item exists and belongs to correct clinic/company
+                $priceListItem = \App\Models\InsurancePriceListItem::find($itemData['insurance_price_list_item_id']);
+                if (!$priceListItem) {
+                    return ServiceResult::error('Price list item not found.', null, [
+                        "items.{$index}.insurance_price_list_item_id" => ['Price list item not found.'],
+                    ], 422);
+                }
+
+                // Verify price list belongs to the insurance company
+                $priceList = $priceListItem->priceList ?? $priceListItem->list;
+                if ($priceList && $priceList->insurance_company_id !== $insuranceCompanyId) {
+                    return ServiceResult::error('Price list item does not belong to selected insurance company.', null, [
+                        "items.{$index}.insurance_price_list_item_id" => ['Price list item does not belong to selected insurance company.'],
+                    ], 422);
+                }
+
+                // Verify clinic_id match if available
+                if ($priceList && $priceList->clinic_id && $priceList->clinic_id !== $clinicId) {
+                    return ServiceResult::error('Price list item does not belong to your clinic.', null, [
+                        "items.{$index}.insurance_price_list_item_id" => ['Price list item does not belong to your clinic.'],
+                    ], 422);
+                }
+            }
+        }
+
+        return null;
     }
 }

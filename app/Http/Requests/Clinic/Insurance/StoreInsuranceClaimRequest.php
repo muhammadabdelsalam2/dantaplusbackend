@@ -24,12 +24,20 @@ class StoreInsuranceClaimRequest extends FormRequest
             'description' => ['nullable', 'string'],
             'service_date' => ['required', 'date'],
             'coverage_percentage' => ['required', 'numeric', 'min:0', 'max:100'],
-            'gross_amount' => ['required', 'numeric', 'min:0'],
+            'gross_amount' => ['nullable', 'numeric', 'min:0'],
             'approved_amount' => ['nullable', 'numeric', 'min:0'],
             'paid_amount' => ['nullable', 'numeric', 'min:0'],
             'status' => ['nullable', Rule::in(InsuranceClaim::statuses())],
             'notes' => ['nullable', 'string'],
             'status_notes' => ['nullable', 'string'],
+            'patient_consent_required' => ['nullable', 'boolean'],
+            'items' => ['nullable', 'array'],
+            'items.*.insurance_price_list_item_id' => ['nullable', 'integer'],
+            'items.*.service_id' => ['nullable', 'integer'],
+            'items.*.quantity' => ['nullable', 'integer', 'min:1'],
+            'items.*.unit_price' => ['nullable', 'numeric', 'min:0'],
+            'items.*.service_name' => ['required_with:items', 'string', 'max:255'],
+            'items.*.notes' => ['nullable', 'string'],
         ];
     }
 }

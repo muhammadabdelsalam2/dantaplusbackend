@@ -10,20 +10,44 @@ use App\Support\ServiceResult;
 
 class AppointmentService
 {
-    public function index(): array
-    {
-        if (! $this->currentClinicId()) {
-            return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
-        }
-
-        $appointments = ClinicAppointment::query()
-            ->with(['doctor:id,name', 'patient.user:id,name'])
-            ->where('clinic_id', $this->currentClinicId())
-            ->latest('appointment_at')
-            ->get();
-
-        return ServiceResult::success(AppointmentResource::collection($appointments)->resolve(), 'Appointments fetched successfully');
+   public function index(array $filters = []): array
+{
+    if (! $this->currentClinicId()) {
+        return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
     }
+
+    $query = ClinicAppointment::query()
+        ->with(['doctor:id,name', 'patient.user:id,name'])
+        ->where('clinic_id', $this->currentClinicId());
+
+    if (! empty($filters['year'])) {
+        $query->whereYear('appointment_at', $filters['year']);
+    }
+
+    if (! empty($filters['month'])) {
+        $query->whereMonth('appointment_at', $filters['month']);
+    }
+
+    if (! empty($filters['day'])) {
+        $query->whereDay('appointment_at', $filters['day']);
+    }
+
+    if (! empty($filters['search'])) {
+        $search = $filters['search'];
+
+        $query->where(function ($q) use ($search) {
+            $q->where('patient_name', 'like', "%{$search}%")
+              ->orWhereHas('doctor', fn($q2) => $q2->where('name', 'like', "%{$search}%"));
+        });
+    }
+
+    $appointments = $query->latest('appointment_at')->get();
+
+    return ServiceResult::success(
+        AppointmentResource::collection($appointments)->resolve(),
+        'Appointments fetched successfully'
+    );
+}
 
     public function show(int $id): array
     {

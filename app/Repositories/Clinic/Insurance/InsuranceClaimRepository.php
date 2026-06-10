@@ -16,6 +16,8 @@ class InsuranceClaimRepository
                 'patient.user:id,name',
                 'appointment:id,appointment_at',
                 'invoice:id,invoice_number,total,status',
+                'items',
+                'patientConsent',
             ])
             ->where('clinic_id', $clinicId)
             ->when($filters['status'] ?? null, fn (Builder $query, string $status) => $query->where('status', $status))
@@ -35,6 +37,8 @@ class InsuranceClaimRepository
                 'invoice:id,invoice_number,total,status',
                 'creator:id,name',
                 'updater:id,name',
+                'items',
+                'patientConsent',
             ])
             ->where('clinic_id', $clinicId)
             ->find($claimId);
@@ -56,6 +60,8 @@ class InsuranceClaimRepository
             'invoice:id,invoice_number,total,status',
             'creator:id,name',
             'updater:id,name',
+            'items',
+            'patientConsent',
         ]);
     }
 
