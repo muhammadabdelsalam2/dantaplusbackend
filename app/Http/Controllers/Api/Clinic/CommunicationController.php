@@ -307,14 +307,17 @@ class CommunicationController extends Controller
         }
     }
 
-    private function storeAttachment(int $clinicId, ?UploadedFile $attachment): ?string
-    {
-        if (! $attachment instanceof UploadedFile) {
-            return null;
-        }
-
-        return Storage::disk('local')->put('clinic/communication/' . $clinicId . '/attachments', $attachment);
+   private function storeAttachment(int $clinicId, ?UploadedFile $attachment): ?string
+{
+    if (! $attachment instanceof UploadedFile) {
+        return null;
     }
+
+    return Storage::disk('public')->put(
+        'clinic/communication/' . $clinicId . '/attachments',
+        $attachment
+    );
+}
 
     private function resolveLastMessageText(CommunicationMessage $message): string
     {
@@ -343,21 +346,25 @@ class CommunicationController extends Controller
         ];
     }
 
-    private function mapMessage(CommunicationMessage $message): array
-    {
-        return [
-            'id' => $message->id,
-            'conversation_id' => $message->conversation_id,
-            'sender_type' => $message->sender_type,
-            'sender_id' => $message->sender_id,
-            'sender_name' => $message->sender_name ?: $message->sender?->name,
-            'type' => $message->type,
-            'body' => $message->content ?? $message->text,
-            'attachment_name' => $message->attachment_name,
-            'attachment_path' => $message->attachment_path ?: $message->attachment_url,
-            'is_system_message' => (bool) $message->is_system_message,
-            'read_at' => optional($message->read_at)?->toDateTimeString(),
-            'created_at' => optional($message->created_at)?->toDateTimeString(),
-        ];
-    }
+   private function mapMessage(CommunicationMessage $message): array
+{
+    $attachmentPath = $message->attachment_path ?: $message->attachment_url;
+
+    return [
+        'id' => $message->id,
+        'conversation_id' => $message->conversation_id,
+        'sender_type' => $message->sender_type,
+        'sender_id' => $message->sender_id,
+        'sender_name' => $message->sender_name ?: $message->sender?->name,
+        'type' => $message->type,
+        'body' => $message->content ?? $message->text,
+        'attachment_name' => $message->attachment_name,
+        'attachment_path' => $attachmentPath
+            ? Storage::disk('public')->url($attachmentPath)
+            : null,
+        'is_system_message' => (bool) $message->is_system_message,
+        'read_at' => optional($message->read_at)?->toDateTimeString(),
+        'created_at' => optional($message->created_at)?->toDateTimeString(),
+    ];
+}
 }
