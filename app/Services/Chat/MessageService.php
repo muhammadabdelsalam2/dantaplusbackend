@@ -104,7 +104,7 @@ class MessageService
             }
             // 🏭 factory
             $has_permession = $this->ensureHavePermission($user, $chat);
-            if ($has_permession) {
+            if (!$has_permession) {
                 return ServiceResult::error(
                     message: 'This User Dont Have Permession To Send',
                     nextEndpoint: null,

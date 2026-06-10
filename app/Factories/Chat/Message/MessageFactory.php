@@ -1,6 +1,5 @@
 <?php
 
-
 namespace App\Factories\Chat\Message;
 
 use App\DTOs\CreateMessageDTO;
@@ -8,6 +7,9 @@ use App\DTOs\SendMessageDTO;
 
 class MessageFactory
 {
+    /**
+     * تحويل SendMessageDTO إلى CreateMessageDTO
+     */
     public static function make(SendMessageDTO $dto): CreateMessageDTO
     {
         return new CreateMessageDTO(
