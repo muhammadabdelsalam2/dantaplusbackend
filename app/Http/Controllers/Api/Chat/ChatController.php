@@ -36,12 +36,14 @@ class ChatController extends Controller
             'description'    => ['nullable', 'string'],
             'type'           => ['required', 'in:direct,group'],
             'team_id'        => ['nullable', 'exists:teams,id'],
-            'clinic_id'      => ['nullable', 'exists:clinics,id'],
+
             'participant_ids'=> ['nullable', 'array'],
             'participant_ids.*' => ['exists:users,id'],
         ]);
 
         $validated['owner_id'] = $request->user()->id;
+        $validated['clinic_id'] = $request->user()->clinic_id;
+
 
         $result = $this->chatService->createChat($validated);
 
