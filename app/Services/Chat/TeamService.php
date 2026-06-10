@@ -2,7 +2,9 @@
 
 namespace App\Services\Chat;
 
+use App\Models\Team;
 use App\Repositories\Chat\Team\TeamRepository;
+use Illuminate\Support\Facades\DB;
 
 class TeamService
 {
