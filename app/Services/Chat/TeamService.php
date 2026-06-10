@@ -23,6 +23,7 @@ class TeamService
         $team = Team::create([
             'name'     => $data['name'],
             'owner_id' => $data['owner_id'],
+            'clinic_id' => $data['clinic_id'],
         ]);
 
         // إضافة الـ owner كـ member تلقائياً

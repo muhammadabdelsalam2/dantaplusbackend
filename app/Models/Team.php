@@ -24,6 +24,10 @@ class Team extends Model
     {
         return $this->hasMany(Chat::class);
     }
+    public function clinic()
+    {
+        return $this->belongsTo(Clinic::class, 'clinic_id');
+    }
 
 
     public function scopeOwnedBy($query, $userId)
