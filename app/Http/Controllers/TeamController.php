@@ -34,6 +34,7 @@ class TeamController extends Controller
     ]);
 
     $validated['owner_id'] = $request->user()->id;
+    $validated['clinic_id'] = $request->user()->clinic_id;
 
     $team = $this->teamService->createTeam($validated);
 
