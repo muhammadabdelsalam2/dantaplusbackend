@@ -15,5 +15,26 @@ class TeamService
     {
         return $this->teamRepository->getAccessibleTeams($owner_id);
     }
+    public function createTeam(array $data)
+{
+    return DB::transaction(function () use ($data) {
+        $team = Team::create([
+            'name'     => $data['name'],
+            'owner_id' => $data['owner_id'],
+        ]);
+
+        // إضافة الـ owner كـ member تلقائياً
+        $members = collect($data['member_ids'] ?? []);
+        $members->push($data['owner_id']);
+
+        $team->members()->syncWithoutDetaching(
+            $members->unique()->mapWithKeys(fn($id) => [
+                $id => ['joined_at' => now()]
+            ])->toArray()
+        );
+
+        return $team->load('members:id,name,email');
+    });
+}
 
 }

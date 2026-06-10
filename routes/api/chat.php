@@ -12,6 +12,7 @@ Route::prefix('doctor')
 
         // ─── Teams ───────────────────────────────────────────
         Route::get('chats/teams', [TeamController::class, 'index']);
+        Route::post('chats/teams', [TeamController::class, 'store']);
 
         // ─── Chats ───────────────────────────────────────────
         Route::prefix('chats')->group(function () {

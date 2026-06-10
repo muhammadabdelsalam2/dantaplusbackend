@@ -25,4 +25,21 @@ class TeamController extends Controller
             'data' => $teams
         ]);
     }
+    public function store(Request $request)
+{
+    $validated = $request->validate([
+        'name'        => ['required', 'string', 'max:255'],
+        'member_ids'  => ['nullable', 'array'],
+        'member_ids.*'=> ['exists:users,id'],
+    ]);
+
+    $validated['owner_id'] = $request->user()->id;
+
+    $team = $this->teamService->createTeam($validated);
+
+    return response()->json([
+        'status' => true,
+        'data'   => $team
+    ], 201);
+}
 }
