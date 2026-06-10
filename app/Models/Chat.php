@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\MessageChat;
 
 class Chat extends Model
 {
@@ -27,10 +28,10 @@ class Chat extends Model
         return $this->belongsToMany(User::class, 'chat_participants');
     }
 
-    public function messages()
-    {
-        return $this->hasMany(Message::class);
-    }
+  public function messages()
+{
+    return $this->hasMany(MessageChat::class, 'chat_id');
+}
 
     public function scopeAccessibleBy($query, $userId)
     {
