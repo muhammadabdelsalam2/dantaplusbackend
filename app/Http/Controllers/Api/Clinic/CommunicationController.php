@@ -44,7 +44,7 @@ class CommunicationController extends Controller
             })
             ->with([
                 'lab:id,name',
-                'supplier:id,name',
+                'supplier:id,name,deleted_at',
                 'latestMessage' => fn ($query) => $query->with('sender:id,name'),
             ])
             ->withCount([

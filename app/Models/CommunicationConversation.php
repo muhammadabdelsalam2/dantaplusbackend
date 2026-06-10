@@ -62,10 +62,11 @@ class CommunicationConversation extends Model
         return $this->belongsTo(DentalLab::class, 'lab_id');
     }
 
-    public function supplier(): BelongsTo
-    {
-        return $this->belongsTo(MaterialCompany::class, 'company_id');
-    }
+  public function supplier(): BelongsTo
+{
+    return $this->belongsTo(MaterialCompany::class, 'company_id')
+        ->withTrashed(); 
+}
 
     public function lastMessageSender(): BelongsTo
     {
