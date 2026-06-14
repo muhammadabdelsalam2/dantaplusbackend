@@ -25,9 +25,9 @@ class MaterialProductRepository
                 });
             })
 
-            ->when($filters['category'] ?? null, fn ($q, $category) =>
-                $q->where('category', $category)
-            )
+          ->when($filters['category'] ?? null, fn ($q, $category) =>
+    $q->where('category', 'like', "%{$category}%")
+)
 
             ->when($filters['status'] ?? null, fn ($q, $status) =>
                 $q->whereIn('status', [ucfirst($status), strtolower($status)])
@@ -50,7 +50,7 @@ public function paginateCatalog(array $filters, int $perPage = 15): LengthAwareP
     return MaterialProduct::query()
         ->with(['company:id,name,status'])
 
-     
+
 
         ->when($filters['brand'] ?? null, fn ($q, $brand) =>
             $q->where('brand', 'like', "%{$brand}%")

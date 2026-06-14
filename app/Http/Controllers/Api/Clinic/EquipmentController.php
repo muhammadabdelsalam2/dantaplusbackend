@@ -142,4 +142,16 @@ $equipment = Equipment::create([
         201
     );
 }
+   private function formatEquipment(Equipment $equipment): array
+    {
+        return [
+            'id'         => $equipment->id,
+            'clinic_id'  => $equipment->clinic_id,
+            'name'       => $equipment->name,
+            'image_url'  => $equipment->image_url,
+            'status'     => $equipment->status,
+            'created_at' => optional($equipment->created_at)?->toISOString(),
+            'updated_at' => optional($equipment->updated_at)?->toISOString(),
+        ];
+    }
 }

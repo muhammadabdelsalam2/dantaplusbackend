@@ -17,7 +17,7 @@ class MaterialController extends Controller
 
     public function index(Request $request)
     {
-        
+
         if (! auth()->user()?->clinic_id) {
             return ApiResponse::error('Clinic account is not linked to a clinic.', 403);
         }
@@ -25,7 +25,7 @@ class MaterialController extends Controller
         $validated = $request->validate([
             'search' => ['nullable', 'string', 'max:255'],
             'brand' => ['nullable', 'string', 'max:255'],
-            'category' => ['nullable', 'string', 'in:' . implode(',', config('material_market.product_category_keys', []))],
+'category' => ['nullable', 'string', 'max:255'],
             'min_price' => ['nullable', 'numeric', 'min:0'],
             'max_price' => ['nullable', 'numeric', 'min:0', 'gte:min_price'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
