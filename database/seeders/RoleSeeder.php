@@ -84,7 +84,19 @@ class RoleSeeder extends Seeder
             'send_voice',
             'send_file',
             'access_patient_discussion',
-            'delete_message'
+            'delete_message',
+            'patient.dashboard.view',
+            'patient.profile.view',
+            'patient.profile.update',
+            'patient.appointments.view',
+            'patient.appointments.create',
+            'patient.appointments.cancel',
+            'patient.invoices.view',
+            'patient.payments.view',
+            'patient.refunds.create',
+            'patient.documents.view',
+            'patient.insurance.view',
+            'patient.ratings.create',
         ];
 
         foreach ($permissions as $permission) {
@@ -267,6 +279,20 @@ class RoleSeeder extends Seeder
                 'providers.view',
                 'equipment.view',
                 'insurance.view',
+            ],
+            'patient' => [
+                'patient.dashboard.view',
+                'patient.profile.view',
+                'patient.profile.update',
+                'patient.appointments.view',
+                'patient.appointments.create',
+                'patient.appointments.cancel',
+                'patient.invoices.view',
+                'patient.payments.view',
+                'patient.refunds.create',
+                'patient.documents.view',
+                'patient.insurance.view',
+                'patient.ratings.create',
             ],
         ];
 

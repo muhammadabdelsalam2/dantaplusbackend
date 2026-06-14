@@ -18,6 +18,7 @@ class StorePatientRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'email' => ['nullable', 'email', 'max:255', Rule::unique('users', 'email')],
             'phone' => ['required', 'string', 'max:50', Rule::unique('users', 'phone')],
+            'password' => ['nullable', 'string', 'min:8', 'confirmed'],
             'date_of_birth' => ['nullable', 'date'],
             'gender' => ['nullable', 'string', 'max:20'],
             'address' => ['nullable', 'string', 'max:500'],

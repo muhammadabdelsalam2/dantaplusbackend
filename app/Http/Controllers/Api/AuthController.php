@@ -14,6 +14,7 @@ use App\Support\ApiResponse;
 use App\Support\UserRoleManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
@@ -38,7 +39,9 @@ class AuthController extends Controller
             return ApiResponse::error('Invalid credentials', 401);
         }
 
-
+        if (! Hash::check($data['password'], (string) $user->password)) {
+            return ApiResponse::error('Invalid credentials', 401);
+        }
 
         if ((int) ($user->is_active ?? 1) !== 1) {
             Auth::guard('web')->logout();
@@ -133,8 +136,23 @@ class AuthController extends Controller
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
+            'phone' => $user->phone,
             'role' => $role,
         ];
+
+        if ($role === 'patient') {
+            $patient = $user->patient()->first();
+
+            if ($user->clinic_id) {
+                $payload['clinic_id'] = $user->clinic_id;
+            } elseif ($patient?->clinic_id) {
+                $payload['clinic_id'] = $patient->clinic_id;
+            }
+
+            if ($patient) {
+                $payload['patient_id'] = $patient->id;
+            }
+        }
 
         if (UserRoleManager::isLabScopedRole($role) && $user->lab_id) {
             $payload['lab_id'] = $user->lab_id;

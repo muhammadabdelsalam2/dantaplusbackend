@@ -18,7 +18,7 @@ class InventoryController extends Controller
     {
     }
 
-    public function index(Request $request)
+  public function index(Request $request)
     {
         $clinicId = $this->currentClinicId();
         if (! $clinicId) {
@@ -26,13 +26,15 @@ class InventoryController extends Controller
         }
 
         $validated = $request->validate([
-            'search' => ['nullable', 'string', 'max:255'],
-            'category' => ['nullable', 'string', 'max:255'],
-            'status' => ['nullable', 'in:in_stock,low_stock,out_of_stock'],
+            'search'   => ['nullable', 'string', 'max:255'],
+            'category' => ['nullable', 'string', 'max:255'],  // category_name في الـ DB
+            'supplier' => ['nullable', 'string', 'max:255'],  // ← جديد: اسم السابلير
+            'status'   => ['nullable', 'in:in_stock,low_stock,out_of_stock'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
 
         $perPage = max(1, min((int) ($validated['per_page'] ?? 15), 100));
+
         $query = InventoryItem::query()
             ->with(['product.company'])
             ->withoutGlobalScopes()
@@ -44,33 +46,40 @@ class InventoryController extends Controller
                         ->orWhere('barcode', 'like', "%{$search}%");
                 });
             })
-            ->when($validated['category'] ?? null, fn ($builder, $category) => $builder->where('category_name', $category))
-            ->when($validated['status'] ?? null, fn ($builder, $status) => $builder->where('status', $status))
+            ->when($validated['category'] ?? null, fn ($builder, $category) =>
+                $builder->where('category_name', $category)
+            )
+            
+            ->when($validated['supplier'] ?? null, fn ($builder, $supplier) =>
+                $builder->where('supplier', 'like', "%{$supplier}%")
+            )
+            ->when($validated['status'] ?? null, fn ($builder, $status) =>
+                $builder->where('status', $status)
+            )
             ->latest('id');
 
-        $items = $query->paginate($perPage);
+        $items      = $query->paginate($perPage);
         $statsQuery = InventoryItem::query()->withoutGlobalScopes()->where('clinic_id', $clinicId);
 
         return ApiResponse::success([
             'items' => collect($items->items())->map(fn ($item) => $this->formatInventoryItem($item))->values(),
             'pagination' => [
                 'current_page' => $items->currentPage(),
-                'last_page' => $items->lastPage(),
-                'per_page' => $items->perPage(),
-                'total' => $items->total(),
+                'last_page'    => $items->lastPage(),
+                'per_page'     => $items->perPage(),
+                'total'        => $items->total(),
             ],
             'summary' => [
-                'total_items' => (clone $statsQuery)->count(),
-                'low_stock_count' => (clone $statsQuery)->where('status', 'low_stock')->count(),
-                'out_of_stock_count' => (clone $statsQuery)->where('status', 'out_of_stock')->count(),
-                'warehouse_value' => round((float) (clone $statsQuery)
+                'total_items'       => (clone $statsQuery)->count(),
+                'low_stock_count'   => (clone $statsQuery)->where('status', 'low_stock')->count(),
+                'out_of_stock_count'=> (clone $statsQuery)->where('status', 'out_of_stock')->count(),
+                'warehouse_value'   => round((float) (clone $statsQuery)
                     ->leftJoin('material_products', 'material_products.id', '=', 'inventory_items.product_id')
                     ->selectRaw('COALESCE(SUM(inventory_items.quantity * material_products.price), 0) as total_value')
                     ->value('total_value'), 2),
             ],
         ], 'Inventory fetched successfully');
     }
-
     public function show(int $inventory)
     {
         $item = $this->findInventoryItem($inventory);
@@ -299,5 +308,5 @@ class InventoryController extends Controller
         });
 
         return ApiResponse::success(null, 'Inventory item deleted successfully');
-    }   
+    }
 }

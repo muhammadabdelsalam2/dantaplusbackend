@@ -7,6 +7,7 @@ use App\Http\Requests\Clinic\StoreDentalChartEntryRequest;
 use App\Http\Requests\Clinic\StorePatientLabCaseRequest;
 use App\Http\Requests\Clinic\StorePatientNoteRequest;
 use App\Http\Requests\Clinic\StorePatientRequest;
+use App\Http\Requests\Clinic\IndexClinicPatientsRequest;
 use App\Http\Requests\Clinic\UploadPatientRadiologyRequest;
 use App\Services\Clinic\PatientService;
 use App\Support\ApiResponse;
@@ -19,9 +20,20 @@ class PatientController extends Controller
     {
     }
 
-    public function index()
+    public function index(IndexClinicPatientsRequest $request)
     {
-        $result = $this->service->index();
+        $result = $this->service->index($request->validated());
+
+        if (! $result['success']) {
+            return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+        }
+
+        return ApiResponse::success($result['data'], $result['message'], $result['code']);
+    }
+
+    public function store(StorePatientRequest $request)
+    {
+        $result = $this->service->create($request->validated());
 
         if (! $result['success']) {
             return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);

@@ -143,3 +143,4 @@ class InsuranceClaimController extends Controller
             'document' => (new \App\Http\Resources\PatientDocumentResource($document))->resolve(),
         ], 'Patient consent document uploaded successfully', 201);
     }
+}

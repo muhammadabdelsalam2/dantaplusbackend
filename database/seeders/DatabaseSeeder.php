@@ -48,6 +48,7 @@ class DatabaseSeeder extends Seeder
             ClinicDentalLabModuleSeeder::class,
             ClinicInventorySeeder::class,
             ClinicOperationsSeeder::class,
+            // PatientPortalDemoSeeder::class, // Run manually for Patient Portal API demos only.
         ]);
     }
 }

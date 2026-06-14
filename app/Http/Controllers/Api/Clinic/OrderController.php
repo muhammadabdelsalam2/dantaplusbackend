@@ -16,23 +16,32 @@ class OrderController extends Controller
 {
     use ApiResponse;
 
-    public function index(IndexClinicOrderRequest $request)
+  public function index(IndexClinicOrderRequest $request)
     {
-
         $clinicId = auth()->user()?->clinic_id;
         if (! $clinicId) {
             return ApiResponse::error('Clinic account is not linked to a clinic.', 403);
         }
 
         $validated = $request->validated();
+
         $orders = Order::query()
             ->withoutGlobalScope(\App\Scopes\CompanyScope::class)
-                ->with(['supplierCompany:id,name', 'items.product:id,name'])
-            ->with(['supplierCompany:id,name'])
+            ->with(['supplierCompany:id,name', 'items.product:id,name'])
             ->where('clinic_id', $clinicId)
-            ->when($validated['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
-            ->when($validated['payment_method'] ?? null, fn ($query, $paymentMethod) => $query->where('payment_method', $paymentMethod))
-            ->when($validated['payment_status'] ?? null, fn ($query, $paymentStatus) => $query->where('payment_status', $paymentStatus))
+            // ← جديد
+            ->when($validated['search'] ?? null, fn ($query, $search) =>
+                $query->where('order_code', 'like', "%{$search}%")
+            )
+            ->when($validated['status'] ?? null, fn ($query, $status) =>
+                $query->where('status', $status)
+            )
+            ->when($validated['payment_method'] ?? null, fn ($query, $paymentMethod) =>
+                $query->where('payment_method', $paymentMethod)
+            )
+            ->when($validated['payment_status'] ?? null, fn ($query, $paymentStatus) =>
+                $query->where('payment_status', $paymentStatus)
+            )
             ->latest('order_date')
             ->paginate((int) ($validated['per_page'] ?? 15));
 
@@ -40,12 +49,13 @@ class OrderController extends Controller
             'orders' => ClinicOrderResource::collection($orders->getCollection())->resolve(),
             'pagination' => [
                 'current_page' => $orders->currentPage(),
-                'last_page' => $orders->lastPage(),
-                'per_page' => $orders->perPage(),
-                'total' => $orders->total(),
+                'last_page'    => $orders->lastPage(),
+                'per_page'     => $orders->perPage(),
+                'total'        => $orders->total(),
             ],
         ], 'Orders fetched successfully');
     }
+
 
     public function show(int $order)
     {

@@ -24,22 +24,46 @@ use Illuminate\Support\Str;
 
 class PatientService
 {
-    public function index(): array
+  public function index(array $filters = []): array
     {
         $clinicId = $this->currentClinicId();
         if (! $clinicId) {
             return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
         }
 
-        $patients = Patient::query()
+        $perPage = max(1, min((int) ($filters['per_page'] ?? 15), 100));
+
+        $query = Patient::query()
             ->with('user:id,name,email,phone')
             ->where('clinic_id', $clinicId)
-            ->latest('id')
-            ->get();
+            // ← search على name, phone, email (من جدول users)
+            ->when($filters['search'] ?? null, function ($q, $search) {
+                $q->where(function ($nested) use ($search) {
+                    $nested->where('phone', 'like', "%{$search}%")
+                        ->orWhereHas('user', function ($uq) use ($search) {
+                            $uq->where('name', 'like', "%{$search}%")
+                               ->orWhere('email', 'like', "%{$search}%")
+                               ->orWhere('phone', 'like', "%{$search}%");
+                        });
+                });
+            })
+            // ← فلتر الجنس: male أو female
+            ->when($filters['gender'] ?? null, fn ($q, $gender) => $q->where('gender', $gender))
+            ->latest('id');
 
-        return ServiceResult::success(PatientResource::collection($patients)->resolve(), 'Patients fetched successfully');
+        $patients = $query->paginate($perPage);
+
+        return ServiceResult::success([
+            'items' => PatientResource::collection($patients->items())->resolve(),
+            'pagination' => [
+                'current_page' => $patients->currentPage(),
+                'last_page'    => $patients->lastPage(),
+                'per_page'     => $patients->perPage(),
+                'total'        => $patients->total(),
+            ],
+        ], 'Patients fetched successfully');
     }
-
+ 
     public function show(int $patientId): array
     {
         $patient = $this->findClinicPatient($patientId);
@@ -64,7 +88,7 @@ class PatientService
                 'username' => Str::slug($data['name'], '') ?: ('patient' . now()->timestamp),
                 'email' => $data['email'] ?? $this->generatedPatientEmail($clinicId),
                 'phone' => $data['phone'],
-                'password' => bcrypt(Str::random(12)),
+                'password' => bcrypt($data['password'] ?? Str::random(12)),
                 'status' => 'Active',
                 'is_active' => true,
                 'is_verified' => true,

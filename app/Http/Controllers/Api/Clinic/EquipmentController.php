@@ -10,26 +10,50 @@ use App\Models\OwnerMaintenanceRequest;
 use App\Support\ApiResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Http\Request;
 
 class EquipmentController extends Controller
 {
     use ApiResponse;
 
-    public function index()
+    public function index(Request $request)
     {
         $clinicId = auth()->user()?->clinic_id;
         if (! $clinicId) {
             return ApiResponse::error('Clinic account is not linked to a clinic.', 403);
         }
 
-        $equipment = Equipment::query()
-            ->withCount('maintenanceRequests')
+        $validated = $request->validate([
+            'search'   => ['nullable', 'string', 'max:255'],
+            'status'   => ['nullable', 'string', 'max:100'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        $perPage = max(1, min((int) ($validated['per_page'] ?? 15), 100));
+
+        $query = Equipment::query()
+            ->withoutGlobalScopes()
             ->where('clinic_id', $clinicId)
-            ->latest('id')
-            ->get();
+            ->when($validated['search'] ?? null, function ($q, $search) {
+                $q->where(function ($nested) use ($search) {
+                    $nested->where('name', 'like', "%{$search}%")
+                           ->orWhere('serial_number', 'like', "%{$search}%")
+                           ->orWhere('model', 'like', "%{$search}%");
+                });
+            })
+            ->when($validated['status'] ?? null, fn ($q, $status) => $q->where('status', $status))
+            ->latest('id');
+
+        $items = $query->paginate($perPage);
 
         return ApiResponse::success([
-            'items' => EquipmentResource::collection($equipment)->resolve(),
+            'items' => collect($items->items())->map(fn ($e) => $this->formatEquipment($e))->values(),
+            'pagination' => [
+                'current_page' => $items->currentPage(),
+                'last_page'    => $items->lastPage(),
+                'per_page'     => $items->perPage(),
+                'total'        => $items->total(),
+            ],
         ], 'Equipment fetched successfully');
     }
 
@@ -49,6 +73,14 @@ class EquipmentController extends Controller
         }
 
         $validated = $request->validated();
+          if ($request->hasFile('attachment') && $request->file('attachment')->isValid()) {
+            $path = $request->file('attachment')->store('equipment-reports', 'public');
+            $attachmentUrl = asset('storage/' . $path);
+        } else {
+            $attachmentUrl = null;
+        }
+        $validated['attachment_url'] = $attachmentUrl;
+
 
         $maintenanceRequest = DB::transaction(function () use ($equipmentRecord, $validated, $clinicId) {
             $requestModel = OwnerMaintenanceRequest::create([
@@ -59,7 +91,7 @@ class EquipmentController extends Controller
                 'malfunction_type' => $validated['malfunction_type'],
                 'issue_description' => $validated['description'],
                 'urgency' => $validated['urgency'],
-                'attachment_url' => $validated['attachment_url'] ?? null,
+                'attachment_url' => $validated['attachment_url'],
                 'status' => OwnerMaintenanceRequest::STATUS_PENDING,
                 'created_by' => auth()->id(),
             ]);
@@ -79,7 +111,7 @@ class EquipmentController extends Controller
             'equipment_status' => $equipmentRecord->fresh()->status,
         ], 'Maintenance request created successfully', 201);
     }
-    public function store(\Illuminate\Http\Request $request)
+    public function store(Request $request)
 {
     $clinicId = auth()->user()?->clinic_id;
     if (! $clinicId) {

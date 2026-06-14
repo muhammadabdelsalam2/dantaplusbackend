@@ -16,11 +16,16 @@ class IndexClinicTasksRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'status' => ['nullable', Rule::in(ClinicTask::STATUSES)],
+         
+            'search'      => ['nullable', 'string', 'max:255'],
+
+            'priority'    => ['nullable', Rule::in(ClinicTask::PRIORITIES)],
+
+            'status'      => ['nullable', Rule::in(ClinicTask::STATUSES)],
             'assignee_id' => ['nullable', 'integer'],
-            'date_from' => ['nullable', 'date'],
-            'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
-            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'date_from'   => ['nullable', 'date'],
+            'date_to'     => ['nullable', 'date', 'after_or_equal:date_from'],
+            'per_page'    => ['nullable', 'integer', 'min:1', 'max:100'],
         ];
     }
 }
