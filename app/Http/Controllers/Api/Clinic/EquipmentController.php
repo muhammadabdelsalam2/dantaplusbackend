@@ -16,7 +16,7 @@ class EquipmentController extends Controller
 {
     use ApiResponse;
 
-    public function index(Request $request)
+   public function index(Request $request)
     {
         $clinicId = auth()->user()?->clinic_id;
         if (! $clinicId) {
@@ -34,13 +34,10 @@ class EquipmentController extends Controller
         $query = Equipment::query()
             ->withoutGlobalScopes()
             ->where('clinic_id', $clinicId)
-            ->when($validated['search'] ?? null, function ($q, $search) {
-                $q->where(function ($nested) use ($search) {
-                    $nested->where('name', 'like', "%{$search}%")
-                           ->orWhere('serial_number', 'like', "%{$search}%")
-                           ->orWhere('model', 'like', "%{$search}%");
-                });
-            })
+            // ← search على name بس (الأعمدة الموجودة: id, name, image_url, clinic_id, status)
+            ->when($validated['search'] ?? null, fn ($q, $search) =>
+                $q->where('name', 'like', "%{$search}%")
+            )
             ->when($validated['status'] ?? null, fn ($q, $status) => $q->where('status', $status))
             ->latest('id');
 
