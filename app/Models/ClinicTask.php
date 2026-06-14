@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\ClinicTaskReply;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -52,4 +53,8 @@ class ClinicTask extends Model
     {
         return $this->belongsTo(User::class, 'created_by');
     }
+    public function replies(): \Illuminate\Database\Eloquent\Relations\HasMany
+{
+    return $this->hasMany(ClinicTaskReply::class);
+}
 }

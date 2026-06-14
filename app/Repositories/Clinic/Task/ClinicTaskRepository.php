@@ -15,7 +15,7 @@ class ClinicTaskRepository implements ClinicTaskRepositoryInterface
         $perPage = max(1, min((int) ($filters['per_page'] ?? 15), 100));
 
         return ClinicTask::query()
-            ->with(['assignedUser:id,name', 'assignedDoctor.user:id,name', 'createdBy:id,name'])
+->with(['assigneeUser:id,name', 'assigneeDoctor.user:id,name', 'creator:id,name'])
             ->where('clinic_id', $clinicId)
             // ← جديد: search على title و description
             ->when($filters['search'] ?? null, function ($q, $search) {
@@ -43,7 +43,7 @@ class ClinicTaskRepository implements ClinicTaskRepositoryInterface
     public function findForClinic(int $clinicId, int $taskId): ?ClinicTask
     {
         return ClinicTask::query()
-            ->with(['assignedUser:id,name', 'assignedDoctor.user:id,name', 'createdBy:id,name'])
+->with(['assigneeUser:id,name', 'assigneeDoctor.user:id,name', 'creator:id,name'])
             ->where('clinic_id', $clinicId)
             ->find($taskId);
     }
@@ -56,7 +56,7 @@ class ClinicTaskRepository implements ClinicTaskRepositoryInterface
     public function update(ClinicTask $task, array $data): ClinicTask
     {
         $task->update($data);
-        return $task->fresh(['assignedUser:id,name', 'assignedDoctor.user:id,name', 'createdBy:id,name']);
+        return $task->fresh(['assigneeUser:id,name', 'assigneeDoctor.user:id,name', 'creator:id,name']);
     }
 
     public function delete(ClinicTask $task): void
