@@ -2,9 +2,7 @@
 
 namespace App\Http\Requests\Lab\Settings;
 
-use App\Enums\GalleryImageType;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class UploadGalleryRequest extends FormRequest
 {
@@ -13,12 +11,40 @@ class UploadGalleryRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        
+        if ($this->hasFile('files') && !is_array($this->file('files'))) {
+            $this->files->set('files', [$this->file('files')]);
+        }
+    }
+
     public function rules(): array
     {
         return [
-            'type' => ['required', Rule::enum(GalleryImageType::class)],
+            'type' => ['required', 'string', 'in:before,after'],
+            'sort_order' => ['nullable', 'integer', 'min:0'],
+
             'files' => ['required', 'array', 'min:1'],
-            'files.*' => ['image', 'mimes:jpeg,png,webp', 'max:5120'],
+            'files.*' => [
+                'required',
+                'file',
+                'image',
+                'mimes:jpg,jpeg,png,webp',
+                'max:10240',
+            ],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'files.required' => 'يجب رفع صورة واحدة على الأقل.',
+            'files.array' => 'يجب إرسال الصور كمصفوفة.',
+            'files.*.file' => 'الملف المرفوع غير صالح.',
+            'files.*.image' => 'يجب أن يكون الملف صورة.',
+            'files.*.mimes' => 'الصيغ المسموحة هي JPG وJPEG وPNG وWEBP.',
+            'files.*.max' => 'حجم الصورة يجب ألا يتجاوز 10 ميجابايت.',
         ];
     }
 }
