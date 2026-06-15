@@ -117,7 +117,7 @@ class LabSelectController extends Controller
     }
 private function materials(int $labId, ?string $search): array
 {
-    $query = \DB::table('lab_materials')
+    $query = DB::table('lab_materials')
         ->where('lab_id', $labId);
 
     if ($search) {
