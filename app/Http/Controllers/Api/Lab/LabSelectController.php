@@ -115,13 +115,10 @@ class LabSelectController extends Controller
             ->map(fn ($u) => ['id' => $u->id, 'name' => $u->name])
             ->values()->all();
     }
-  private function materials(int $labId, ?string $search): array
+private function materials(int $labId, ?string $search): array
 {
     return \App\Models\LabMaterial::query()
-        ->where('lab_id', $labId)
-        ->when($search, fn ($q, $s) =>
-            $q->where('name', 'like', "%{$s}%")
-        )
+        ->where('lab_id', 12)
         ->get()
         ->map(fn ($m) => [
             'id' => $m->id,
