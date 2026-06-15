@@ -106,7 +106,7 @@ class LabSelectController extends Controller
     {
         return User::query()
             ->where('lab_id', $labId)
-            ->role('delivery_rep')
+            ->role('delivery_representative')
             ->when($search, fn ($q, $s) => $q->where('name', 'like', "%{$s}%"))
             ->select('id', 'name')
             ->limit(50)
