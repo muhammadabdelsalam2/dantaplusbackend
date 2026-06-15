@@ -117,15 +117,17 @@ class LabSelectController extends Controller
     }
 private function materials(int $labId, ?string $search): array
 {
-    return \App\Models\LabMaterial::query()
-        ->where('lab_id', 12)
-        ->get()
-        ->map(fn ($m) => [
-            'id' => $m->id,
-            'name' => $m->name,
-        ])
-        ->values()
-        ->all();
+    $query = \DB::table('lab_materials')
+        ->where('lab_id', $labId);
+
+    if ($search) {
+        $query->where('name', 'like', "%{$search}%");
+    }
+
+    return $query->get()->map(fn ($m) => [
+        'id' => $m->id,
+        'name' => $m->name,
+    ])->toArray();
 }
 private function suppliers(?string $search): array
 {
