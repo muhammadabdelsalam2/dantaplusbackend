@@ -160,7 +160,7 @@ private function suppliers(?string $search): array
 }
 private function materialProducts(): array
 {
-    return \App\Models\MaterialProduct::query()
+    return \App\Models\Product::query()
         ->with(['company', 'categoryRelation'])
         ->orderByDesc('id')
         ->get()
