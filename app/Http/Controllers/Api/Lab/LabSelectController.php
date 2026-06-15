@@ -33,6 +33,7 @@ class LabSelectController extends Controller
             'delivery_reps' => $this->deliveryReps($labId, $search),
                 'suppliers'     => $this->suppliers($search),
             'materials'     => $this->materials($labId, $search),
+             'material_products' => $this->materialProducts(),
             default         => null,
         };
 
@@ -156,5 +157,13 @@ private function suppliers(?string $search): array
         ])
         ->values()
         ->all();
+}
+private function materialProducts(): array
+{
+    return \App\Models\MaterialProduct::query()
+        ->with(['company', 'categoryRelation'])
+        ->orderByDesc('id')
+        ->get()
+        ->toArray();
 }
 }
