@@ -116,19 +116,25 @@ class LabSelectController extends Controller
             ->map(fn ($u) => ['id' => $u->id, 'name' => $u->name])
             ->values()->all();
     }
-private function materials(int $labId, ?string $search): array
+// private function materials(int $labId, ?string $search): array
+// {
+//     $query = DB::table('lab_materials')
+//         ->where('lab_id', $labId);
+
+//     if ($search) {
+//         $query->where('name', 'like', "%{$search}%");
+//     }
+
+//     return $query->get()->map(fn ($m) => [
+//         'id' => $m->id,
+//         'name' => $m->name,
+//     ])->toArray();
+// }
+private function materials(): array
 {
-    $query = DB::table('lab_materials')
-        ->where('lab_id', $labId);
-
-    if ($search) {
-        $query->where('name', 'like', "%{$search}%");
-    }
-
-    return $query->get()->map(fn ($m) => [
-        'id' => $m->id,
-        'name' => $m->name,
-    ])->toArray();
+    return DB::table('lab_materials')
+        ->get()
+        ->toArray();
 }
 private function suppliers(?string $search): array
 {
