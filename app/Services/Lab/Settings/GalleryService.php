@@ -29,44 +29,44 @@ class GalleryService
     }
 
     public function uploadImages(array $data): array
-    {
-        $labId = $this->currentLabId();
-        if (!$labId) {
-            return ServiceResult::error('Lab account is not linked to a dental lab', null, null, 403);
-        }
-
-        $type = $data['type'];
-        $files = $data['files'] ?? [];
-
-        $uploaded = [];
-
-        foreach ($files as $file) {
-            if (!$file instanceof UploadedFile) {
-                continue;
-            }
-
-            $path = Storage::disk('public')->putFile('labs/' . $labId . '/gallery/' . $type, $file);
-            $url = Storage::disk('public')->url($path);
-
-            $image = $this->settingsRepository->createGalleryImage([
-                'lab_id' => $labId,
-                'type' => $type,
-                'url' => $url,
-                'disk' => 'public',
-                'sort_order' => null,
-                'uploaded_by' => auth()->id(),
-                'created_at' => now(),
-            ]);
-
-            $uploaded[] = $image;
-        }
-
-        return ServiceResult::success(
-            GalleryImageResource::collection($uploaded)->resolve(),
-            'Images uploaded successfully.',
-            201
-        );
+{
+    $labId = $this->currentLabId();
+    if (!$labId) {
+        return ServiceResult::error('Lab account is not linked to a dental lab', null, null, 403);
     }
+
+    $type = $data['type'];
+    $images = $data['images'] ?? [];   // ← كان $data['files']
+
+    $uploaded = [];
+
+    foreach ($images as $file) {       // ← غيّرت اسم المتغير للوضوح
+        if (!$file instanceof UploadedFile) {
+            continue;
+        }
+
+        $path = Storage::disk('public')->putFile('labs/' . $labId . '/gallery/' . $type, $file);
+        $url = Storage::disk('public')->url($path);
+
+        $image = $this->settingsRepository->createGalleryImage([
+            'lab_id' => $labId,
+            'type' => $type,
+            'url' => $url,
+            'disk' => 'public',
+            'sort_order' => null,
+            'uploaded_by' => auth()->id(),
+            'created_at' => now(),
+        ]);
+
+        $uploaded[] = $image;
+    }
+
+    return ServiceResult::success(
+        GalleryImageResource::collection($uploaded)->resolve(),
+        'Images uploaded successfully.',
+        201
+    );
+}
 
     public function deleteImage(int $imageId): array
     {

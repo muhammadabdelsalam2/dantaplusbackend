@@ -6,13 +6,13 @@ use App\Http\Controllers\Api\Lab\ClinicController;
 use App\Http\Controllers\Api\Lab\ClinicExternalController;
 use App\Http\Controllers\Api\Lab\ClinicInviteController;
 use App\Http\Controllers\Api\Lab\ClinicPartnershipController;
-use App\Http\Controllers\Api\Lab\DeliveryTaskController;
-use App\Http\Controllers\Api\Lab\MaterialController;
-use App\Http\Controllers\Api\Lab\LookupController;
-
 use App\Http\Controllers\Api\Lab\DeliveryRepController;
 use App\Http\Controllers\Api\Lab\DeliveryReportController;
+use App\Http\Controllers\Api\Lab\DeliveryTaskController;
 use App\Http\Controllers\Api\Lab\LabEquipmentController;
+use App\Http\Controllers\Api\Lab\LabSelectController;
+use App\Http\Controllers\Api\Lab\LookupController;
+use App\Http\Controllers\Api\Lab\MaterialController;
 use App\Http\Controllers\Api\Lab\Settings\GalleryController;
 use App\Http\Controllers\Api\Lab\Settings\LabProfileController;
 use App\Http\Controllers\Api\Lab\Settings\NotificationSettingsController;
@@ -25,6 +25,7 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('lab')
     ->middleware(['auth:sanctum'])
     ->group(function () {
+        Route::get('/select/{resource}', [LabSelectController::class, 'show']);
         Route::middleware(['role:lab_admin|lab_receptionist'])->prefix('clinics')->group(function () {
             Route::get('/', [ClinicController::class, 'index']);
             Route::post('/invite', [ClinicInviteController::class, 'store']);

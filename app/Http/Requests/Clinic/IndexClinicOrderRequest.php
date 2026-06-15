@@ -15,11 +15,16 @@ class IndexClinicOrderRequest extends FormRequest
     public function rules(): array
     {
         return [
-           
+
             'search'         => ['nullable', 'string', 'max:255'],
             'status'         => ['nullable', Rule::in(['processing', 'pending', 'shipped', 'completed', 'awaiting_clinic_confirmation', 'cancelled'])],
             'payment_method' => ['nullable', Rule::in(['cash', 'visa', 'pay_later'])],
             'payment_status' => ['nullable', Rule::in(['paid', 'pending_cash', 'pending_payment', 'pending_invoice'])],
+               'date_from'      => ['nullable', 'date'],
+            'date_to'        => ['nullable', 'date', 'after_or_equal:date_from'],
+
+            'min_price'      => ['nullable', 'numeric', 'min:0'],
+            'max_price'      => ['nullable', 'numeric', 'min:0', 'gte:min_price'],
             'per_page'       => ['nullable', 'integer', 'min:1', 'max:100'],
         ];
     }
