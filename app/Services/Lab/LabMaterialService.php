@@ -7,6 +7,8 @@ use App\Models\LabMaterial;
 use App\Repositories\LabMaterialRepository;
 use App\Support\ServiceResult;
 use Illuminate\Support\Facades\DB;
+use App\Models\MaterialCompany;
+
 
 class LabMaterialService
 {
@@ -50,36 +52,39 @@ class LabMaterialService
         return ServiceResult::success((new LabMaterialResource($material))->resolve(), 'Material fetched successfully');
     }
 
-    public function createMaterial(array $data): array
-    {
-        $labId = $this->currentLabId();
-        if (! $labId) {
-            return ServiceResult::error('Lab account is not linked to a dental lab', null, null, 403);
-        }
-
-        if (! empty($data['lab_id']) && (int) $data['lab_id'] !== (int) $labId) {
-            return ServiceResult::error('Lab mismatch for this account', null, null, 403);
-        }
-
-        return DB::transaction(function () use ($data, $labId) {
-            $material = $this->materialRepository->create([
-                'lab_id' => $labId,
-                'name' => $data['name'],
-                'supplier' => $data['supplier'],
-                'stock' => $data['stock'],
-                'low_stock_threshold' => $data['low_stock_threshold'],
-                'cost' => $data['cost'],
-                'purchase_date' => $data['purchase_date'],
-                'expiration_date' => $data['expiration_date'] ?? null,
-            ]);
-
-            return ServiceResult::success(
-                (new LabMaterialResource($material))->resolve(),
-                'Material created successfully',
-                201
-            );
-        });
+   public function createMaterial(array $data): array
+{
+    $labId = $this->currentLabId();
+    if (! $labId) {
+        return ServiceResult::error('Lab account is not linked to a dental lab', null, null, 403);
     }
+
+    return DB::transaction(function () use ($data, $labId) {
+        $supplierName = $data['supplier'] ?? null;
+
+        if (!empty($data['supplier_id'])) {
+            $supplierName = MaterialCompany::find($data['supplier_id'])?->name ?? $supplierName;
+        }
+
+        $material = $this->materialRepository->create([
+            'lab_id' => $labId,
+            'name' => $data['name'],
+            'supplier_id' => $data['supplier_id'] ?? null,
+            'supplier' => $supplierName,
+            'stock' => $data['stock'],
+            'low_stock_threshold' => $data['low_stock_threshold'],
+            'cost' => $data['cost'],
+            'purchase_date' => $data['purchase_date'],
+            'expiration_date' => $data['expiration_date'] ?? null,
+        ]);
+
+        return ServiceResult::success(
+            (new LabMaterialResource($material))->resolve(),
+            'Material created successfully',
+            201
+        );
+    });
+}
 
     public function updateMaterial(int $materialId, array $data): array
     {

@@ -20,11 +20,22 @@ use App\Http\Controllers\Api\Lab\Settings\ServiceController;
 use App\Http\Controllers\Api\Lab\Settings\UserController;
 use App\Http\Controllers\Api\Lab\Settings\WhatsAppSettingsController;
 use App\Http\Controllers\Api\Lab\SupportController;
+use App\Http\Controllers\Api\Lab\DashboardController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('lab')
     ->middleware(['auth:sanctum'])
     ->group(function () {
+        Route::prefix('dashboard')->group(function () {
+
+    
+    
+    Route::get('stats', [DashboardController::class, 'stats']);
+
+   
+    Route::get('charts', [DashboardController::class, 'charts']);
+    Route::get('active-cases', [DashboardController::class, 'activeCases']);
+});
         Route::get('/select/{resource}', [LabSelectController::class, 'show']);
         Route::middleware(['role:lab_admin|lab_receptionist'])->prefix('clinics')->group(function () {
             Route::get('/', [ClinicController::class, 'index']);

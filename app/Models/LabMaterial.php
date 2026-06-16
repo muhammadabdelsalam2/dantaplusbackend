@@ -20,8 +20,13 @@ class LabMaterial extends Model
         'cost',
         'purchase_date',
         'expiration_date',
+        'supplier_id',
     ];
 
+    public function supplierCompany(): BelongsTo
+{
+    return $this->belongsTo(MaterialCompany::class, 'supplier_id');
+}
     protected function casts(): array
     {
         return [
