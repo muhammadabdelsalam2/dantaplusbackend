@@ -11,20 +11,21 @@ use Illuminate\Support\Facades\Storage;
 
 class InventoryService
 {
-    public function paginate(array $filters): array
-    {
-        $items = InventoryItem::query()
-            ->when($filters['status'] ?? null, fn ($q, $status) => $q->where('status', $status))
-            ->when($filters['search'] ?? null, fn ($q, $search) => $q->where('product_name', 'like', "%{$search}%"))
-            ->latest('id')
-            ->paginate(max(1, min((int) ($filters['per_page'] ?? 15), 100)));
+ public function paginate(array $filters): array
+{
+    $items = InventoryItem::query()
+        ->when($filters['status'] ?? null, fn ($q, $status) => $q->where('status', $status))
+        ->when($filters['search'] ?? null, fn ($q, $search) => $q->where('product_name', 'like', "%{$search}%"))
+        ->when($filters['category'] ?? null, fn ($q, $category) => $q->where('category_name', $category))
+        ->latest('id')
+        ->paginate(max(1, min((int) ($filters['per_page'] ?? 15), 100)));
 
-        return [
-            'items' => InventoryResource::collection($items->items())->resolve(),
-            'meta' => ['page' => $items->currentPage(), 'per_page' => $items->perPage(), 'total' => $items->total()],
-            'low_stock_count' => InventoryItem::query()->whereColumn('quantity', '<=', 'minimum_stock_level')->count(),
-        ];
-    }
+    return [
+        'items' => InventoryResource::collection($items->items())->resolve(),
+        'meta' => ['page' => $items->currentPage(), 'per_page' => $items->perPage(), 'total' => $items->total()],
+        'low_stock_count' => InventoryItem::query()->whereColumn('quantity', '<=', 'minimum_stock_level')->count(),
+    ];
+}
 
     public function show(InventoryItem $item): array
     {

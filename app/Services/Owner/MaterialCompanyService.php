@@ -4,9 +4,12 @@ namespace App\Services\Owner;
 
 use App\Http\Resources\SuperAdmin\MaterialCompanyCollection;
 use App\Http\Resources\SuperAdmin\MaterialCompanyResource;
+use App\Models\User;
 use App\Repositories\MaterialCompanyRepository;
 use App\Support\ServiceResult;
+use App\Support\UserRoleManager;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -28,13 +31,18 @@ class MaterialCompanyService
         return ServiceResult::success($data, 'Material companies fetched successfully');
     }
 
-    public function store(array $data): array
+     public function store(array $data): array
     {
         return DB::transaction(function () use ($data) {
             if (isset($data['logo']) && $data['logo'] instanceof UploadedFile) {
                 $path = Storage::disk('public')->putFile('material/companies', $data['logo']);
                 $data['logo_url'] = Storage::url($path);
             }
+
+            $adminName = Arr::pull($data, 'admin_name');
+            $adminEmail = Arr::pull($data, 'admin_email');
+            $adminPassword = Arr::pull($data, 'admin_password');
+            $adminIsActive = (int) Arr::pull($data, 'admin_is_active', 1);
 
             unset($data['logo']);
 
@@ -55,14 +63,38 @@ class MaterialCompanyService
                 'rating' => $data['rating'] ?? null,
             ]);
 
-            return ServiceResult::success(
-                (new MaterialCompanyResource($company))->resolve(),
-                'Material company created successfully',
-                201
-            );
+            $createdUser = null;
+
+            // Backward-compatible: create supplier login account only if admin credentials are sent
+            if (!empty($adminEmail) && !empty($adminPassword)) {
+                UserRoleManager::ensureRoleExists('material_company_admin');
+
+                $createdUser = User::create([
+                    'name' => $adminName ?: $data['name'],
+                    'email' => $adminEmail,
+                    'password' => $adminPassword,
+                    'is_active' => $adminIsActive,
+                    'company_id' => $company->id,
+                    'role' => 'material_company_admin',
+                ]);
+
+                $createdUser->syncRoles(['material_company_admin']);
+            }
+
+            $payload = (new MaterialCompanyResource($company))->resolve();
+            $payload['login_account_created'] = $createdUser !== null;
+            $payload['login_account'] = $createdUser ? [
+                'id' => $createdUser->id,
+                'name' => $createdUser->name,
+                'email' => $createdUser->email,
+                'is_active' => (bool) $createdUser->is_active,
+                'company_id' => $createdUser->company_id,
+                'role' => 'material_company_admin',
+            ] : null;
+
+            return ServiceResult::success($payload, 'Material company created successfully', 201);
         });
     }
-
     public function show(int $companyId): array
     {
         $company = $this->materialCompanyRepository->findById($companyId, ['products']);
