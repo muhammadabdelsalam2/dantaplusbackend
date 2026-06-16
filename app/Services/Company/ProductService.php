@@ -11,13 +11,17 @@ use Illuminate\Support\Facades\Storage;
 
 class ProductService
 {
-   public function paginate(array $filters): array
+ public function paginate(array $filters): array
 {
     $perPage = max(1, min((int) ($filters['per_page'] ?? 15), 100));
     $products = Product::query()
         ->with(['categoryRelation:id,name', 'company:id,name'])
         ->when($filters['name'] ?? null, fn ($q, $name) => $q->where('name', 'like', "%{$name}%"))
         ->when($filters['category_id'] ?? null, fn ($q, $categoryId) => $q->where('category_id', $categoryId))
+        ->when($filters['category'] ?? null, fn ($q, $category) => $q->whereHas(
+            'categoryRelation',
+            fn ($q) => $q->where('name', $category)
+        ))
         ->when($filters['min_price'] ?? null, fn ($q, $minPrice) => $q->where('price', '>=', $minPrice))
         ->when($filters['max_price'] ?? null, fn ($q, $maxPrice) => $q->where('price', '<=', $maxPrice))
         ->when($filters['status'] ?? null, fn ($q, $status) => $q->where('status', $status))
