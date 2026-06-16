@@ -17,7 +17,18 @@ class BillingController extends Controller
 
     public function __construct(private BillingService $service) {}
 
-    public function index(Request $request) { return ApiResponse::success($this->service->paginate($request->all()), 'Invoices fetched successfully'); }
+   public function index(Request $request)
+{
+    $filters = $request->validate([
+        'search'   => 'nullable|string|max:100',
+        'status'   => 'nullable|in:paid,unpaid',
+        'date_from'=> 'nullable|date',
+        'date_to'  => 'nullable|date|after_or_equal:date_from',
+        'per_page' => 'nullable|integer|min:1|max:100',
+    ]);
+
+    return ApiResponse::success($this->service->paginate($filters), 'Invoices fetched successfully');
+}
     public function show(Invoice $id) { return ApiResponse::success($this->service->show($id), 'Invoice fetched successfully'); }
     public function store(StoreInvoiceRequest $request) { return ApiResponse::success($this->service->create($request->validated()), 'Invoice created successfully', 201); }
     public function update(UpdateInvoiceRequest $request, Invoice $id) { return ApiResponse::success($this->service->update($id, $request->validated()), 'Invoice updated successfully'); }

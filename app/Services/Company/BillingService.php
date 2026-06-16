@@ -15,19 +15,27 @@ use Illuminate\Support\Str;
 
 class BillingService
 {
-    public function paginate(array $filters): array
-    {
-        $invoices = Invoice::query()
-            ->with(['order:id,order_code', 'clinic:id,name', 'payments'])
-            ->when($filters['status'] ?? null, fn ($q, $status) => $q->where('status', $status))
-            ->latest('id')
-            ->paginate(max(1, min((int) ($filters['per_page'] ?? 15), 100)));
+   public function paginate(array $filters): array
+{
+    $invoices = Invoice::query()
+        ->with(['order:id,order_code', 'clinic:id,name', 'payments'])
+        ->when($filters['status'] ?? null, fn ($q, $status) => $q->where('status', $status))
+        ->when($filters['search'] ?? null, function ($q, $search) {
+            $q->where(function ($q) use ($search) {
+                $q->where('invoice_number', 'like', "%{$search}%")
+                  ->orWhereHas('clinic', fn ($q) => $q->where('name', 'like', "%{$search}%"));
+            });
+        })
+        ->when($filters['date_from'] ?? null, fn ($q, $date) => $q->whereDate('issue_date', '>=', $date))
+        ->when($filters['date_to'] ?? null, fn ($q, $date) => $q->whereDate('issue_date', '<=', $date))
+        ->latest('id')
+        ->paginate(max(1, min((int) ($filters['per_page'] ?? 15), 100)));
 
-        return [
-            'items' => InvoiceResource::collection($invoices->items())->resolve(),
-            'meta' => ['page' => $invoices->currentPage(), 'per_page' => $invoices->perPage(), 'total' => $invoices->total()],
-        ];
-    }
+    return [
+        'items' => InvoiceResource::collection($invoices->items())->resolve(),
+        'meta' => ['page' => $invoices->currentPage(), 'per_page' => $invoices->perPage(), 'total' => $invoices->total()],
+    ];
+}
 
     public function show(Invoice $invoice): array
     {
