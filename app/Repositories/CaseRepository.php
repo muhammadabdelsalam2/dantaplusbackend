@@ -24,26 +24,68 @@ class CaseRepository
                 'deliveryRep:id,name',
             ])
             ->where('lab_id', $labId)
-            ->when($filters['status'] ?? null, fn (Builder $q, $status) => $q->where('status', $status))
-            ->when($filters['priority'] ?? null, fn (Builder $q, $priority) => $q->where('priority', $priority))
-            ->when($filters['clinic_id'] ?? null, fn (Builder $q, $clinicId) => $q->where('clinic_id', $clinicId))
-            ->when($filters['patient_id'] ?? null, fn (Builder $q, $patientId) => $q->where('patient_id', $patientId))
-            ->when($filters['dentist_id'] ?? null, fn (Builder $q, $dentistId) => $q->where('dentist_id', $dentistId))
+
+            ->when($filters['status'] ?? null,
+                fn (Builder $q, $status) => $q->where('status', $status)
+            )
+
+            ->when($filters['priority'] ?? null,
+                fn (Builder $q, $priority) => $q->where('priority', $priority)
+            )
+
+            ->when($filters['clinic_id'] ?? null,
+                fn (Builder $q, $clinicId) => $q->where('clinic_id', $clinicId)
+            )
+
+            ->when($filters['patient_id'] ?? null,
+                fn (Builder $q, $patientId) => $q->where('patient_id', $patientId)
+            )
+
+            ->when($filters['dentist_id'] ?? null,
+                fn (Builder $q, $dentistId) => $q->where('dentist_id', $dentistId)
+            )
+
             ->when($filters['restricted_user_id'] ?? null, function (Builder $q, $userId) {
                 $q->where(function (Builder $restricted) use ($userId) {
                     $restricted->where('assigned_technician_id', $userId)
                         ->orWhere('created_by', $userId);
                 });
             })
-            ->when($filters['from'] ?? null, fn (Builder $q, $from) => $q->whereDate('due_date', '>=', $from))
-            ->when($filters['to'] ?? null, fn (Builder $q, $to) => $q->whereDate('due_date', '<=', $to))
+
+            ->when($filters['from'] ?? null,
+                fn (Builder $q, $from) => $q->whereDate('due_date', '>=', $from)
+            )
+
+            ->when($filters['to'] ?? null,
+                fn (Builder $q, $to) => $q->whereDate('due_date', '<=', $to)
+            )
+
             ->when($filters['search'] ?? null, function (Builder $q, $search) {
+
                 $q->where(function (Builder $query) use ($search) {
+
                     $query->where('case_number', 'like', "%{$search}%")
                         ->orWhere('case_type', 'like', "%{$search}%")
-                        ->orWhere('description', 'like', "%{$search}%");
+                        ->orWhere('description', 'like', "%{$search}%")
+
+                        ->orWhereHas('clinic', function (Builder $q) use ($search) {
+                            $q->where('name', 'like', "%{$search}%");
+                        })
+
+                        ->orWhereHas('patient.user', function (Builder $q) use ($search) {
+                            $q->where('name', 'like', "%{$search}%");
+                        })
+
+                        ->orWhereHas('dentist.user', function (Builder $q) use ($search) {
+                            $q->where('name', 'like', "%{$search}%");
+                        })
+
+                        ->orWhereHas('technician', function (Builder $q) use ($search) {
+                            $q->where('name', 'like', "%{$search}%");
+                        });
                 });
             })
+
             ->orderByDesc('id')
             ->paginate($perPage);
     }
@@ -75,7 +117,6 @@ class CaseRepository
     public function update(CaseModel $case, array $data): CaseModel
     {
         $case->update($data);
-
         return $case->refresh();
     }
 
