@@ -30,12 +30,12 @@ Route::prefix('company')
         Route::get('/dashboard/order-trends', [DashboardController::class, 'orderTrends']);
 
         Route::middleware('role:material_company_admin')->group(function () {
+            Route::get('/users/roles', [UserController::class, 'roles']);
             Route::get('/users', [UserController::class, 'index']);
             Route::post('/users', [UserController::class, 'store']);
             Route::get('/users/{id}', [UserController::class, 'show']);
             Route::patch('/users/{id}', [UserController::class, 'update']);
             Route::delete('/users/{id}', [UserController::class, 'destroy']);
-            Route::get('/users/roles', [UserController::class, 'roles']);
         });
 
         Route::middleware('role:material_company_admin|sales_rep')->group(function () {
