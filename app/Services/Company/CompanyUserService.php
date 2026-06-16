@@ -99,4 +99,11 @@ class CompanyUserService
             ]);
         }
     }
+    public function manageableRoles(): array
+{
+    return collect(self::MANAGEABLE_ROLES)->map(fn ($role) => [
+        'name' => $role,
+        'label' => str($role)->replace('_', ' ')->title()->toString(),
+    ])->values()->all();
+}
 }

@@ -28,4 +28,8 @@ class UserController extends Controller
 
         return $user;
     }
+    public function roles()
+{
+    return ApiResponse::success($this->service->manageableRoles(), 'Roles fetched successfully');
+}
 }

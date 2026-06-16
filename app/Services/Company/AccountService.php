@@ -24,16 +24,41 @@ class AccountService
         ];
     }
 
-    public function invoices(): array
-    {
-        return Invoice::query()->latest('id')->get()->map(fn ($invoice) => [
-            'id' => $invoice->id,
-            'invoice_number' => $invoice->invoice_number,
-            'status' => $invoice->status,
-            'total_amount' => (float) $invoice->total_amount,
-            'issue_date' => optional($invoice->issue_date)?->toDateString(),
-        ])->all();
+  public function invoices(array $filters = []): array
+{
+    $query = Invoice::query()->latest('id');
+
+    // Search by invoice number or amount
+    if (!empty($filters['search'])) {
+        $search = $filters['search'];
+        $query->where(function ($q) use ($search) {
+            $q->where('invoice_number', 'like', "%{$search}%")
+              ->orWhere('total_amount', 'like', "%{$search}%");
+        });
     }
+
+    // Filter by status
+    if (!empty($filters['status']) && in_array($filters['status'], ['paid', 'unpaid'])) {
+        $query->where('status', $filters['status']);
+    }
+
+    // Filter by date range
+    if (!empty($filters['date_from'])) {
+        $query->whereDate('issue_date', '>=', $filters['date_from']);
+    }
+
+    if (!empty($filters['date_to'])) {
+        $query->whereDate('issue_date', '<=', $filters['date_to']);
+    }
+
+    return $query->get()->map(fn ($invoice) => [
+        'id'             => $invoice->id,
+        'invoice_number' => $invoice->invoice_number,
+        'status'         => $invoice->status,
+        'total_amount'   => (float) $invoice->total_amount,
+        'issue_date'     => optional($invoice->issue_date)?->toDateString(),
+    ])->all();
+}
 
     public function expenses(): array
     {

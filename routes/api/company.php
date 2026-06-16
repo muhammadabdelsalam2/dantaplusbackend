@@ -35,6 +35,7 @@ Route::prefix('company')
             Route::get('/users/{id}', [UserController::class, 'show']);
             Route::patch('/users/{id}', [UserController::class, 'update']);
             Route::delete('/users/{id}', [UserController::class, 'destroy']);
+            Route::get('/users/roles', [UserController::class, 'roles']);
         });
 
         Route::middleware('role:material_company_admin|sales_rep')->group(function () {

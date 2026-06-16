@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Company\StoreExpenseRequest;
 use App\Services\Company\AccountService;
 use App\Support\ApiResponse;
+use Illuminate\Http\Request;
 
 class AccountController extends Controller
 {
@@ -14,7 +15,19 @@ class AccountController extends Controller
     public function __construct(private AccountService $service) {}
 
     public function summary() { return ApiResponse::success($this->service->summary(), 'Account summary fetched successfully'); }
-    public function invoices() { return ApiResponse::success($this->service->invoices(), 'Account invoices fetched successfully'); }
+
+    public function invoices(Request $request)
+    {
+        $filters = $request->validate([
+            'search'    => 'nullable|string|max:100',
+            'status'    => 'nullable|in:paid,unpaid',
+            'date_from' => 'nullable|date',
+            'date_to'   => 'nullable|date|after_or_equal:date_from',
+        ]);
+
+        return ApiResponse::success($this->service->invoices($filters), 'Account invoices fetched successfully');
+    }
+
     public function expenses() { return ApiResponse::success($this->service->expenses(), 'Expenses fetched successfully'); }
     public function storeExpense(StoreExpenseRequest $request) { return ApiResponse::success($this->service->createExpense($request->validated()), 'Expense created successfully', 201); }
     public function bankTransactions() { return ApiResponse::success($this->service->bankTransactions(), 'Bank transactions fetched successfully'); }
