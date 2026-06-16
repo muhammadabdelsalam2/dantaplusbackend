@@ -14,21 +14,12 @@ class DashboardService
         return auth()->user()?->lab_id;
     }
 
-    // ---------------------------------------------------------------------
-    // STATS
-    // ---------------------------------------------------------------------
-
     public function getStats(): array
     {
         $labId = $this->currentLabId();
 
         if (! $labId) {
-            return ServiceResult::error(
-                'Lab account is not linked to a dental lab',
-                null,
-                null,
-                403
-            );
+            return ServiceResult::error('Lab account is not linked to a dental lab', null, null, 403);
         }
 
         $now = now();
@@ -36,22 +27,13 @@ class DashboardService
         // Active cases
         $activeCases = CaseModel::query()
             ->where('lab_id', $labId)
-            ->whereNotIn('status', [
-                CaseModel::STATUS_COMPLETED,
-                CaseModel::STATUS_DELIVERED
-            ])
+            ->whereNotIn('status', [CaseModel::STATUS_COMPLETED, CaseModel::STATUS_DELIVERED])
             ->count();
 
         $activeCasesThisWeek = CaseModel::query()
             ->where('lab_id', $labId)
-            ->whereNotIn('status', [
-                CaseModel::STATUS_COMPLETED,
-                CaseModel::STATUS_DELIVERED
-            ])
-            ->whereBetween('created_at', [
-                $now->copy()->startOfWeek(),
-                $now->copy()->endOfWeek()
-            ])
+            ->whereNotIn('status', [CaseModel::STATUS_COMPLETED, CaseModel::STATUS_DELIVERED])
+            ->whereBetween('created_at', [$now->copy()->startOfWeek(), $now->copy()->endOfWeek()])
             ->count();
 
         // Completed this month
@@ -73,7 +55,7 @@ class DashboardService
             ? round((($completedThisMonth - $completedLastMonth) / $completedLastMonth) * 100, 1)
             : ($completedThisMonth > 0 ? 100 : 0);
 
-        // Pending deliveries (completed but not delivered)
+        // Pending deliveries
         $pendingDeliveries = CaseModel::query()
             ->where('lab_id', $labId)
             ->where('status', CaseModel::STATUS_COMPLETED)
@@ -87,23 +69,15 @@ class DashboardService
 
         $pendingDeliveriesDiff = $pendingDeliveries - $pendingDeliveriesLastWeek;
 
-        // -----------------------------------------------------------------
-        // FIXED REVENUE (NO lab_id in invoices)
-        // invoices -> clinic -> clinic_lab_partnerships -> lab_id
-        // -----------------------------------------------------------------
-
+        
         $monthlyRevenue = Invoice::query()
-            ->whereHas('clinic.labPartnerships', function ($q) use ($labId) {
-                $q->where('lab_id', $labId);
-            })
+            ->where('lab_id', $labId)
             ->whereMonth('issue_date', $now->month)
             ->whereYear('issue_date', $now->year)
             ->sum('total_amount');
 
         $lastMonthRevenue = Invoice::query()
-            ->whereHas('clinic.labPartnerships', function ($q) use ($labId) {
-                $q->where('lab_id', $labId);
-            })
+            ->where('lab_id', $labId)
             ->whereMonth('issue_date', $now->copy()->subMonth()->month)
             ->whereYear('issue_date', $now->copy()->subMonth()->year)
             ->sum('total_amount');
@@ -132,33 +106,67 @@ class DashboardService
         ], 'Dashboard stats fetched successfully');
     }
 
-    // ---------------------------------------------------------------------
-    // CHARTS (unchanged logic but safe structure)
-    // ---------------------------------------------------------------------
-
     public function getCharts(array $filters = []): array
     {
         $labId = $this->currentLabId();
 
         if (! $labId) {
-            return ServiceResult::error(
-                'Lab account is not linked to a dental lab',
-                null,
-                null,
-                403
-            );
+            return ServiceResult::error('Lab account is not linked to a dental lab', null, null, 403);
         }
 
-        $year = (int) ($filters['year'] ?? now()->year);
+        $year  = (int) ($filters['year']  ?? now()->year);
         $month = (int) ($filters['month'] ?? now()->month);
 
         return ServiceResult::success([
             'case_type_distribution' => $this->caseTypeDistribution($labId),
-            'monthly_revenue' => $this->monthlyRevenueChart($labId, $year),
-            'cases_by_clinic' => $this->casesByClinic($labId, $year, $month),
-            'wip_by_technician' => $this->wipByTechnician($labId),
+            'monthly_revenue'        => $this->monthlyRevenueChart($labId, $year),
+            'cases_by_clinic'        => $this->casesByClinic($labId, $year, $month),
+            'wip_by_technician'      => $this->wipByTechnician($labId),
         ], 'Dashboard charts fetched successfully');
     }
+
+    public function getActiveCases(array $filters): array
+    {
+        $labId = $this->currentLabId();
+
+        if (! $labId) {
+            return ServiceResult::error('Lab account is not linked', null, null, 403);
+        }
+
+        $perPage = (int) ($filters['per_page'] ?? 10);
+
+        $query = CaseModel::query()
+            ->with(['clinic:id,name', 'patient.user:id,name', 'technician:id,name'])
+            ->where('lab_id', $labId)
+            ->whereNotIn('status', [CaseModel::STATUS_COMPLETED, CaseModel::STATUS_DELIVERED])
+            ->orderByDesc('id');
+
+        if (!empty($filters['search'])) {
+            $search = $filters['search'];
+            $query->where(function ($q) use ($search) {
+                $q->where('case_number', 'like', "%$search%")
+                  ->orWhere('case_type', 'like', "%$search%")
+                  ->orWhereHas('clinic', fn ($c) => $c->where('name', 'like', "%$search%"))
+                  ->orWhereHas('patient.user', fn ($p) => $p->where('name', 'like', "%$search%"));
+            });
+        }
+
+        $cases = $query->paginate($perPage);
+
+        return ServiceResult::success([
+            'data' => $cases->items(),
+            'meta' => [
+                'page'      => $cases->currentPage(),
+                'per_page'  => $cases->perPage(),
+                'total'     => $cases->total(),
+                'last_page' => $cases->lastPage(),
+            ]
+        ], 'Active cases fetched');
+    }
+
+    // -------------------------------------------------------------------------
+    // PRIVATE CHART HELPERS
+    // -------------------------------------------------------------------------
 
     private function caseTypeDistribution(int $labId): array
     {
@@ -179,9 +187,7 @@ class DashboardService
     private function monthlyRevenueChart(int $labId, int $year): array
     {
         return Invoice::query()
-            ->whereHas('clinic.labPartnerships', fn ($q) =>
-                $q->where('lab_id', $labId)
-            )
+            ->where('lab_id', $labId)  
             ->whereYear('issue_date', $year)
             ->selectRaw('MONTH(issue_date) as month, SUM(total_amount) as total')
             ->groupBy('month')

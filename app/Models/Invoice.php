@@ -14,7 +14,7 @@ class Invoice extends Model
 
     protected $fillable = [
         'order_id', 'company_id', 'clinic_id', 'invoice_number', 'issue_date', 'due_date', 'subtotal', 'tax',
-        'total_amount', 'status', 'payment_method', 'completion_date', 'order_type',
+        'total_amount', 'status', 'payment_method', 'completion_date', 'order_type','lab_id'
     ];
 
     protected function casts(): array
@@ -26,4 +26,5 @@ class Invoice extends Model
     public function company(): BelongsTo { return $this->belongsTo(Company::class); }
     public function clinic(): BelongsTo { return $this->belongsTo(Clinic::class); }
     public function payments(): HasMany { return $this->hasMany(Payment::class); }
+    public function lab(): BelongsTo { return $this->belongsTo(DentalLab::class); }
 }
