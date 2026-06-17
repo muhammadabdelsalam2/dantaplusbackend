@@ -34,6 +34,10 @@ class LabSelectController extends Controller
                 'suppliers'     => $this->suppliers($search),
             'materials'     => $this->materials($labId, $search),
              'material_products' => $this->materialProducts(),
+             'clinic_types' => $this->clinicTypes(),
+             'lab_roles' => $this->labRoles(),
+
+
             default         => null,
         };
 
@@ -45,17 +49,30 @@ class LabSelectController extends Controller
     }
 
     private function clinics(?string $search): array
-    {
-        return Clinic::query()
-            ->select('id', 'name')
-            ->when($search, fn ($q, $s) => $q->where('name', 'like', "%{$s}%"))
-            ->orderBy('name')
-            ->limit(50)
-            ->get()
-            ->map(fn ($c) => ['id' => $c->id, 'name' => $c->name])
-            ->values()->all();
-    }
-
+{
+    return Clinic::query()
+        ->select('id', 'name', 'email', 'clinic_type')
+        ->when($search, fn ($q, $s) => $q->where('name', 'like', "%{$s}%"))
+        ->orderBy('name')
+        ->limit(50)
+        ->get()
+        ->map(fn ($c) => [
+            'id'          => $c->id,
+            'name'        => $c->name,
+            'email'       => $c->email,
+            'clinic_type' => $c->clinic_type?->value,
+        ])
+        ->values()->all();
+}
+private function clinicTypes(): array
+{
+    return collect(\App\Enums\ClinicType::cases())
+        ->map(fn ($type) => [
+            'value' => $type->value,
+            'label' => $type->value,
+        ])
+        ->values()->all();
+}
     private function patients(?int $clinicId, ?string $search): array
     {
         if (! $clinicId) {
@@ -73,7 +90,15 @@ class LabSelectController extends Controller
             ->map(fn ($p) => ['id' => $p->id, 'name' => $p->user?->name])
             ->values()->all();
     }
-
+private function labRoles(): array
+{
+    return collect(\App\Support\UserRoleManager::labRoles())
+        ->map(fn ($role) => [
+            'value' => $role,
+            'label' => str($role)->replace('_', ' ')->title()->toString(),
+        ])
+        ->values()->all();
+}
     private function dentists(?int $clinicId, ?string $search): array
     {
         if (! $clinicId) {
