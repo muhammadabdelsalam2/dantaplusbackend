@@ -19,16 +19,12 @@ class LabMaterialRepository
                 });
             })
             ->when($filters['supplier'] ?? null, fn (Builder $query, $supplier) => $query->where('supplier', 'like', "%{$supplier}%"))
-            ->when($filters['supplier'] ?? null, fn (Builder $query, $supplier) => $query->where('supplier', 'like', "%{$supplier}%"))
-->when($filters['supplier_id'] ?? null, fn (Builder $query, $supplierId) => $query->where('supplier_id', $supplierId)) // جديد
-->when($filters['low_stock'] ?? null, function (Builder $query, $lowStock) {
-    if ($lowStock) {
-        $query->whereColumn('stock', '<=', 'low_stock_threshold');
-    }
-})
-            ->when($filters['low_stock'] ?? null, function (Builder $query, $lowStock) {
-                if ($lowStock) {
+            ->when($filters['supplier_id'] ?? null, fn (Builder $query, $supplierId) => $query->where('supplier_id', $supplierId))
+            ->when(array_key_exists('low_stock', $filters) && $filters['low_stock'] !== null, function (Builder $query) use ($filters) {
+                if ((bool) $filters['low_stock']) {
                     $query->whereColumn('stock', '<=', 'low_stock_threshold');
+                } else {
+                    $query->whereColumn('stock', '>', 'low_stock_threshold');
                 }
             })
             ->when($filters['expiring_before'] ?? null, function (Builder $query, $expiringBefore) {
