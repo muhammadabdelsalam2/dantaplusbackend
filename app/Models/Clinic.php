@@ -46,6 +46,9 @@ class Clinic extends Model
             'clinic_type' => ClinicType::class,
         ];
     }
+     protected $attributes = [
+        'is_external' => false,
+    ];
 
     public function modules(): HasMany
     {

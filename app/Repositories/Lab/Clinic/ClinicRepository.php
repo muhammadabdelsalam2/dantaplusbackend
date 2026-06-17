@@ -76,13 +76,16 @@ class ClinicRepository implements ClinicRepositoryInterface
         ->first();
 }
 
-    public function findInternalClinicByEmail(string $email): ?Clinic
-    {
-        return Clinic::query()
-            ->where('email', $email)
-            ->where('is_external', false)
-            ->first();
-    }
+   public function findInternalClinicByEmail(string $email): ?Clinic
+{
+    return Clinic::query()
+        ->where('email', $email)
+        ->where(function ($q) {
+            $q->where('is_external', false)
+              ->orWhereNull('is_external');
+        })
+        ->first();
+}
 
     public function partnershipExists(int $labId, int $clinicId, array $statuses): bool
     {

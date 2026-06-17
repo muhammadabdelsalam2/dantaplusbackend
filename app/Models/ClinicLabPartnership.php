@@ -25,7 +25,9 @@ class ClinicLabPartnership extends Model
         'last_case_date',
         'invited_by',
     ];
-
+protected $attributes = [
+    'is_external' => false,
+];
     protected function casts(): array
     {
         return [
