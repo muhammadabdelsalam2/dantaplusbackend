@@ -5,6 +5,7 @@ namespace App\Services\Lab\Clinic;
 use App\Http\Resources\Lab\Clinic\ClinicPartnershipResource;
 use App\Repositories\Lab\Clinic\ClinicRepositoryInterface;
 use App\Support\ServiceResult;
+use Illuminate\Support\Facades\Log;
 
 class ClinicInviteService
 {
@@ -14,6 +15,11 @@ class ClinicInviteService
 
     public function invite(string $email): array
     {
+        Log::debug('INVITE DEBUG', [
+        'email' => $email,
+        'lab_id' => $this->currentLabId(),
+        'user' => auth()->user()?->toArray(),
+    ]);
         $labId = $this->currentLabId();
         if (! $labId) {
             return ServiceResult::error('Lab account is not linked to a dental lab', null, null, 403);
