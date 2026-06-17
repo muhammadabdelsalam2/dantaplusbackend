@@ -19,6 +19,13 @@ class LabMaterialRepository
                 });
             })
             ->when($filters['supplier'] ?? null, fn (Builder $query, $supplier) => $query->where('supplier', 'like', "%{$supplier}%"))
+            ->when($filters['supplier'] ?? null, fn (Builder $query, $supplier) => $query->where('supplier', 'like', "%{$supplier}%"))
+->when($filters['supplier_id'] ?? null, fn (Builder $query, $supplierId) => $query->where('supplier_id', $supplierId)) // جديد
+->when($filters['low_stock'] ?? null, function (Builder $query, $lowStock) {
+    if ($lowStock) {
+        $query->whereColumn('stock', '<=', 'low_stock_threshold');
+    }
+})
             ->when($filters['low_stock'] ?? null, function (Builder $query, $lowStock) {
                 if ($lowStock) {
                     $query->whereColumn('stock', '<=', 'low_stock_threshold');
