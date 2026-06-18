@@ -29,11 +29,11 @@ Route::prefix('lab')
     ->group(function () {
         Route::prefix('dashboard')->group(function () {
 
-    
-    
+
+
     Route::get('stats', [DashboardController::class, 'stats']);
 
-   
+
     Route::get('charts', [DashboardController::class, 'charts']);
     Route::get('active-cases', [DashboardController::class, 'activeCases']);
 });
@@ -55,9 +55,9 @@ Route::prefix('lab')
             Route::post('/expenses', [LabAccountingController::class, 'storeExpense']);
             Route::post('/expense-categories', [LabAccountingController::class, 'storeCategory']);
 
-            Route::patch('/invoices/{invoice}', [LabAccountingController::class, 'updateInvoice']);
-            Route::patch('/expenses/{expense}', [LabAccountingController::class, 'updateExpense']);
-            Route::patch('/expense-categories/{category}', [LabAccountingController::class, 'updateCategory']);
+            Route::post('/invoices/{invoice}', [LabAccountingController::class, 'updateInvoice']);
+            Route::post('/expenses/{expense}', [LabAccountingController::class, 'updateExpense']);
+            Route::post('/expense-categories/{category}', [LabAccountingController::class, 'updateCategory']);
 
             Route::delete('/expenses/{expense}', [LabAccountingController::class, 'deleteExpense']);
             Route::delete('/expense-categories/{category}', [LabAccountingController::class, 'deleteCategory']);
