@@ -330,14 +330,17 @@ class LabAccountingDataSeeder extends Seeder
 
         if (! $exists) {
             DB::table('lab_payment_transactions')->insert([
-                'lab_id'          => $this->labId,
-                'lab_invoice_id'  => $invoiceId,
-                'lab_payment_id'  => $paymentId,
-                'amount'          => $amount,
-                'type'            => 'payment',
-                'payment_method'  => $method,
-                'created_at'      => now(),
-                'updated_at'      => now(),
+                'lab_id'                => $this->labId,
+                'lab_invoice_id'        => $invoiceId,
+                'lab_payment_id'        => $paymentId,
+                'amount'                => $amount,
+                'provider'              => $method,
+                'transaction_reference' => 'BT-2026-001',
+                'status'                => 'completed',
+                'payload'               => null,
+                'processed_at'          => now(),
+                'created_at'            => now(),
+                'updated_at'            => now(),
             ]);
         }
     }
