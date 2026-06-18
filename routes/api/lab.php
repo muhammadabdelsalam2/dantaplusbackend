@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\Lab\Settings\UserController;
 use App\Http\Controllers\Api\Lab\Settings\WhatsAppSettingsController;
 use App\Http\Controllers\Api\Lab\SupportController;
 use App\Http\Controllers\Api\Lab\DashboardController;
+use App\Http\Controllers\Api\Lab\Accounting\LabAccountingController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('lab')
@@ -36,6 +37,31 @@ Route::prefix('lab')
     Route::get('charts', [DashboardController::class, 'charts']);
     Route::get('active-cases', [DashboardController::class, 'activeCases']);
 });
+        Route::middleware(['role:lab_admin|lab_receptionist'])->prefix('accounting')->group(function () {
+            Route::get('/summary', [LabAccountingController::class, 'summary']);
+            Route::get('/invoices', [LabAccountingController::class, 'invoices']);
+            Route::get('/invoices/{invoice}', [LabAccountingController::class, 'showInvoice']);
+            Route::get('/invoices/{invoice}/export', [LabAccountingController::class, 'exportInvoice']);
+            Route::get('/expenses', [LabAccountingController::class, 'expenses']);
+            Route::get('/expense-categories', [LabAccountingController::class, 'categories']);
+            Route::get('/technician-earnings', [LabAccountingController::class, 'technicianEarnings']);
+            Route::get('/reports/top-paying-clinics', [LabAccountingController::class, 'topPayingClinics']);
+            Route::get('/analytics', [LabAccountingController::class, 'analytics']);
+
+            Route::post('/invoices', [LabAccountingController::class, 'storeInvoice']);
+            Route::post('/invoices/generate-monthly', [LabAccountingController::class, 'generateMonthlyInvoices']);
+            Route::post('/invoices/{invoice}/payments', [LabAccountingController::class, 'recordPayment']);
+            Route::post('/invoices/{invoice}/whatsapp', [LabAccountingController::class, 'sendInvoiceWhatsApp']);
+            Route::post('/expenses', [LabAccountingController::class, 'storeExpense']);
+            Route::post('/expense-categories', [LabAccountingController::class, 'storeCategory']);
+
+            Route::patch('/invoices/{invoice}', [LabAccountingController::class, 'updateInvoice']);
+            Route::patch('/expenses/{expense}', [LabAccountingController::class, 'updateExpense']);
+            Route::patch('/expense-categories/{category}', [LabAccountingController::class, 'updateCategory']);
+
+            Route::delete('/expenses/{expense}', [LabAccountingController::class, 'deleteExpense']);
+            Route::delete('/expense-categories/{category}', [LabAccountingController::class, 'deleteCategory']);
+        });
         Route::get('/select/{resource}', [LabSelectController::class, 'show']);
         Route::middleware(['role:lab_admin|lab_receptionist'])->prefix('clinics')->group(function () {
             Route::get('/', [ClinicController::class, 'index']);

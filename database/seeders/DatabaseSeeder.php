@@ -29,6 +29,7 @@ class DatabaseSeeder extends Seeder
             DentalLabSeeder::class,
             LabMaterialSeeder::class,
             LabSettingsSeeder::class,
+            LabAccountingSeeder::class,
             MaterialCompanySeeder::class,
             MaterialProductSeeder::class,
             MaterialOrderSeeder::class,

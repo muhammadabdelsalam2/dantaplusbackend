@@ -3,12 +3,17 @@
 namespace App\Services\Lab;
 
 use App\Models\CaseModel;
-use App\Models\Invoice;
+use App\Models\LabPayment;
+use App\Services\Lab\Accounting\LabAccountingService;
 use App\Support\ServiceResult;
 use Illuminate\Support\Facades\DB;
 
 class DashboardService
 {
+    public function __construct(private LabAccountingService $accountingService)
+    {
+    }
+
     private function currentLabId(): ?int
     {
         return auth()->user()?->lab_id;
@@ -69,18 +74,11 @@ class DashboardService
 
         $pendingDeliveriesDiff = $pendingDeliveries - $pendingDeliveriesLastWeek;
 
-        
-        $monthlyRevenue = Invoice::query()
-            ->where('lab_id', $labId)
-            ->whereMonth('issue_date', $now->month)
-            ->whereYear('issue_date', $now->year)
-            ->sum('total_amount');
+        $accountingSummary = $this->accountingService->dashboardSummary($labId, $now->format('Y-m'));
+        $lastMonthAccountingSummary = $this->accountingService->dashboardSummary($labId, $now->copy()->subMonthNoOverflow()->format('Y-m'));
 
-        $lastMonthRevenue = Invoice::query()
-            ->where('lab_id', $labId)
-            ->whereMonth('issue_date', $now->copy()->subMonth()->month)
-            ->whereYear('issue_date', $now->copy()->subMonth()->year)
-            ->sum('total_amount');
+        $monthlyRevenue = $accountingSummary['monthly_income'];
+        $lastMonthRevenue = $lastMonthAccountingSummary['monthly_income'];
 
         $revenueGrowth = $lastMonthRevenue > 0
             ? round((($monthlyRevenue - $lastMonthRevenue) / $lastMonthRevenue) * 100, 1)
@@ -103,6 +101,22 @@ class DashboardService
                 'value' => round($monthlyRevenue, 2),
                 'change_label' => ($revenueGrowth >= 0 ? '+' : '') . $revenueGrowth . '%',
             ],
+            'monthly_income' => [
+                'value' => $accountingSummary['monthly_income'],
+                'change_label' => ($revenueGrowth >= 0 ? '+' : '') . $revenueGrowth . '%',
+            ],
+            'monthly_expenses' => [
+                'value' => $accountingSummary['monthly_expenses'],
+                'change_label' => '',
+            ],
+            'monthly_profit' => [
+                'value' => $accountingSummary['monthly_profit'],
+                'change_label' => '',
+            ],
+            'total_outstanding' => [
+                'value' => $accountingSummary['total_outstanding'],
+                'change_label' => '',
+            ],
         ], 'Dashboard stats fetched successfully');
     }
 
@@ -117,11 +131,15 @@ class DashboardService
         $year  = (int) ($filters['year']  ?? now()->year);
         $month = (int) ($filters['month'] ?? now()->month);
 
+        $monthlyRevenue = $this->monthlyRevenueChart($labId, $year);
+
         return ServiceResult::success([
             'case_type_distribution' => $this->caseTypeDistribution($labId),
-            'monthly_revenue'        => $this->monthlyRevenueChart($labId, $year),
+            'monthly_revenue'        => $monthlyRevenue,
+            'monthly_revenue_chart'  => $monthlyRevenue,
             'cases_by_clinic'        => $this->casesByClinic($labId, $year, $month),
             'wip_by_technician'      => $this->wipByTechnician($labId),
+            ...$this->accountingService->dashboardCharts($labId, $year),
         ], 'Dashboard charts fetched successfully');
     }
 
@@ -186,14 +204,20 @@ class DashboardService
 
     private function monthlyRevenueChart(int $labId, int $year): array
     {
-        return Invoice::query()
-            ->where('lab_id', $labId)  
-            ->whereYear('issue_date', $year)
-            ->selectRaw('MONTH(issue_date) as month, SUM(total_amount) as total')
-            ->groupBy('month')
-            ->orderBy('month')
-            ->get()
-            ->toArray();
+        $payments = LabPayment::query()
+            ->where('lab_id', $labId)
+            ->where('status', 'paid')
+            ->whereBetween('paid_at', [now()->setYear($year)->startOfYear(), now()->setYear($year)->endOfYear()])
+            ->get();
+
+        return collect(range(1, 12))
+            ->map(fn (int $month) => [
+                'month' => $month,
+                'total' => round((float) $payments
+                    ->filter(fn (LabPayment $payment) => (int) optional($payment->paid_at)->month === $month)
+                    ->sum('amount'), 2),
+            ])
+            ->all();
     }
 
     private function casesByClinic(int $labId, int $year, int $month): array
