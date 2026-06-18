@@ -221,7 +221,9 @@ class LabAccountingService
                         'case_number' => $case->case_number,
                         'patient_name' => $case->patient?->user?->name,
                         'service_name' => $case->case_type,
-                        'teeth_numbers' => $case->tooth_numbers ?? [],
+                        'teeth_numbers' => is_string($case->tooth_numbers)
+    ? json_decode($case->tooth_numbers, true) ?? []
+    : ($case->tooth_numbers ?? []),
                         'unit_price' => $price,
                         'quantity' => 1,
                         'materials_cost' => $this->estimatedMaterialsCost($case, $labId),
@@ -876,9 +878,13 @@ class LabAccountingService
             ->sum('cost'), 2);
     }
 
-    private function normalizeFdiTeeth(array $teeth): array
-    {
-        return collect($teeth)
+   private function normalizeFdiTeeth(array|string $teeth): array
+{
+    if (is_string($teeth)) {
+        $teeth = json_decode($teeth, true) ?? [];
+    }
+
+    return collect($teeth)
             ->map(fn ($tooth) => (int) $tooth)
             ->filter(fn (int $tooth) => $tooth >= 11 && $tooth <= 48 && ! in_array($tooth % 10, [0, 9], true))
             ->unique()
