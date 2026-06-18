@@ -100,7 +100,7 @@ class LabAccountingDataSeeder extends Seeder
         // ── INVOICE 1: PAID ($120) ───────────────
         $inv1 = $this->createInvoice([
             'invoice_number'   => 'LI-001',
-            'period_month'     => '2026-06',
+            'period_month'     => '2026-06-01',
             'group_by'         => 'clinic',
             'group_key'        => '12_20_2026-06',
             'issue_date'       => '2026-06-16',
@@ -156,7 +156,7 @@ class LabAccountingDataSeeder extends Seeder
         // ── INVOICE 2: PENDING ($200) ────────────
         $inv2 = $this->createInvoice([
             'invoice_number'   => 'LI-002',
-            'period_month'     => '2026-06',
+            'period_month'     => '2026-06-01',
             'group_by'         => 'clinic',
             'group_key'        => '12_20_2026-06_b',
             'issue_date'       => '2026-06-17',
@@ -200,7 +200,7 @@ class LabAccountingDataSeeder extends Seeder
         // ── INVOICE 3: OVERDUE ($340) ────────────
         $inv3 = $this->createInvoice([
             'invoice_number'   => 'LI-003',
-            'period_month'     => '2026-05',
+            'period_month'     => '2026-05-01',
             'group_by'         => 'clinic',
             'group_key'        => '12_20_2026-05',
             'issue_date'       => '2026-05-01',
