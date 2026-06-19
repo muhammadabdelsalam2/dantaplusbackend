@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\Lab\Settings\WhatsAppSettingsController;
 use App\Http\Controllers\Api\Lab\SupportController;
 use App\Http\Controllers\Api\Lab\DashboardController;
 use App\Http\Controllers\Api\Lab\Accounting\LabAccountingController;
+use App\Http\Controllers\Api\Lab\AnalyticsController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('lab')
@@ -61,6 +62,9 @@ Route::prefix('lab')
 
             Route::delete('/expenses/{expense}', [LabAccountingController::class, 'deleteExpense']);
             Route::delete('/expense-categories/{category}', [LabAccountingController::class, 'deleteCategory']);
+        });
+        Route::middleware(['role:lab_admin|lab_receptionist'])->group(function () {
+            Route::get('/analytics', [AnalyticsController::class, 'overview']);
         });
         Route::get('/select/{resource}', [LabSelectController::class, 'show']);
         Route::middleware(['role:lab_admin|lab_receptionist'])->prefix('clinics')->group(function () {
