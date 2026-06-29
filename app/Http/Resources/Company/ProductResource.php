@@ -25,6 +25,8 @@ class ProductResource extends JsonResource
             'price' => (float) $this->price,
             'stock' => $this->stock,
             'status' => strtolower((string) $this->status),
+            'approval_status'  => $this->approval_status,
+'rejection_reason' => $this->rejection_reason,
             'description' => $this->description,
             'estimated_delivery_time' => $this->estimated_delivery_time,
             'rating' => (float) $this->rating,
