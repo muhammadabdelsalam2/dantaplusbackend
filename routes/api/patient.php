@@ -43,8 +43,9 @@ Route::middleware(['auth:sanctum', 'role:patient'])->group(function () {
         Route::get('/insurance/claims', [PatientInsuranceController::class, 'claims']);
         Route::get('/insurance/claims/{id}', [PatientInsuranceController::class, 'showClaim']);
         Route::get('/insurance/consents', [PatientInsuranceController::class, 'consents']);
-    });
-    
-Route::get('/doctors', [PatientAppointmentController::class, 'doctors']);
+        Route::get('/doctors', [PatientAppointmentController::class, 'doctors']);
 Route::get('/doctors/{doctorId}/slots', [PatientAppointmentController::class, 'availableSlots']);
+    });
+
+
 });
