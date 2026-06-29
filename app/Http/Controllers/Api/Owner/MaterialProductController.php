@@ -9,6 +9,8 @@ use App\Http\Requests\Owner\Material\UpdateMaterialProductRequest;
 use App\Http\Requests\Owner\Material\UpdateMaterialProductStatusRequest;
 use App\Services\Owner\MaterialProductService;
 use App\Support\ApiResponse;
+use Illuminate\Http\Request;
+
 
 class MaterialProductController extends Controller
 {
