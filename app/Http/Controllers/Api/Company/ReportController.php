@@ -15,4 +15,17 @@ class ReportController extends Controller
     public function ordersByMonth() { return ApiResponse::success($this->service->ordersByMonth(), 'Orders by month fetched successfully'); }
     public function revenueByClinic() { return ApiResponse::success($this->service->revenueByClinic(), 'Revenue by clinic fetched successfully'); }
     public function mostRequestedMaterials() { return ApiResponse::success($this->service->mostRequestedMaterials(), 'Most requested materials fetched successfully'); }
+    public function generate(Request $request)
+{
+    $filters = $request->validate([
+        'clinic_id' => 'nullable|exists:clinics,id',
+        'date_from' => 'nullable|date',
+        'date_to'   => 'nullable|date|after_or_equal:date_from',
+    ]);
+
+    return ApiResponse::success(
+        $this->service->generateReport($filters),
+        'Report generated successfully'
+    );
+}
 }

@@ -28,6 +28,8 @@ Route::prefix('company')
     ->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index']);
         Route::get('/dashboard/order-trends', [DashboardController::class, 'orderTrends']);
+        Route::get('/clinics', [DashboardController::class, 'clinic']);
+
 
         Route::middleware('role:material_company_admin')->group(function () {
             Route::get('/users/roles', [UserController::class, 'roles']);
@@ -102,6 +104,8 @@ Route::prefix('company')
             Route::get('/orders-by-month', [ReportController::class, 'ordersByMonth']);
             Route::get('/revenue-by-clinic', [ReportController::class, 'revenueByClinic']);
             Route::get('/most-requested-materials', [ReportController::class, 'mostRequestedMaterials']);
+            Route::get('/generate', [ReportController::class, 'generate']);
+
         });
 
         Route::middleware('role:material_company_admin')->prefix('settings')->group(function () {

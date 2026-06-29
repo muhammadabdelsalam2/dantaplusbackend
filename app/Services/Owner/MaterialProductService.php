@@ -142,4 +142,59 @@ class MaterialProductService
             Storage::disk('public')->delete($path);
         }
     }
+    public function pendingProducts(array $filters): array
+{
+    $perPage = (int) ($filters['per_page'] ?? 15);
+
+    $products = MaterialProduct::query()
+        ->where('approval_status', MaterialProduct::APPROVAL_PENDING)
+        ->with('company:id,name')
+        ->when($filters['search'] ?? null, fn($q, $s) =>
+            $q->where('name', 'like', "%{$s}%")
+        )
+        ->latest('id')
+        ->paginate($perPage);
+
+    return ServiceResult::success([
+        'items' => $products->items(),
+        'pagination' => [
+            'current_page' => $products->currentPage(),
+            'last_page'    => $products->lastPage(),
+            'per_page'     => $products->perPage(),
+            'total'        => $products->total(),
+        ],
+    ], 'Pending products fetched successfully');
+}
+
+public function approveProduct(int $productId): array
+{
+    $product = MaterialProduct::find($productId);
+    if (!$product) {
+        return ServiceResult::error('Product not found', null, null, 404);
+    }
+
+    $product->update([
+        'approval_status' => MaterialProduct::APPROVAL_APPROVED,
+        'approved_at'     => now(),
+        'approved_by'     => auth()->id(),
+        'rejection_reason'=> null,
+    ]);
+
+    return ServiceResult::success($product->fresh(), 'Product approved successfully');
+}
+
+public function rejectProduct(int $productId, string $reason): array
+{
+    $product = MaterialProduct::find($productId);
+    if (!$product) {
+        return ServiceResult::error('Product not found', null, null, 404);
+    }
+
+    $product->update([
+        'approval_status'  => MaterialProduct::APPROVAL_REJECTED,
+        'rejection_reason' => $reason,
+    ]);
+
+    return ServiceResult::success($product->fresh(), 'Product rejected successfully');
+}
 }

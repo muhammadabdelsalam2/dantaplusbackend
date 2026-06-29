@@ -40,21 +40,22 @@ class ProductService
         return (new ProductResource($product))->resolve();
     }
 
-    public function create(array $data): array
-    {
-        return DB::transaction(function () use ($data) {
-            $category = Category::findOrFail($data['category_id']);
-            $data['image_path'] = $this->storeImage($data['image'] ?? null, 'company/products');
-            $data['company_id'] = auth()->user()->company_id;
-            $data['created_by'] = auth()->id();
-            $data['updated_by'] = auth()->id();
-            $data['category'] = $category->name;
-            unset($data['image']);
+   public function create(array $data): array
+{
+    return DB::transaction(function () use ($data) {
+        $category = Category::findOrFail($data['category_id']);
+        $data['image_path']       = $this->storeImage($data['image'] ?? null, 'company/products');
+        $data['company_id']       = auth()->user()->company_id;
+        $data['created_by']       = auth()->id();
+        $data['updated_by']       = auth()->id();
+        $data['category']         = $category->name;
+        $data['approval_status']  = 'pending'; // ← دايماً pending عند الإنشاء
+        unset($data['image']);
 
-            $product = Product::create($data);
-            return $this->show($product);
-        });
-    }
+        $product = Product::create($data);
+        return $this->show($product);
+    });
+}
 
     public function update(Product $product, array $data): array
     {

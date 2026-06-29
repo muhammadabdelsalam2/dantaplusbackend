@@ -13,9 +13,15 @@ class Product extends MaterialProduct
     use HasFactory, SoftDeletes, BelongsToCompany;
 
     protected $table = 'material_products';
-
+    public const APPROVAL_PENDING  = 'pending';
+public const APPROVAL_APPROVED = 'approved';
+public const APPROVAL_REJECTED = 'rejected';
     protected $fillable = [
         'company_id', 'category_id', 'name', 'brand', 'description', 'image_path', 'image_url',
+         'approval_status',
+    'rejection_reason',
+    'approved_at',
+    'approved_by',
         'price', 'stock', 'status', 'estimated_delivery_time', 'rating', 'review_count', 'created_by', 'updated_by', 'category',
     ];
 
@@ -26,4 +32,8 @@ class Product extends MaterialProduct
     public function orderItems(): HasMany { return $this->hasMany(OrderItem::class, 'product_id'); }
     public function creator(): BelongsTo { return $this->belongsTo(User::class, 'created_by'); }
     public function updater(): BelongsTo { return $this->belongsTo(User::class, 'updated_by'); }
+    public function scopeApproved($query)
+{
+    return $query->where('approval_status', self::APPROVAL_APPROVED);
+}
 }

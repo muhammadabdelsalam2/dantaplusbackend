@@ -70,7 +70,9 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/products/{product}', [MaterialProductController::class, 'update']);
             Route::patch('/products/{product}/status', [MaterialProductController::class, 'updateStatus']);
             Route::delete('/products/{product}', [MaterialProductController::class, 'destroy']);
-
+            Route::get('/products/pending', [MaterialProductController::class, 'pending']);
+Route::patch('/products/{product}/approve', [MaterialProductController::class, 'approve']);
+Route::patch('/products/{product}/reject', [MaterialProductController::class, 'reject']);
             Route::get('/commissions', [MaterialCommissionController::class, 'index']);
 
             Route::get('/orders', [MaterialOrderController::class, 'index']);

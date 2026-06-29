@@ -80,4 +80,40 @@ class MaterialProductController extends Controller
             'product_categories' => config('material_market.product_category_items', []),
         ], 'Material categories fetched successfully', 200);
     }
+    public function pending(Request $request)
+{
+    $filters = $request->validate([
+        'search'   => 'nullable|string|max:100',
+        'per_page' => 'nullable|integer|min:1|max:100',
+    ]);
+
+    $result = $this->materialProductService->pendingProducts($filters);
+    return ApiResponse::success($result['data'], $result['message']);
+}
+
+public function approve(int $product)
+{
+    $result = $this->materialProductService->approveProduct($product);
+
+    if (!$result['success']) {
+        return ApiResponse::error($result['message'], $result['code']);
+    }
+
+    return ApiResponse::success($result['data'], $result['message']);
+}
+
+public function reject(Request $request, int $product)
+{
+    $request->validate([
+        'reason' => 'required|string|max:500',
+    ]);
+
+    $result = $this->materialProductService->rejectProduct($product, $request->reason);
+
+    if (!$result['success']) {
+        return ApiResponse::error($result['message'], $result['code']);
+    }
+
+    return ApiResponse::success($result['data'], $result['message']);
+}
 }

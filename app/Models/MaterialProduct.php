@@ -15,6 +15,9 @@ class MaterialProduct extends Model
     public const STATUS_ACTIVE = 'active';
     public const STATUS_INACTIVE = 'inactive';
 
+    public const APPROVAL_PENDING  = 'pending';
+public const APPROVAL_APPROVED = 'approved';
+public const APPROVAL_REJECTED = 'rejected';
     protected $fillable = [
         'company_id',
         'barcode',
@@ -26,6 +29,10 @@ class MaterialProduct extends Model
         'price',
         'stock',
         'status',
+         'approval_status',
+    'rejection_reason',
+    'approved_at',
+    'approved_by',
     ];
 
     protected $appends = [
@@ -46,6 +53,10 @@ class MaterialProduct extends Model
         return $this->belongsTo(MaterialCompany::class, 'company_id');
     }
 
+    public function scopeApproved($query)
+{
+    return $query->where('approval_status', self::APPROVAL_APPROVED);
+}
     public function orderItems(): HasMany
     {
         return $this->hasMany(MaterialOrderItem::class, 'product_id');
