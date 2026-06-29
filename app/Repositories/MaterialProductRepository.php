@@ -49,13 +49,10 @@ public function paginateCatalog(array $filters, int $perPage = 15): LengthAwareP
 {
     return MaterialProduct::query()
         ->with(['company:id,name,status'])
-
-
-
+        ->where('approval_status', 'approved') 
         ->when($filters['brand'] ?? null, fn ($q, $brand) =>
             $q->where('brand', 'like', "%{$brand}%")
         )
-
         ->when($filters['search'] ?? null, function ($q, $search) {
             $q->where(function ($qq) use ($search) {
                 $qq->where('name', 'like', "%{$search}%")
@@ -64,23 +61,18 @@ public function paginateCatalog(array $filters, int $perPage = 15): LengthAwareP
                    ->orWhere('barcode', 'like', "%{$search}%");
             });
         })
-
         ->when($filters['category'] ?? null, fn ($q, $category) =>
             $q->where('category', $category)
         )
-
         ->when($filters['min_price'] ?? null, fn ($q, $min) =>
             $q->where('price', '>=', $min)
         )
-
         ->when($filters['max_price'] ?? null, fn ($q, $max) =>
             $q->where('price', '<=', $max)
         )
-
         ->orderByDesc('id')
         ->paginate($perPage);
 }
-
     public function findById(int $productId, array $with = []): ?MaterialProduct
     {
         return MaterialProduct::with($with)->find($productId);
