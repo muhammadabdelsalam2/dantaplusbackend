@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\Company\DashboardService;
 use App\Support\ApiResponse;
 use App\Models\Clinic;
-use GuzzleHttp\Psr7\Request;
+use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
