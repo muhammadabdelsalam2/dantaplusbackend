@@ -60,4 +60,15 @@ class AppointmentController extends Controller
 
         return ApiResponse::success($result['data'], $result['message'], $result['code']);
     }
+    // AppointmentController.php
+public function approve(UpdateAppointmentRequest $request, int $id)
+{
+    $result = $this->service->approve($id, $request->validated());
+
+    if (! $result['success']) {
+        return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+    }
+
+    return ApiResponse::success($result['data'], $result['message'], $result['code']);
+}
 }

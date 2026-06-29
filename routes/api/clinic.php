@@ -207,6 +207,8 @@ Route::prefix('clinic')
         Route::middleware('permission:appointments.create')->post('/appointments',    [AppointmentController::class, 'store']);
         Route::middleware('permission:appointments.update')->patch('/appointments/{id}', [AppointmentController::class, 'update']);
         Route::middleware('permission:appointments.view')->get('/appointments/{id}',  [AppointmentController::class, 'show']);
+        
+Route::patch('/appointments/{id}/approve', [AppointmentController::class, 'approve']);
 
         // ─── Notifications ───────────────────────────────────────────────────
         Route::get('/notifications',                     [NotificationCenterController::class, 'index']);

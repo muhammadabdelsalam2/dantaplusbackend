@@ -151,6 +151,28 @@ class AppointmentService
 
         return $this->show($appointment->id);
     }
+    // AppointmentService.php — ميثود جديدة
+public function approve(int $id, array $data = []): array
+{
+    $clinicId = $this->currentClinicId();
+    if (! $clinicId) {
+        return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
+    }
+
+    $appointment = $this->findClinicAppointment($id);
+    if (! $appointment) {
+        return ServiceResult::error('Appointment not found.', null, null, 404);
+    }
+
+    if ($appointment->status !== 'pending') {
+        return ServiceResult::error('Only pending appointments can be approved.', null, null, 422);
+    }
+
+    $data['status'] = 'scheduled';
+
+    
+    return $this->update($id, $data);
+}
 
     private function findClinicAppointment(int $id): ?ClinicAppointment
     {
