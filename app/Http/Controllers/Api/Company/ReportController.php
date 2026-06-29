@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Company;
 use App\Http\Controllers\Controller;
 use App\Services\Company\ReportService;
 use App\Support\ApiResponse;
+use Illuminate\Http\Request;
 
 class ReportController extends Controller
 {
