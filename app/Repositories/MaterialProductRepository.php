@@ -49,7 +49,10 @@ public function paginateCatalog(array $filters, int $perPage = 15): LengthAwareP
 {
     return MaterialProduct::query()
         ->with(['company:id,name,status'])
-        ->where('approval_status', 'approved') 
+        ->where(function ($q) {
+            $q->where('approval_status', 'approved')
+              ->orWhereNull('approval_status');
+        })
         ->when($filters['brand'] ?? null, fn ($q, $brand) =>
             $q->where('brand', 'like', "%{$brand}%")
         )

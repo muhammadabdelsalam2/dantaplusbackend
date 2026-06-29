@@ -11,12 +11,12 @@ use Illuminate\Support\Facades\Storage;
 
 class ProductService
 {
- public function paginate(array $filters): array
+public function paginate(array $filters): array
 {
     $perPage = max(1, min((int) ($filters['per_page'] ?? 15), 100));
     $products = Product::query()
         ->with(['categoryRelation:id,name', 'company:id,name'])
-        ->where('approval_status', Product::APPROVAL_APPROVED) // ← أضف السطر ده
+        // ← اشيل السطر ده تماماً
         ->when($filters['name'] ?? null, fn ($q, $name) => $q->where('name', 'like', "%{$name}%"))
         ->when($filters['category_id'] ?? null, fn ($q, $categoryId) => $q->where('category_id', $categoryId))
         ->when($filters['category'] ?? null, fn ($q, $category) => $q->whereHas(
