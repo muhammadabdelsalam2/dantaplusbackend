@@ -120,6 +120,7 @@ Route::prefix('lab')
             Route::get('/{id}', [DeliveryRepController::class, 'show']);
             Route::patch('/{id}', [DeliveryRepController::class, 'update']);
             Route::delete('/{id}', [DeliveryRepController::class, 'destroy']);
+            Route::get('/{id}/tasks', [DeliveryRepController::class, 'tasks']);
         });
 
         Route::middleware(['role:lab_admin'])->prefix('equipments')->group(function () {
@@ -141,6 +142,7 @@ Route::prefix('lab')
                 ->middleware('throttle:20,1');
             Route::patch('/delivery-tasks/{taskId}/status', [DeliveryTaskController::class, 'updateStatus'])
                 ->middleware('throttle:20,1');
+            Route::post('/delivery-tasks/{taskId}/confirm-receipt', [DeliveryTaskController::class, 'confirmReceipt']);
         });
 
         // Lab Settings

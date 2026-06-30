@@ -39,6 +39,8 @@ class StoreCaseRequest extends FormRequest
             'priority' => ['required', Rule::in(CaseModel::PRIORITIES)],
             'assigned_technician_id' => ['nullable', 'integer', 'exists:users,id'],
             'assigned_delivery_id' => ['nullable', 'integer', 'exists:users,id'],
+            'tooth_chart_3d' => ['nullable'],
+            'attachment' => ['nullable', 'file', 'max:10240'],
         ];
     }
 }

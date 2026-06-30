@@ -91,10 +91,10 @@ class CaseCommunicationService
             return ServiceResult::error('Case not found', null, null, 404);
         }
 
-        return DB::transaction(function () use ($case, $data) {
-            $file = $data['attachment'];
-            $path = $this->storeAttachment($file);
+        $file = $data['attachment'];
+        $path = $this->storeAttachment($file);
 
+        return DB::transaction(function () use ($case, $data, $file, $path) {
             $user = auth()->user();
             $attachment = $this->caseRepository->createAttachment($case, [
                 'uploaded_by' => $user?->id,

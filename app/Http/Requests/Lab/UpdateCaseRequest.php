@@ -18,10 +18,13 @@ class UpdateCaseRequest extends FormRequest
         return [
             'due_date' => ['sometimes', 'date'],
             'case_type' => ['sometimes', 'string', 'max:255'],
-            'tooth_numbers' => ['nullable', 'string', 'max:255'],
+            'tooth_numbers' => ['nullable', 'array'],
+            'tooth_numbers.*' => ['integer'],
             'description' => ['nullable', 'string', 'max:5000'],
             'priority' => ['sometimes', Rule::in(CaseModel::PRIORITIES)],
             'assigned_delivery_id' => ['nullable', 'integer', 'exists:users,id'],
+            'tooth_chart_3d' => ['nullable'],
+            'attachment' => ['nullable', 'file', 'max:10240'],
         ];
     }
 }

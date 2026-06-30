@@ -55,6 +55,18 @@ class CaseResource extends JsonResource
                 'name' => $this->deliveryRep?->name,
             ]),
             'attachments' => $this->whenLoaded('attachments', fn () => CaseAttachmentResource::collection($this->attachments)),
+            'toothChart3d' => $this->tooth_chart_3d,
+            'activityLogs' => $this->whenLoaded('activityLogs', fn () => $this->activityLogs->map(fn ($log) => [
+                'id' => $log->id,
+                'actor_id' => $log->actor_id,
+                'actor_name' => $log->actor_name,
+                'action' => $log->action,
+                'old_status' => $log->old_status,
+                'new_status' => $log->new_status,
+                'notes' => $log->notes,
+                'payload' => $log->payload,
+                'created_at' => optional($log->created_at)->toISOString(),
+            ])),
         ];
     }
 }

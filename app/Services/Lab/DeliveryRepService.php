@@ -53,7 +53,12 @@ class DeliveryRepService
             return ServiceResult::error('Authenticated lab account is required.', null, null, 403);
         }
 
-        return DB::transaction(function () use ($authUser, $data) {
+        $profilePhotoPath = null;
+        if (isset($data['profile_photo']) && $data['profile_photo'] instanceof UploadedFile) {
+            $profilePhotoPath = $this->storeProfilePhoto($data['profile_photo']);
+        }
+
+        return DB::transaction(function () use ($authUser, $data, $profilePhotoPath) {
             $phone = trim((string) $data['login_phone']);
             $whatsApp = trim((string) ($data['whatsapp_number'] ?? '')) ?: $phone;
             $email = trim((string) ($data['email'] ?? ''));
@@ -69,11 +74,6 @@ class DeliveryRepService
             ]);
 
             $user->syncRoles(['delivery_representative']);
-
-            $profilePhotoPath = null;
-            if (isset($data['profile_photo']) && $data['profile_photo'] instanceof UploadedFile) {
-                $profilePhotoPath = $this->storeProfilePhoto($data['profile_photo']);
-            }
 
             $rep = $this->deliveryRepRepository->create([
                 'user_id' => $user->id,
@@ -122,77 +122,89 @@ class DeliveryRepService
             return ServiceResult::error('Authenticated lab account is required.', null, null, 403);
         }
 
-        return DB::transaction(function () use ($authUser, $id, $data) {
-            $rep = $this->deliveryRepRepository->findForLabById((int) $authUser->lab_id, $id);
+        $rep = $this->deliveryRepRepository->findForLabById((int) $authUser->lab_id, $id);
 
-            if (!$rep) {
-                return ServiceResult::error('Delivery representative not found.', null, null, 404);
+        if (!$rep) {
+            return ServiceResult::error('Delivery representative not found.', null, null, 404);
+        }
+
+        $newProfilePhotoPath = null;
+        if (isset($data['profile_photo']) && $data['profile_photo'] instanceof UploadedFile) {
+            $newProfilePhotoPath = $this->storeProfilePhoto($data['profile_photo']);
+        }
+
+        try {
+            return DB::transaction(function () use ($authUser, $id, $data, $rep, $newProfilePhotoPath) {
+                $user = $rep->user;
+
+                $phone = array_key_exists('login_phone', $data)
+                    ? trim((string) $data['login_phone'])
+                    : (string) $user->phone;
+
+                $emailInputExists = array_key_exists('email', $data);
+                $email = $emailInputExists ? trim((string) ($data['email'] ?? '')) : (string) $user->email;
+                $finalEmail = $email !== '' ? $email : $this->generatePlaceholderEmail((int) $authUser->lab_id, $phone);
+
+                $userUpdate = [];
+
+                if (array_key_exists('full_name', $data)) {
+                    $userUpdate['name'] = $data['full_name'];
+                }
+
+                if (array_key_exists('login_phone', $data)) {
+                    $userUpdate['phone'] = $phone;
+                }
+
+                if ($emailInputExists) {
+                    $userUpdate['email'] = $finalEmail;
+                }
+
+                if (array_key_exists('password', $data) && filled($data['password'])) {
+                    $userUpdate['password'] = $data['password'];
+                }
+
+                if (array_key_exists('status', $data)) {
+                    $userUpdate['is_active'] = $data['status'] === LabDeliveryRep::STATUS_ACTIVE;
+                }
+
+                if (!empty($userUpdate)) {
+                    $user->update($userUpdate);
+                }
+
+                $repUpdate = [];
+
+                if (array_key_exists('assigned_region_city', $data)) {
+                    $repUpdate['assigned_region_city'] = $data['assigned_region_city'];
+                }
+
+                if (array_key_exists('whatsapp_number', $data)) {
+                    $repUpdate['whatsapp_number'] = trim((string) ($data['whatsapp_number'] ?? '')) ?: $phone;
+                }
+
+                if (array_key_exists('status', $data)) {
+                    $repUpdate['status'] = $data['status'];
+                }
+
+                if ($newProfilePhotoPath) {
+                    $this->deletePublicFile($rep->profile_photo);
+                    $repUpdate['profile_photo'] = $newProfilePhotoPath;
+                }
+
+                $updated = !empty($repUpdate)
+                    ? $this->deliveryRepRepository->update($rep, $repUpdate)
+                    : $this->deliveryRepRepository->findForLabById((int) $authUser->lab_id, $id);
+
+                return ServiceResult::success(
+                    $this->mapDetails($updated),
+                    'Delivery representative updated successfully'
+                );
+            });
+        } catch (\Throwable $e) {
+            if ($newProfilePhotoPath) {
+                $this->deletePublicFile($newProfilePhotoPath);
             }
-
-            $user = $rep->user;
-
-            $phone = array_key_exists('login_phone', $data)
-                ? trim((string) $data['login_phone'])
-                : (string) $user->phone;
-
-            $emailInputExists = array_key_exists('email', $data);
-            $email = $emailInputExists ? trim((string) ($data['email'] ?? '')) : (string) $user->email;
-            $finalEmail = $email !== '' ? $email : $this->generatePlaceholderEmail((int) $authUser->lab_id, $phone);
-
-            $userUpdate = [];
-
-            if (array_key_exists('full_name', $data)) {
-                $userUpdate['name'] = $data['full_name'];
-            }
-
-            if (array_key_exists('login_phone', $data)) {
-                $userUpdate['phone'] = $phone;
-            }
-
-            if ($emailInputExists) {
-                $userUpdate['email'] = $finalEmail;
-            }
-
-            if (array_key_exists('password', $data) && filled($data['password'])) {
-                $userUpdate['password'] = $data['password'];
-            }
-
-            if (array_key_exists('status', $data)) {
-                $userUpdate['is_active'] = $data['status'] === LabDeliveryRep::STATUS_ACTIVE;
-            }
-
-            if (!empty($userUpdate)) {
-                $user->update($userUpdate);
-            }
-
-            $repUpdate = [];
-
-            if (array_key_exists('assigned_region_city', $data)) {
-                $repUpdate['assigned_region_city'] = $data['assigned_region_city'];
-            }
-
-            if (array_key_exists('whatsapp_number', $data)) {
-                $repUpdate['whatsapp_number'] = trim((string) ($data['whatsapp_number'] ?? '')) ?: $phone;
-            }
-
-            if (array_key_exists('status', $data)) {
-                $repUpdate['status'] = $data['status'];
-            }
-
-            if (isset($data['profile_photo']) && $data['profile_photo'] instanceof UploadedFile) {
-                $this->deletePublicFile($rep->profile_photo);
-                $repUpdate['profile_photo'] = $this->storeProfilePhoto($data['profile_photo']);
-            }
-
-            $updated = !empty($repUpdate)
-                ? $this->deliveryRepRepository->update($rep, $repUpdate)
-                : $this->deliveryRepRepository->findForLabById((int) $authUser->lab_id, $id);
-
-            return ServiceResult::success(
-                $this->mapDetails($updated),
-                'Delivery representative updated successfully'
-            );
-        });
+            throw $e;
+        }
     }
 
     public function destroy(int $id): array

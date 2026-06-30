@@ -89,6 +89,16 @@ class DeliveryTaskController extends Controller
         return ApiResponse::success($this->deliveryTrackingService->mapTask($task), 'Delivery status updated successfully');
     }
 
+    public function confirmReceipt(\App\Http\Requests\Lab\DeliveryTask\ConfirmDeliveryReceiptRequest $request, int $taskId)
+    {
+        $task = $this->task($taskId);
+        $this->authorize('update', $task);
+
+        $task = $this->deliveryTrackingService->confirmReceipt($task, $request->validated());
+
+        return ApiResponse::success($this->deliveryTrackingService->mapTask($task), 'Delivery receipt confirmed successfully');
+    }
+
     private function task(int $taskId): DeliveryTask
     {
         return DeliveryTask::query()

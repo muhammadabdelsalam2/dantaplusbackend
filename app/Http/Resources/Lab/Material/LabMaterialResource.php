@@ -16,7 +16,13 @@ class LabMaterialResource extends JsonResource
             'id' => $this->id,
             'lab_id' => $this->lab_id,
             'name' => $this->name,
+            'supplier_id' => $this->supplier_id,
             'supplier' => $this->supplier,
+            'supplier_name' => $this->relationLoaded('supplierCompany') && $this->supplierCompany ? $this->supplierCompany->name : $this->supplier,
+            'supplier_object' => $this->whenLoaded('supplierCompany', fn () => [
+                'id' => $this->supplierCompany->id,
+                'name' => $this->supplierCompany->name,
+            ]),
             'stock' => $this->stock,
             'low_stock_threshold' => $this->low_stock_threshold,
             'cost' => $this->cost,

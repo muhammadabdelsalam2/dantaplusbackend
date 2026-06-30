@@ -14,7 +14,7 @@ class DeliveryTrackingService
     public function paginateForUser(User $user, array $filters): LengthAwarePaginator
     {
         return DeliveryTask::query()
-            ->with(['deliveryRep:id,name', 'case:id,case_number,status'])
+            ->with(['deliveryRep:id,name', 'case:id,case_number,status,clinic_id,patient_id', 'case.clinic', 'case.patient.user'])
             ->where('lab_id', $user->lab_id)
             ->when($user->hasRole('delivery_representative'), fn ($q) => $q->where('delivery_rep_user_id', $user->id))
             ->when($filters['status'] ?? null, fn ($q, $status) => $q->where('status', $status))
@@ -29,27 +29,57 @@ class DeliveryTrackingService
     public function assign(CaseModel $case, User $deliveryRep, array $data): DeliveryTask
     {
         return DB::transaction(function () use ($case, $deliveryRep, $data) {
+            $status = $data['status'] ?? DeliveryTask::STATUS_ASSIGNED;
+
+            $existingTask = DeliveryTask::query()
+                ->where('case_id', $case->id)
+                ->where('lab_id', $case->lab_id)
+                ->where('status', '!=', DeliveryTask::STATUS_CANCELLED)
+                ->first();
+
+            if ($existingTask) {
+                if ($existingTask->status === DeliveryTask::STATUS_DELIVERED) {
+                    throw ValidationException::withMessages([
+                        'delivery_rep_user_id' => ['Cannot reassign a task that has already been delivered.']
+                    ]);
+                }
+
+                $existingTask->update([
+                    'delivery_rep_user_id' => $deliveryRep->id,
+                    'scheduled_for' => $data['scheduled_for'] ?? $existingTask->scheduled_for,
+                    'pickup_address' => $data['pickup_address'] ?? $existingTask->pickup_address,
+                    'delivery_address' => $data['delivery_address'] ?? $existingTask->delivery_address,
+                    'pickup_notes' => $data['pickup_notes'] ?? $existingTask->pickup_notes,
+                    'delivery_notes' => $data['delivery_notes'] ?? $existingTask->delivery_notes,
+                ]);
+
+                $case->update(['assigned_delivery_id' => $deliveryRep->id]);
+
+                return $existingTask->fresh();
+            }
+
+            if ($status !== DeliveryTask::STATUS_ASSIGNED) {
+                throw ValidationException::withMessages([
+                    'status' => ['Initial status must be assigned.']
+                ]);
+            }
+
+            $task = DeliveryTask::create([
+                'case_id' => $case->id,
+                'lab_id' => $case->lab_id,
+                'delivery_rep_user_id' => $deliveryRep->id,
+                'status' => $status,
+                'scheduled_for' => $data['scheduled_for'] ?? null,
+                'assigned_at' => now(),
+                'pickup_address' => $data['pickup_address'] ?? null,
+                'delivery_address' => $data['delivery_address'] ?? null,
+                'pickup_notes' => $data['pickup_notes'] ?? null,
+                'delivery_notes' => $data['delivery_notes'] ?? null,
+            ]);
+
             $case->update(['assigned_delivery_id' => $deliveryRep->id]);
-         $status = $data['status'] ?? DeliveryTask::STATUS_ASSIGNED;
 
-if ($status !== DeliveryTask::STATUS_ASSIGNED) {
-    throw ValidationException::withMessages([
-        'status' => ['Initial status must be assigned.']
-    ]);
-}
-
-return DeliveryTask::create([
-    'case_id' => $case->id,
-    'lab_id' => $case->lab_id,
-    'delivery_rep_user_id' => $deliveryRep->id,
-    'status' => $status,
-    'scheduled_for' => $data['scheduled_for'] ?? null,
-    'assigned_at' => now(),
-    'pickup_address' => $data['pickup_address'] ?? null,
-    'delivery_address' => $data['delivery_address'] ?? null,
-    'pickup_notes' => $data['pickup_notes'] ?? null,
-    'delivery_notes' => $data['delivery_notes'] ?? null,
-]);
+            return $task;
         });
     }
 
@@ -61,7 +91,7 @@ return DeliveryTask::create([
             'last_location_at' => now(),
         ]);
 
-        return $task->fresh(['deliveryRep:id,name', 'case:id,case_number,status']);
+        return $task->fresh(['deliveryRep:id,name', 'case:id,case_number,status,clinic_id,patient_id', 'case.clinic', 'case.patient.user']);
     }
 
     public function updateStatus(DeliveryTask $task, array $data): DeliveryTask
@@ -106,8 +136,74 @@ return DeliveryTask::create([
                 ]);
             }
 
-            return $task->fresh(['deliveryRep:id,name', 'case:id,case_number,status']);
+            return $task->fresh(['deliveryRep:id,name', 'case:id,case_number,status,clinic_id,patient_id', 'case.clinic', 'case.patient.user']);
         });
+    }
+
+    public function confirmReceipt(DeliveryTask $task, array $data): DeliveryTask
+    {
+        $proofPath = null;
+        $proofName = null;
+        $proofMime = null;
+        $proofSize = null;
+
+        if (isset($data['proof_file']) && $data['proof_file'] instanceof \Illuminate\Http\UploadedFile) {
+            $file = $data['proof_file'];
+            $extension = $file->getClientOriginalExtension() ?: $file->extension();
+            $filename = (string) \Illuminate\Support\Str::uuid() . '.' . $extension;
+            \Illuminate\Support\Facades\Storage::disk('public')->putFileAs('delivery-receipts', $file, $filename);
+
+            $proofPath = 'delivery-receipts/' . $filename;
+            $proofName = $file->getClientOriginalName();
+            $proofMime = $file->getClientMimeType();
+            $proofSize = $file->getSize();
+        }
+
+        try {
+            return DB::transaction(function () use ($task, $data, $proofPath, $proofName, $proofMime, $proofSize) {
+                $updateData = [
+                    'receipt_confirmed_at' => now(),
+                    'receipt_confirmed_by' => auth()->id(),
+                ];
+
+                if ($proofPath) {
+                    $updateData['receipt_proof_path'] = $proofPath;
+                    $updateData['receipt_proof_original_name'] = $proofName;
+                    $updateData['receipt_proof_mime_type'] = $proofMime;
+                    $updateData['receipt_proof_size'] = $proofSize;
+                }
+
+                if (array_key_exists('trip_expense', $data)) {
+                    $updateData['trip_expense'] = $data['trip_expense'];
+                }
+                if (array_key_exists('notes', $data) && filled($data['notes'])) {
+                    $updateData['delivery_notes'] = $task->delivery_notes ? $task->delivery_notes . "\nReceipt Notes: " . $data['notes'] : $data['notes'];
+                }
+
+                $task->update($updateData);
+
+                if ($task->case) {
+                    app(\App\Repositories\CaseRepository::class)->createActivityLog($task->case, [
+                        'actor_id' => auth()->id(),
+                        'actor_name' => auth()->user()?->name,
+                        'action' => 'confirm_delivery_receipt',
+                        'notes' => $data['notes'] ?? 'Delivery receipt confirmed',
+                        'payload' => [
+                            'task_id' => $task->id,
+                            'trip_expense' => $updateData['trip_expense'] ?? null,
+                            'has_proof_file' => (bool)$proofPath,
+                        ],
+                    ]);
+                }
+
+                return $task->fresh(['deliveryRep:id,name', 'case:id,case_number,status,clinic_id,patient_id', 'case.clinic', 'case.patient.user']);
+            });
+        } catch (\Throwable $e) {
+            if ($proofPath && \Illuminate\Support\Facades\Storage::disk('public')->exists($proofPath)) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($proofPath);
+            }
+            throw $e;
+        }
     }
 
     public function deliveryRepresentativeForLab(int $labId, int $userId): User
@@ -145,11 +241,20 @@ return DeliveryTask::create([
                 'id' => $task->case->id,
                 'case_number' => $task->case->case_number,
                 'status' => $task->case->status,
+                'clinic_name' => $task->case?->clinic?->name,
+                'patient_name' => $task->case?->patient?->user?->name,
             ] : null,
             'delivery_rep' => $task->deliveryRep ? [
                 'id' => $task->deliveryRep->id,
                 'name' => $task->deliveryRep->name,
             ] : null,
+            'receipt_proof_url' => $task->receipt_proof_path ? asset('storage/' . $task->receipt_proof_path) : null,
+            'receipt_proof_original_name' => $task->receipt_proof_original_name,
+            'receipt_proof_mime_type' => $task->receipt_proof_mime_type,
+            'receipt_proof_size' => $task->receipt_proof_size,
+            'trip_expense' => $task->trip_expense,
+            'receipt_confirmed_at' => optional($task->receipt_confirmed_at)->toISOString(),
+            'receipt_confirmed_by' => $task->receipt_confirmed_by,
         ];
     }
 }

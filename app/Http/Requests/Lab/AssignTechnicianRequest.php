@@ -14,7 +14,13 @@ class AssignTechnicianRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'assigned_technician_id' => ['required', 'integer', 'exists:users,id'],
+            'assigned_technician_id' => [
+                'required',
+                'integer',
+                \Illuminate\Validation\Rule::exists('users', 'id')->where(function ($query) {
+                    $query->where('lab_id', auth()->user()?->lab_id);
+                }),
+            ],
             'notes' => ['nullable', 'string', 'max:1000'],
         ];
     }

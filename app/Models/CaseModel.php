@@ -54,6 +54,7 @@ class CaseModel extends Model
         'created_by',
         'completed_at',
         'delivered_at',
+        'tooth_chart_3d',
     ];
 
     protected function casts(): array
@@ -63,6 +64,7 @@ class CaseModel extends Model
             'completed_at' => 'datetime',
             'delivered_at' => 'datetime',
             'tooth_numbers' => 'array',
+            'tooth_chart_3d' => 'json',
         ];
     }
 

@@ -38,6 +38,13 @@ class DeliveryTask extends Model
         'delivery_address',
         'pickup_notes',
         'delivery_notes',
+        'receipt_proof_path',
+        'receipt_proof_original_name',
+        'receipt_proof_mime_type',
+        'receipt_proof_size',
+        'trip_expense',
+        'receipt_confirmed_at',
+        'receipt_confirmed_by',
     ];
 
     protected function casts(): array
@@ -50,6 +57,9 @@ class DeliveryTask extends Model
             'last_location_at' => 'datetime',
             'last_location_lat' => 'decimal:7',
             'last_location_lng' => 'decimal:7',
+            'receipt_proof_size' => 'integer',
+            'trip_expense' => 'decimal:2',
+            'receipt_confirmed_at' => 'datetime',
         ];
     }
 

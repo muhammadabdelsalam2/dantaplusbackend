@@ -25,6 +25,7 @@ class LabMaterialService
 
         $perPage = (int) ($filters['per_page'] ?? 15);
         $materials = $this->materialRepository->paginateForLab($labId, $filters, $perPage);
+        $materials->load('supplierCompany');
 
         return ServiceResult::success([
             'items' => LabMaterialResource::collection($materials->items())->resolve(),
@@ -45,6 +46,9 @@ class LabMaterialService
         }
 
         $material = $this->materialRepository->findForLabById($labId, $materialId);
+        if ($material) {
+            $material->load('supplierCompany');
+        }
         if (! $material) {
             return ServiceResult::error('Material not found', null, null, 404);
         }
@@ -99,7 +103,22 @@ class LabMaterialService
                 return ServiceResult::error('Material not found', null, null, 404);
             }
 
+            if (array_key_exists('supplier_id', $data)) {
+                if (!empty($data['supplier_id'])) {
+                    $supplierName = MaterialCompany::find($data['supplier_id'])?->name;
+                    if ($supplierName) {
+                        $data['supplier'] = $supplierName;
+                    }
+                } else {
+                    $data['supplier_id'] = null;
+                    if (!array_key_exists('supplier', $data) || empty($data['supplier'])) {
+                        $data['supplier'] = null;
+                    }
+                }
+            }
+
             $updated = $this->materialRepository->update($material, $data);
+            $updated->load('supplierCompany');
 
             return ServiceResult::success(
                 (new LabMaterialResource($updated))->resolve(),

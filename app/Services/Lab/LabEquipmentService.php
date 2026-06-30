@@ -184,6 +184,9 @@ class LabEquipmentService
             'purchase_date' => optional($equipment->purchase_date)->format('Y-m-d'),
             'last_maintenance_date' => optional($equipment->last_maintenance_date)->format('Y-m-d'),
             'next_due_date' => $computed['next_due_date'],
+            'days_until_maintenance' => $computed['days_until_maintenance'],
+            'is_maintenance_due_soon' => $computed['is_maintenance_due_soon'],
+            'maintenance_warning' => $computed['maintenance_warning'],
             'maintenance_status' => $computed['maintenance_status'],
             'status' => $equipment->status,
             'maintenance_cycle_days' => $equipment->maintenance_cycle_days,
@@ -202,6 +205,9 @@ class LabEquipmentService
             'purchase_date' => optional($equipment->purchase_date)->format('Y-m-d'),
             'last_maintenance_date' => optional($equipment->last_maintenance_date)->format('Y-m-d'),
             'next_due_date' => $computed['next_due_date'],
+            'days_until_maintenance' => $computed['days_until_maintenance'],
+            'is_maintenance_due_soon' => $computed['is_maintenance_due_soon'],
+            'maintenance_warning' => $computed['maintenance_warning'],
             'maintenance_status' => $computed['maintenance_status'],
             'status' => $equipment->status,
             'maintenance_cycle_days' => $equipment->maintenance_cycle_days,
@@ -219,23 +225,33 @@ class LabEquipmentService
             return [
                 'next_due_date' => null,
                 'maintenance_status' => LabEquipment::MAINTENANCE_STATUS_UP_TO_DATE,
+                'days_until_maintenance' => null,
+                'is_maintenance_due_soon' => false,
+                'maintenance_warning' => null,
             ];
         }
 
         $nextDue = Carbon::parse($baseDate)->addDays((int) $equipment->maintenance_cycle_days)->startOfDay();
         $today = now()->startOfDay();
+        $daysUntil = (int) $today->diffInDays($nextDue, false);
 
         if ($nextDue->lt($today)) {
             $maintenanceStatus = LabEquipment::MAINTENANCE_STATUS_OVERDUE;
+            $maintenanceWarning = 'overdue';
         } elseif ($nextDue->lte((clone $today)->addDays(30))) {
             $maintenanceStatus = LabEquipment::MAINTENANCE_STATUS_DUE_SOON;
+            $maintenanceWarning = $daysUntil === 0 ? 'due_today' : "due_in_{$daysUntil}_days";
         } else {
             $maintenanceStatus = LabEquipment::MAINTENANCE_STATUS_UP_TO_DATE;
+            $maintenanceWarning = null;
         }
 
         return [
             'next_due_date' => $nextDue->format('Y-m-d'),
             'maintenance_status' => $maintenanceStatus,
+            'days_until_maintenance' => $daysUntil,
+            'is_maintenance_due_soon' => $daysUntil <= 15,
+            'maintenance_warning' => $maintenanceWarning,
         ];
     }
 }
