@@ -68,7 +68,7 @@ Route::prefix('clinic')
         Route::prefix('settings')->group(function () {
             Route::get('/profile',  [SettingsProfileController::class, 'show']);
             Route::post('/profile', [SettingsProfileController::class, 'update']);
-            Route::patch('/profile/password', [SettingsProfileController::class, 'updatePassword']);
+            Route::post('/profile/password', [SettingsProfileController::class, 'updatePassword']);
 
             Route::middleware('permission:settings.manage')->group(function () {
                 Route::get('/general',  [GeneralSettingsController::class, 'show']);
@@ -81,27 +81,27 @@ Route::prefix('clinic')
                 Route::post('/appointments', [ClinicAppointmentSettingsController::class, 'update']);
 
                 Route::get('/reminders',   [ClinicReminderSettingsController::class, 'show']);
-                Route::patch('/reminders', [ClinicReminderSettingsController::class, 'update']);
+                Route::post('/reminders', [ClinicReminderSettingsController::class, 'update']);
 
                 Route::get('/doctor-reminders',         [ClinicDoctorReminderSettingsController::class, 'show']);
-                Route::patch('/doctor-reminders',       [ClinicDoctorReminderSettingsController::class, 'update']);
+                Route::post('/doctor-reminders',       [ClinicDoctorReminderSettingsController::class, 'update']);
                 Route::post('/doctor-reminders/trigger',[ClinicDoctorReminderSettingsController::class, 'trigger']);
                 Route::get('/doctor-reminders/logs',    [ClinicDoctorReminderSettingsController::class, 'logs']);
 
                 Route::get('/queue-notifications',    [ClinicQueueNotificationSettingsController::class, 'show']);
-                Route::patch('/queue-notifications',  [ClinicQueueNotificationSettingsController::class, 'update']);
+                Route::post('/queue-notifications',  [ClinicQueueNotificationSettingsController::class, 'update']);
                 Route::post('/queue-notifications/test', [ClinicQueueNotificationSettingsController::class, 'test']);
 
                 Route::get('/feedback',      [ClinicFeedbackSettingsController::class, 'show']);
-                Route::patch('/feedback',    [ClinicFeedbackSettingsController::class, 'update']);
+                Route::post('/feedback',    [ClinicFeedbackSettingsController::class, 'update']);
                 Route::get('/feedback/logs', [ClinicFeedbackSettingsController::class, 'logs']);
 
                 Route::get('/security',    [ClinicSecuritySettingsController::class, 'show']);
-                Route::patch('/security',  [ClinicSecuritySettingsController::class, 'update']);
+                Route::post('/security',  [ClinicSecuritySettingsController::class, 'update']);
                 Route::post('/security/backup', [ClinicSecuritySettingsController::class, 'backup']);
 
                 Route::get('/appearance',   [ClinicAppearanceSettingsController::class, 'show']);
-                Route::patch('/appearance', [ClinicAppearanceSettingsController::class, 'update']);
+                Route::post('/appearance', [ClinicAppearanceSettingsController::class, 'update']);
 
                 Route::get('/integrations',                      [ClinicIntegrationSettingsController::class, 'show']);
                 Route::post('/integrations/connect/google',      [ClinicIntegrationSettingsController::class, 'connectGoogle']);
@@ -116,7 +116,7 @@ Route::prefix('clinic')
 
                 Route::get('/service-pricing',           [ClinicServicePricingController::class, 'index']);
                 Route::post('/service-pricing',          [ClinicServicePricingController::class, 'store']);
-                Route::patch('/service-pricing/{serviceId}', [ClinicServicePricingController::class, 'update']);
+                Route::post('/service-pricing/{serviceId}', [ClinicServicePricingController::class, 'update']);
                 Route::delete('/service-pricing/{id}',   [ClinicServicePricingController::class, 'destroy']);
 
                 Route::get('/clinic-info',  [ClinicInfoController::class, 'show']);
@@ -131,7 +131,7 @@ Route::prefix('clinic')
                 Route::get('/dentists',        [SettingsDentistController::class, 'index']);
                 Route::post('/dentists',       [SettingsDentistController::class, 'store']);
                 Route::get('/dentists/{id}',   [SettingsDentistController::class, 'show']);
-                Route::patch('/dentists/{id}', [SettingsDentistController::class, 'update']);
+                Route::post('/dentists/{id}', [SettingsDentistController::class, 'update']);
                 Route::delete('/dentists/{id}',[SettingsDentistController::class, 'destroy']);
             });
         });
@@ -140,7 +140,7 @@ Route::prefix('clinic')
             Route::get('/insurance-price-lists',          [ClinicInsurancePriceListController::class, 'index']);
             Route::post('/insurance-price-lists',         [ClinicInsurancePriceListController::class, 'store']);
             Route::post('/insurance-price-lists/import',  [ClinicInsurancePriceListController::class, 'import']);
-            Route::patch('/insurance-price-lists/{id}',   [ClinicInsurancePriceListController::class, 'update']);
+            Route::post('/insurance-price-lists/{id}',   [ClinicInsurancePriceListController::class, 'update']);
             Route::delete('/insurance-price-lists/{id}',  [ClinicInsurancePriceListController::class, 'destroy']);
             Route::post('/reminders/trigger', [ClinicReminderSettingsController::class, 'trigger']);
             Route::get('/reminders/logs',     [ClinicReminderSettingsController::class, 'logs']);
@@ -164,8 +164,8 @@ Route::prefix('clinic')
                 Route::post('/claims',    [InsuranceClaimController::class, 'store']);
             });
             Route::middleware('permission:insurance.update')->group(function () {
-                Route::patch('/companies/{id}', [InsuranceCompanyController::class, 'update']);
-                Route::patch('/claims/{id}',    [InsuranceClaimController::class, 'update']);
+                Route::post('/companies/{id}', [InsuranceCompanyController::class, 'update']);
+                Route::post('/claims/{id}',    [InsuranceClaimController::class, 'update']);
                 Route::post('/claims/{id}/patient-consent', [InsuranceClaimController::class, 'uploadConsent']);
             });
             Route::middleware('permission:insurance.delete')->group(function () {
@@ -181,7 +181,7 @@ Route::prefix('clinic')
             Route::get('/users',              [UserController::class, 'index']);
             Route::post('/users',             [UserController::class, 'store']);
             Route::get('/users/{id}',         [UserController::class, 'show']);
-            Route::patch('/users/{id}',       [UserController::class, 'update']);
+            Route::post('/users/{id}',       [UserController::class, 'update']);
             Route::delete('/users/{id}',      [UserController::class, 'destroy']);
 
             Route::prefix('whatsapp-bot')->group(function () {
@@ -196,7 +196,7 @@ Route::prefix('clinic')
         Route::middleware('permission:patients.view')->get('/patients',                           [PatientController::class, 'index']);
         Route::middleware('permission:patients.create')->post('/patients',                        [PatientController::class, 'store']);
         Route::middleware('permission:patients.view')->get('/patients/{id}',                      [PatientController::class, 'show']);
-        Route::middleware('permission:patients.update')->patch('/patients/{id}',                  [PatientController::class, 'update']);
+        Route::middleware('permission:patients.update')->post('/patients/{id}',                  [PatientController::class, 'update']);
         Route::middleware('permission:patients.view')->get('/patients/{id}/dental-chart',         [PatientController::class, 'dentalChart']);
         Route::middleware('permission:patients.update')->post('/patients/{id}/dental-chart',      [PatientController::class, 'storeDentalChart']);
         Route::middleware('permission:patients.view')->get('/patients/{id}/radiology',            [PatientController::class, 'radiology']);
@@ -210,15 +210,15 @@ Route::prefix('clinic')
         // ─── Appointments ────────────────────────────────────────────────────
         Route::middleware('permission:appointments.view')->get('/appointments',       [AppointmentController::class, 'index']);
         Route::middleware('permission:appointments.create')->post('/appointments',    [AppointmentController::class, 'store']);
-        Route::middleware('permission:appointments.update')->patch('/appointments/{id}', [AppointmentController::class, 'update']);
+        Route::middleware('permission:appointments.update')->post('/appointments/{id}', [AppointmentController::class, 'update']);
         Route::middleware('permission:appointments.view')->get('/appointments/{id}',  [AppointmentController::class, 'show']);
-        
-Route::patch('/appointments/{id}/approve', [AppointmentController::class, 'approve']);
+
+        Route::post('/appointments/{id}/approve', [AppointmentController::class, 'approve']);
 
         // ─── Notifications ───────────────────────────────────────────────────
         Route::get('/notifications',                     [NotificationCenterController::class, 'index']);
         Route::get('/notifications/unread',              [NotificationCenterController::class, 'unread']);
-        Route::patch('/notifications/{id}/read',         [NotificationCenterController::class, 'markRead']);
+        Route::post('/notifications/{id}/read',         [NotificationCenterController::class, 'markRead']);
         Route::post('/notifications/mark-all-read',      [NotificationCenterController::class, 'markAllRead']);
 
         // ─── Treatments ──────────────────────────────────────────────────────
@@ -243,15 +243,15 @@ Route::patch('/appointments/{id}/approve', [AppointmentController::class, 'appro
         });
         Route::middleware('permission:inventory.manage')->prefix('inventory')->group(function () {
             Route::post('/',            [InventoryController::class, 'store']);
-            Route::patch('/{inventory}',[InventoryController::class, 'update']);
+            Route::post('/{inventory}',[InventoryController::class, 'update']);
             Route::delete('/{inventory}',[InventoryController::class, 'destroy']);
         });
 
         // ─── Procurement ─────────────────────────────────────────────────────
         Route::middleware('permission:inventory.manage')->prefix('procurement')->group(function () {
             Route::get('/',             [ProcurementController::class, 'index']);
-            Route::patch('/{po}/approve',[ProcurementController::class, 'approve']);
-            Route::patch('/{po}/receive',[ProcurementController::class, 'receive']);
+            Route::post('/{po}/approve',[ProcurementController::class, 'approve']);
+            Route::post('/{po}/receive',[ProcurementController::class, 'receive']);
             Route::delete('/{po}',      [ProcurementController::class, 'cancel']);
         });
 
@@ -261,9 +261,9 @@ Route::patch('/appointments/{id}/approve', [AppointmentController::class, 'appro
             Route::get('/{order}',[OrderController::class, 'show']);
         });
         Route::middleware('permission:orders.manage')->prefix('orders')->group(function () {
-            Route::patch('/{order}/approve-changes', [OrderController::class, 'approveChanges']);
-            Route::patch('/{order}/reject-changes',  [OrderController::class, 'rejectChanges']);
-            Route::patch('/{order}/pay',             [OrderController::class, 'pay']);
+            Route::post('/{order}/approve-changes', [OrderController::class, 'approveChanges']);
+            Route::post('/{order}/reject-changes',  [OrderController::class, 'rejectChanges']);
+            Route::post('/{order}/pay',             [OrderController::class, 'pay']);
             Route::post('/{order}/restock',          [OrderController::class, 'restock']);
         });
 
@@ -280,12 +280,12 @@ Route::patch('/appointments/{id}/approve', [AppointmentController::class, 'appro
             Route::post('/{equipment}/report', [EquipmentController::class, 'report']);
             Route::post('/', [EquipmentController::class, 'store']);
         });
-        Route::middleware('permission:equipment.view')->patch('/equipment-reports/{id}/assign-company', [EquipmentController::class, 'assignCompany']);
+        Route::middleware('permission:equipment.view')->post('/equipment-reports/{id}/assign-company', [EquipmentController::class, 'assignCompany']);
 
         // ─── Tasks ───────────────────────────────────────────────────────────
         Route::middleware('permission:tasks.view')->get('/tasks',              [TaskController::class, 'index']);
         Route::middleware('permission:tasks.manage')->post('/tasks',            [TaskController::class, 'store']);
-        Route::middleware('permission:tasks.manage')->patch('/tasks/{id}',      [TaskController::class, 'update']);
+        Route::middleware('permission:tasks.manage')->post('/tasks/{id}',      [TaskController::class, 'update']);
         Route::middleware('permission:tasks.manage')->delete('/tasks/{id}',     [TaskController::class, 'destroy']);
 
         // ─── Dental Labs ─────────────────────────────────────────────────────
@@ -293,14 +293,14 @@ Route::patch('/appointments/{id}/approve', [AppointmentController::class, 'appro
         Route::middleware('permission:dental_labs.view')->get('/dental-labs',            [DentalLabController::class, 'index']);
         Route::middleware('permission:dental_labs.manage')->post('/dental-labs',         [DentalLabController::class, 'store']);
         Route::middleware('permission:dental_labs.view')->get('/dental-labs/{id}',       [DentalLabController::class, 'show']);
-        Route::middleware('permission:dental_labs.manage')->patch('/dental-labs/{id}',   [DentalLabController::class, 'update']);
+        Route::middleware('permission:dental_labs.manage')->post('/dental-labs/{id}',   [DentalLabController::class, 'update']);
         Route::middleware('permission:dental_labs.manage')->delete('/dental-labs/{id}',  [DentalLabController::class, 'destroy']);
         Route::middleware('permission:dental_labs.manage')->post('/dental-labs/{id}/services', [DentalLabController::class, 'storeService']);
         Route::middleware('permission:dental_labs.manage')->post('/dental-labs/{id}/gallery',  [DentalLabController::class, 'storeGallery']);
         Route::middleware('permission:dental_labs.manage')->delete('/dental-lab-services/{id}',[DentalLabController::class, 'destroyService']);
         Route::middleware('permission:dental_labs.view')->get('/dental-lab-orders',            [DentalLabController::class, 'orders']);
         Route::middleware('permission:dental_labs.manage')->post('/dental-lab-orders',         [DentalLabController::class, 'storeOrder']);
-        Route::middleware('permission:dental_labs.manage')->patch('/dental-lab-orders/{id}/status', [DentalLabController::class, 'updateOrderStatus']);
+        Route::middleware('permission:dental_labs.manage')->post('/dental-lab-orders/{id}/status', [DentalLabController::class, 'updateOrderStatus']);
 
         // ─── Billing ─────────────────────────────────────────────────────────
         Route::middleware('permission:billing.manage')->group(function () {
@@ -317,7 +317,7 @@ Route::patch('/appointments/{id}/approve', [AppointmentController::class, 'appro
             Route::post('/billing/profit-loss/send-whatsapp',  [BillingController::class, 'sendProfitLossWhatsApp']);
             Route::get('/billing/expense-categories',          [BillingController::class, 'expenseCategories']);
             Route::post('/billing/expense-categories',         [BillingController::class, 'storeExpenseCategory']);
-            Route::patch('/billing/expense-categories/{id}',   [BillingController::class, 'updateExpenseCategory']);
+            Route::post('/billing/expense-categories/{id}',   [BillingController::class, 'updateExpenseCategory']);
             Route::delete('/billing/expense-categories/{id}',  [BillingController::class, 'destroyExpenseCategory']);
         });
 
