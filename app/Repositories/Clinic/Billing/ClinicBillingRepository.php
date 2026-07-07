@@ -16,7 +16,7 @@ class ClinicBillingRepository implements ClinicBillingRepositoryInterface
     public function paginateInvoices(int $clinicId, array $filters): LengthAwarePaginator
     {
         return ClinicInvoice::query()
-            ->with(['patient.user:id,name', 'doctor:id,name', 'items', 'payments.recorder:id,name'])
+            ->with(['clinic:id,name', 'patient.user:id,name,phone', 'doctor:id,name', 'items', 'payments.recorder:id,name'])
             ->where('clinic_id', $clinicId)
             ->when($filters['status'] ?? null, fn (Builder $query, string $status) => $query->where('status', $status))
             ->when($filters['patient_id'] ?? null, fn (Builder $query, int $patientId) => $query->where('patient_id', $patientId))
@@ -30,7 +30,7 @@ class ClinicBillingRepository implements ClinicBillingRepositoryInterface
     public function findInvoice(int $clinicId, int $invoiceId): ?ClinicInvoice
     {
         return ClinicInvoice::query()
-            ->with(['patient.user:id,name', 'doctor:id,name', 'items', 'payments.recorder:id,name'])
+            ->with(['clinic:id,name', 'patient.user:id,name,phone', 'doctor:id,name', 'items', 'payments.recorder:id,name'])
             ->where('clinic_id', $clinicId)
             ->find($invoiceId);
     }

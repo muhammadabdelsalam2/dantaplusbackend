@@ -15,6 +15,7 @@ use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Carbon\Carbon;
 
 class InsuranceClaimService
 {
@@ -263,6 +264,127 @@ class InsuranceClaimService
         return ServiceResult::success(null, 'Insurance claim deleted successfully');
     }
 
+    public function analytics(): array
+    {
+        $clinicId = $this->currentClinicId();
+        if (! $clinicId) {
+            return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
+        }
+
+        $claims = InsuranceClaim::query()
+            ->with('company:id,name')
+            ->where('clinic_id', $clinicId)
+            ->get();
+
+        return ServiceResult::success([
+            'totals_by_status' => $claims->groupBy('status')->map->count(),
+            'amounts' => [
+                'gross_amount' => round((float) $claims->sum('gross_amount'), 2),
+                'approved_amount' => round((float) $claims->sum('approved_amount'), 2),
+                'paid_amount' => round((float) $claims->sum('paid_amount'), 2),
+            ],
+            'top_companies' => $claims
+                ->groupBy('insurance_company_id')
+                ->map(function ($group) {
+                    $company = $group->first()?->company;
+
+                    return [
+                        'insurance_company_id' => $company?->id,
+                        'name' => $company?->name,
+                        'claims_count' => $group->count(),
+                        'gross_amount' => round((float) $group->sum('gross_amount'), 2),
+                        'approved_amount' => round((float) $group->sum('approved_amount'), 2),
+                    ];
+                })
+                ->sortByDesc('claims_count')
+                ->values()
+                ->take(5)
+                ->all(),
+        ], 'Insurance analytics fetched successfully');
+    }
+
+    public function monthly(array $filters): array
+    {
+        $clinicId = $this->currentClinicId();
+        if (! $clinicId) {
+            return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
+        }
+
+        $year = (int) ($filters['year'] ?? now()->format('Y'));
+
+        $claims = InsuranceClaim::query()
+            ->where('clinic_id', $clinicId)
+            ->whereYear('service_date', $year)
+            ->when($filters['insurance_company_id'] ?? null, fn ($query, int $companyId) => $query->where('insurance_company_id', $companyId))
+            ->get();
+
+        $series = collect(range(1, 12))->map(function (int $month) use ($claims, $year) {
+            $monthClaims = $claims->filter(fn (InsuranceClaim $claim) => (int) $claim->service_date->format('n') === $month);
+
+            return [
+                'month' => sprintf('%d-%02d', $year, $month),
+                'claims_count' => $monthClaims->count(),
+                'gross_amount' => round((float) $monthClaims->sum('gross_amount'), 2),
+                'approved_amount' => round((float) $monthClaims->sum('approved_amount'), 2),
+                'paid_amount' => round((float) $monthClaims->sum('paid_amount'), 2),
+            ];
+        })->all();
+
+        return ServiceResult::success(['year' => $year, 'series' => $series], 'Monthly insurance report fetched successfully');
+    }
+
+    public function approvalReport(array $filters): array
+    {
+        $clinicId = $this->currentClinicId();
+        if (! $clinicId) {
+            return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
+        }
+
+        $from = $filters['date_from'] ?? now()->subMonths(3)->toDateString();
+        $to = $filters['date_to'] ?? now()->toDateString();
+
+        $claims = InsuranceClaim::query()
+            ->with('company:id,name')
+            ->where('clinic_id', $clinicId)
+            ->whereBetween('service_date', [$from, $to])
+            ->when($filters['insurance_company_id'] ?? null, fn ($query, int $companyId) => $query->where('insurance_company_id', $companyId))
+            ->get();
+
+        $approvedStatuses = [
+            InsuranceClaim::STATUS_APPROVED,
+            InsuranceClaim::STATUS_APPROVED_WITH_LIMIT,
+            InsuranceClaim::STATUS_PAID,
+        ];
+        $partialStatuses = [InsuranceClaim::STATUS_PARTIALLY_APPROVED];
+        $rejectedStatuses = [InsuranceClaim::STATUS_REJECTED];
+        $total = max($claims->count(), 1);
+
+        return ServiceResult::success([
+            'date_from' => $from,
+            'date_to' => $to,
+            'total_claims' => $claims->count(),
+            'approved_count' => $claims->whereIn('status', $approvedStatuses)->count(),
+            'partial_count' => $claims->whereIn('status', $partialStatuses)->count(),
+            'rejected_count' => $claims->whereIn('status', $rejectedStatuses)->count(),
+            'approval_rate' => round(($claims->whereIn('status', $approvedStatuses)->count() / $total) * 100, 2),
+            'partial_rate' => round(($claims->whereIn('status', $partialStatuses)->count() / $total) * 100, 2),
+            'rejection_rate' => round(($claims->whereIn('status', $rejectedStatuses)->count() / $total) * 100, 2),
+            'by_company' => $claims->groupBy('insurance_company_id')->map(function ($group) use ($approvedStatuses, $partialStatuses, $rejectedStatuses) {
+                $company = $group->first()?->company;
+                $total = max($group->count(), 1);
+
+                return [
+                    'insurance_company_id' => $company?->id,
+                    'name' => $company?->name,
+                    'total_claims' => $group->count(),
+                    'approval_rate' => round(($group->whereIn('status', $approvedStatuses)->count() / $total) * 100, 2),
+                    'partial_rate' => round(($group->whereIn('status', $partialStatuses)->count() / $total) * 100, 2),
+                    'rejection_rate' => round(($group->whereIn('status', $rejectedStatuses)->count() / $total) * 100, 2),
+                ];
+            })->values()->all(),
+        ], 'Insurance approval report fetched successfully');
+    }
+
     private function validateRelatedModels(int $clinicId, InsuranceClaimData $dto): ?array
     {
         if (! $this->companyRepository->findForClinic($clinicId, $dto->insuranceCompanyId)) {
@@ -476,7 +598,7 @@ class InsuranceClaimService
             InsuranceClaim::STATUS_APPROVED_WITH_LIMIT,
         ], true)) {
             try {
-                $service = new ClaimStatusWhatsAppNotificationService($claim);
+                $service = app(ClaimStatusWhatsAppNotificationService::class, ['claim' => $claim]);
                 $service->sendNotification();
             } catch (Exception $e) {
                 Log::error('Failed to send WhatsApp notification', [

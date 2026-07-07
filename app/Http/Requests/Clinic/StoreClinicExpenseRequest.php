@@ -21,6 +21,7 @@ class StoreClinicExpenseRequest extends FormRequest
             'expense_date' => ['required', 'date'],
             'assigned_to_user_id' => ['nullable', 'integer', 'exists:users,id'],
             'notes' => ['nullable', 'string'],
+            'attachment' => ['nullable', 'file', 'max:10240'],
         ];
     }
 }

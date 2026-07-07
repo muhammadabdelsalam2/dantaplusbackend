@@ -18,6 +18,8 @@ class SelectService
         'dentists' => 'dentists',
         'labs' => 'dentalLabs',
         'expense-categories' => 'expenseCategories',
+        'insurance-companies' => 'insuranceCompanies',
+        'insurance_companies' => 'insuranceCompanies',
         'response-speeds' => 'responseSpeeds',
     ];
 

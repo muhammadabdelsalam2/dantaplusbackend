@@ -42,6 +42,8 @@ use App\Repositories\SuperAdmin\UserManagementRepository;
 use App\Services\Clinic\WhatsappBot\Providers\MetaWhatsAppService;
 use App\Services\Clinic\WhatsappBot\Providers\TwilioWhatsAppService;
 use App\Services\Clinic\WhatsappBot\Providers\WhatsAppProviderInterface;
+use App\Services\Sms\ConfiguredHttpSmsProvider;
+use App\Services\Sms\SmsProviderInterface;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -80,6 +82,7 @@ class AppServiceProvider extends ServiceProvider
                 default => $app->make(MetaWhatsAppService::class),
             };
         });
+        $this->app->bind(SmsProviderInterface::class, ConfiguredHttpSmsProvider::class);
 
     }
 

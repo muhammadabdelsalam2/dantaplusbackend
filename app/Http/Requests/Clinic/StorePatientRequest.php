@@ -25,6 +25,7 @@ class StorePatientRequest extends FormRequest
             'medical_history' => ['nullable', 'string'],
             'allergies' => ['nullable', 'string'],
             'current_medication' => ['nullable', 'string'],
+            'insurance_company_id' => ['nullable', 'integer', 'exists:insurance_companies,id'],
             'insurance_provider' => ['nullable', 'string', 'max:255'],
             'insurance_number' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],

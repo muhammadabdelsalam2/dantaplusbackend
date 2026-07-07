@@ -15,6 +15,7 @@ use App\Models\DentalLab;
 use App\Models\Doctor;
 use App\Models\Patient;
 use App\Models\PatientNote;
+use App\Models\InsuranceCompany;
 use App\Models\PatientRadiology;
 use App\Models\PatientTooth;
 use App\Models\User;
@@ -35,6 +36,7 @@ class PatientService
 
         $query = Patient::query()
             ->with('user:id,name,email,phone')
+            ->with('insuranceCompany:id,name')
             ->where('clinic_id', $clinicId)
             // ← search على name, phone, email (من جدول users)
             ->when($filters['search'] ?? null, function ($q, $search) {
@@ -81,7 +83,12 @@ class PatientService
             return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
         }
 
-        $patient = DB::transaction(function () use ($clinicId, $data) {
+        $insuranceCompany = $this->resolveInsuranceCompanyId($clinicId, $data['insurance_company_id'] ?? null);
+        if (! empty($data['insurance_company_id']) && ! $insuranceCompany) {
+            return ServiceResult::error('Insurance company not found.', null, ['insurance_company_id' => ['Insurance company not found for this clinic.']], 422);
+        }
+
+        $patient = DB::transaction(function () use ($clinicId, $data, $insuranceCompany) {
             $user = User::query()->create([
                 'clinic_id' => $clinicId,
                 'name' => $data['name'],
@@ -108,10 +115,79 @@ class PatientService
                 'medical_history' => $data['medical_history'] ?? null,
                 'allergies' => $data['allergies'] ?? null,
                 'current_medication' => $data['current_medication'] ?? null,
-                'insurance_provider' => $data['insurance_provider'] ?? null,
+                'insurance_provider' => $data['insurance_provider'] ?? $insuranceCompany?->name,
+                'insurance_company_id' => $insuranceCompany?->id,
                 'insurance_number' => $data['insurance_number'] ?? null,
                 'notes' => $data['notes'] ?? null,
             ]);
+        });
+
+        return $this->show($patient->id);
+    }
+
+    public function update(int $patientId, array $data): array
+    {
+        $clinicId = $this->currentClinicId();
+        if (! $clinicId) {
+            return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
+        }
+
+        $patient = $this->findClinicPatient($patientId);
+        if (! $patient) {
+            return ServiceResult::error('Patient not found.', null, null, 404);
+        }
+
+        $insuranceCompany = null;
+        if (array_key_exists('insurance_company_id', $data)) {
+            $insuranceCompany = $this->resolveInsuranceCompanyId($clinicId, $data['insurance_company_id']);
+            if ($data['insurance_company_id'] !== null && ! $insuranceCompany) {
+                return ServiceResult::error('Insurance company not found.', null, ['insurance_company_id' => ['Insurance company not found for this clinic.']], 422);
+            }
+        }
+
+        DB::transaction(function () use ($data, $insuranceCompany, $patient) {
+            $userData = array_filter([
+                'name' => $data['name'] ?? null,
+                'email' => array_key_exists('email', $data) ? $data['email'] : null,
+                'phone' => $data['phone'] ?? null,
+                'password' => ! empty($data['password']) ? bcrypt($data['password']) : null,
+            ], static fn ($value) => $value !== null);
+
+            if ($userData !== []) {
+                $patient->user?->update($userData);
+            }
+
+            $patientData = [];
+            foreach ([
+                'date_of_birth',
+                'gender',
+                'address',
+                'medical_history',
+                'allergies',
+                'current_medication',
+                'insurance_provider',
+                'insurance_number',
+                'notes',
+            ] as $field) {
+                if (array_key_exists($field, $data)) {
+                    $patientData[$field] = $data[$field];
+                }
+            }
+
+            if (array_key_exists('phone', $data)) {
+                $patientData['phone'] = $data['phone'];
+            }
+
+            if (array_key_exists('insurance_company_id', $data)) {
+                $patientData['insurance_company_id'] = $insuranceCompany?->id;
+                if (! array_key_exists('insurance_provider', $data)) {
+                    $patientData['insurance_provider'] = $insuranceCompany?->name;
+                }
+            }
+
+            if ($patientData !== []) {
+                $patient->update($patientData);
+            }
         });
 
         return $this->show($patient->id);
@@ -121,6 +197,7 @@ class PatientService
     {
         return Patient::query()
             ->with('user:id,name,email,phone')
+            ->with('insuranceCompany:id,name')
             ->where('clinic_id', $this->currentClinicId())
             ->find($patientId);
     }
@@ -271,7 +348,7 @@ class PatientService
         }
 
         $rows = PatientNote::query()
-            ->with('user:id,name')
+            ->with(['user:id,name', 'attachments', 'mentions.user:id,name'])
             ->where('clinic_id', $this->currentClinicId())
             ->where('patient_id', $patient->id)
             ->latest('id')
@@ -287,15 +364,40 @@ class PatientService
             return ServiceResult::error('Patient not found.', null, null, 404);
         }
 
-        $note = PatientNote::query()->create([
-            'patient_id' => $patient->id,
-            'user_id' => auth()->id(),
-            'clinic_id' => $this->currentClinicId(),
-            'note' => $data['note'],
-        ]);
+        $note = DB::transaction(function () use ($data, $patient) {
+            $note = PatientNote::query()->create([
+                'patient_id' => $patient->id,
+                'user_id' => auth()->id(),
+                'clinic_id' => $this->currentClinicId(),
+                'note' => $data['note'],
+            ]);
+
+            foreach (($data['attachments'] ?? []) as $attachment) {
+                $path = $attachment->store('clinic/patient-notes', 'public');
+                $note->attachments()->create([
+                    'file_path' => $path,
+                    'file_name' => $attachment->getClientOriginalName(),
+                    'mime_type' => $attachment->getClientMimeType(),
+                    'size' => $attachment->getSize(),
+                ]);
+            }
+
+            $mentionIds = collect($data['mentions'] ?? [])
+                ->unique()
+                ->filter(fn ($userId) => User::query()
+                    ->where('clinic_id', $this->currentClinicId())
+                    ->whereKey($userId)
+                    ->exists());
+
+            foreach ($mentionIds as $userId) {
+                $note->mentions()->create(['user_id' => $userId]);
+            }
+
+            return $note;
+        });
 
         return ServiceResult::success(
-            (new PatientNoteResource($note->load('user:id,name')))->resolve(),
+            (new PatientNoteResource($note->load(['user:id,name', 'attachments', 'mentions.user:id,name'])))->resolve(),
             'Discussion note added successfully.',
             201
         );
@@ -355,5 +457,16 @@ class PatientService
     private function currentClinicId(): ?int
     {
         return auth()->user()?->clinic_id;
+    }
+
+    private function resolveInsuranceCompanyId(int $clinicId, ?int $companyId): ?InsuranceCompany
+    {
+        if (! $companyId) {
+            return null;
+        }
+
+        return InsuranceCompany::query()
+            ->where('clinic_id', $clinicId)
+            ->find($companyId);
     }
 }

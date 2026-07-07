@@ -17,6 +17,18 @@ class PatientNoteResource extends JsonResource
                 'name' => $this->user->name,
             ] : null,
             'note' => $this->note,
+            'attachments' => $this->whenLoaded('attachments', fn () => $this->attachments->map(fn ($attachment) => [
+                'id' => $attachment->id,
+                'file_name' => $attachment->file_name,
+                'file_path' => $attachment->file_path,
+                'file_url' => $attachment->file_path ? asset('storage/' . $attachment->file_path) : null,
+                'mime_type' => $attachment->mime_type,
+                'size' => (int) $attachment->size,
+            ])->values()),
+            'mentions' => $this->whenLoaded('mentions', fn () => $this->mentions->map(fn ($mention) => [
+                'id' => $mention->user?->id,
+                'name' => $mention->user?->name,
+            ])->filter(fn ($user) => $user['id'] !== null)->values()),
             'created_at' => optional($this->created_at)?->toISOString(),
         ], static fn ($value) => $value !== null);
     }

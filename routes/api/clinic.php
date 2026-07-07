@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\Clinic\AppointmentController;
 use App\Http\Controllers\Api\Clinic\BillingController;
+use App\Http\Controllers\Api\Clinic\CartController;
 use App\Http\Controllers\Api\Clinic\ClinicController;
 use App\Http\Controllers\Api\Clinic\CommunicationController;
 use App\Http\Controllers\Api\Clinic\DentalLabController;
@@ -152,6 +153,9 @@ Route::prefix('clinic')
                 Route::get('/companies/{id}', [InsuranceCompanyController::class, 'show']);
                 Route::get('/companies/{id}/price-list-items', [InsuranceCompanyController::class, 'priceListItems']);
                 Route::get('/patients/lookup',    [InsuranceClaimController::class, 'patientLookup']);
+                Route::get('/analytics',    [InsuranceClaimController::class, 'analytics']);
+                Route::get('/monthly',    [InsuranceClaimController::class, 'monthly']);
+                Route::get('/approval-report',    [InsuranceClaimController::class, 'approvalReport']);
                 Route::get('/claims',       [InsuranceClaimController::class, 'index']);
                 Route::get('/claims/{id}',  [InsuranceClaimController::class, 'show']);
             });
@@ -192,6 +196,7 @@ Route::prefix('clinic')
         Route::middleware('permission:patients.view')->get('/patients',                           [PatientController::class, 'index']);
         Route::middleware('permission:patients.create')->post('/patients',                        [PatientController::class, 'store']);
         Route::middleware('permission:patients.view')->get('/patients/{id}',                      [PatientController::class, 'show']);
+        Route::middleware('permission:patients.update')->patch('/patients/{id}',                  [PatientController::class, 'update']);
         Route::middleware('permission:patients.view')->get('/patients/{id}/dental-chart',         [PatientController::class, 'dentalChart']);
         Route::middleware('permission:patients.update')->post('/patients/{id}/dental-chart',      [PatientController::class, 'storeDentalChart']);
         Route::middleware('permission:patients.view')->get('/patients/{id}/radiology',            [PatientController::class, 'radiology']);
@@ -245,7 +250,6 @@ Route::patch('/appointments/{id}/approve', [AppointmentController::class, 'appro
         // ─── Procurement ─────────────────────────────────────────────────────
         Route::middleware('permission:inventory.manage')->prefix('procurement')->group(function () {
             Route::get('/',             [ProcurementController::class, 'index']);
-            Route::post('/',            [ProcurementController::class, 'store']);
             Route::patch('/{po}/approve',[ProcurementController::class, 'approve']);
             Route::patch('/{po}/receive',[ProcurementController::class, 'receive']);
             Route::delete('/{po}',      [ProcurementController::class, 'cancel']);
@@ -263,12 +267,20 @@ Route::patch('/appointments/{id}/approve', [AppointmentController::class, 'appro
             Route::post('/{order}/restock',          [OrderController::class, 'restock']);
         });
 
+        Route::middleware('permission:orders.manage')->prefix('cart')->group(function () {
+            Route::get('/', [CartController::class, 'show']);
+            Route::post('/items', [CartController::class, 'storeItem']);
+            Route::delete('/items/{id}', [CartController::class, 'destroyItem']);
+            Route::post('/checkout', [CartController::class, 'checkout']);
+        });
+
         // ─── Equipment ───────────────────────────────────────────────────────
         Route::middleware('permission:equipment.view')->prefix('equipment')->group(function () {
             Route::get('/', [EquipmentController::class, 'index']);
             Route::post('/{equipment}/report', [EquipmentController::class, 'report']);
             Route::post('/', [EquipmentController::class, 'store']);
         });
+        Route::middleware('permission:equipment.view')->patch('/equipment-reports/{id}/assign-company', [EquipmentController::class, 'assignCompany']);
 
         // ─── Tasks ───────────────────────────────────────────────────────────
         Route::middleware('permission:tasks.view')->get('/tasks',              [TaskController::class, 'index']);
@@ -294,13 +306,19 @@ Route::patch('/appointments/{id}/approve', [AppointmentController::class, 'appro
         Route::middleware('permission:billing.manage')->group(function () {
             Route::get('/billing/invoices',                    [BillingController::class, 'index']);
             Route::post('/billing/invoices',                   [BillingController::class, 'store']);
-            Route::get('/billing/invoices/{id}',               [BillingController::class, 'show']);
+            Route::post('/billing/invoices/{id}/send-reminder', [BillingController::class, 'sendInvoiceReminder']);
             Route::post('/billing/invoices/{invoice}/payments',[BillingController::class, 'payment']);
             Route::get('/billing/payments',                    [BillingController::class, 'payments']);
             Route::get('/billing/expenses',                    [BillingController::class, 'expenses']);
             Route::post('/billing/expenses',                   [BillingController::class, 'storeExpense']);
             Route::get('/billing/profit-loss',                 [BillingController::class, 'profitLoss']);
+            Route::get('/billing/profit-loss/chart',           [BillingController::class, 'profitLossChart']);
+            Route::get('/billing/profit-loss/export',          [BillingController::class, 'exportProfitLoss']);
+            Route::post('/billing/profit-loss/send-whatsapp',  [BillingController::class, 'sendProfitLossWhatsApp']);
             Route::get('/billing/expense-categories',          [BillingController::class, 'expenseCategories']);
+            Route::post('/billing/expense-categories',         [BillingController::class, 'storeExpenseCategory']);
+            Route::patch('/billing/expense-categories/{id}',   [BillingController::class, 'updateExpenseCategory']);
+            Route::delete('/billing/expense-categories/{id}',  [BillingController::class, 'destroyExpenseCategory']);
         });
 
         // ─── Support ─────────────────────────────────────────────────────────

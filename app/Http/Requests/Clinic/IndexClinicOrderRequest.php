@@ -18,7 +18,7 @@ class IndexClinicOrderRequest extends FormRequest
         return [
             'search'         => ['nullable', 'string', 'max:255'],
             'status'         => ['nullable', Rule::in(['processing', 'pending', 'shipped', 'completed', 'awaiting_clinic_confirmation', 'cancelled'])],
-            'payment_method' => ['nullable', Rule::in(['cash', 'visa', 'pay_later'])],
+            'payment_method' => ['nullable', Rule::in(['cash'])],
             'payment_status' => ['nullable', Rule::in(['paid', 'pending_cash', 'pending_payment', 'pending_invoice'])],
 
             'date_from'      => ['nullable', 'date'],

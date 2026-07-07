@@ -4,11 +4,9 @@ namespace App\Http\Controllers\Api\Clinic;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Clinic\IndexProcurementOrderRequest;
-use App\Http\Requests\Clinic\StoreProcurementOrderRequest;
 use App\Http\Resources\Clinic\ProcurementOrderResource;
 use App\Models\InventoryItem;
 use App\Models\InventoryLog;
-use App\Models\MaterialProduct;
 use App\Models\ProcurementOrder;
 use App\Support\ApiResponse;
 use Illuminate\Support\Facades\DB;
@@ -57,41 +55,6 @@ class ProcurementController extends Controller
                 'total' => $orders->total(),
             ],
         ], 'Procurement orders fetched successfully');
-    }
-
-    public function store(StoreProcurementOrderRequest $request)
-    {
-        $clinicId = auth()->user()?->clinic_id;
-        if (! $clinicId) {
-            return ApiResponse::error('Clinic account is not linked to a clinic.', 403);
-        }
-
-        $validated = $request->validated();
-        $material = MaterialProduct::query()->with('company')->findOrFail($validated['material_id']);
-
-        $order = DB::transaction(function () use ($clinicId, $validated, $material) {
-            $order = ProcurementOrder::create([
-                'clinic_id' => $clinicId,
-                'material_id' => $material->id,
-                'supplier_id' => $validated['supplier_id'] ?? $material->company_id,
-                'supplier_name' => $validated['supplier_name'],
-                'qty' => (int) $validated['qty'],
-                'unit_cost' => $validated['unit_cost'],
-                'total_cost' => round((float) $validated['qty'] * (float) $validated['unit_cost'], 2),
-                'status' => ProcurementOrder::STATUS_PENDING,
-                'po_number' => 'PO-' . now()->timestamp . '-draft-' . uniqid(),
-                'notes' => $validated['notes'] ?? null,
-                'created_by' => auth()->id(),
-            ]);
-
-            $order->update([
-                'po_number' => 'PO-' . now()->timestamp . '-' . $order->id,
-            ]);
-
-            return $order->load(['material:id,name', 'supplier:id,name']);
-        });
-
-        return ApiResponse::success((new ProcurementOrderResource($order))->resolve(), 'Procurement order created successfully', 201);
     }
 
     public function approve(int $po)

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Clinic\StoreEquipmentReportRequest;
 use App\Http\Resources\Clinic\EquipmentResource;
 use App\Models\Equipment;
+use App\Models\MaintenanceCompany;
 use App\Models\OwnerMaintenanceRequest;
 use App\Support\ApiResponse;
 use Illuminate\Support\Facades\DB;
@@ -89,6 +90,7 @@ class EquipmentController extends Controller
                 'issue_description' => $validated['description'],
                 'urgency' => $validated['urgency'],
                 'attachment_url' => $validated['attachment_url'],
+                'assigned_company_id' => $validated['company_id'] ?? $this->defaultMaintenanceCompanyId(),
                 'status' => OwnerMaintenanceRequest::STATUS_PENDING,
                 'created_by' => auth()->id(),
             ]);
@@ -106,7 +108,45 @@ class EquipmentController extends Controller
             'request_id' => $maintenanceRequest->id,
             'request_code' => $maintenanceRequest->request_code,
             'equipment_status' => $equipmentRecord->fresh()->status,
+            'maintenance_company' => $maintenanceRequest->company ? [
+                'id' => $maintenanceRequest->company->id,
+                'name' => $maintenanceRequest->company->name,
+                'phone' => $maintenanceRequest->company->phone,
+            ] : null,
         ], 'Maintenance request created successfully', 201);
+    }
+
+    public function assignCompany(Request $request, int $id)
+    {
+        $clinicId = auth()->user()?->clinic_id;
+        if (! $clinicId) {
+            return ApiResponse::error('Clinic account is not linked to a clinic.', 403);
+        }
+
+        $validated = $request->validate([
+            'company_id' => ['required', 'integer', 'exists:maintenance_companies,id'],
+        ]);
+
+        $maintenanceRequest = OwnerMaintenanceRequest::query()
+            ->where('clinic_id', $clinicId)
+            ->find($id);
+
+        if (! $maintenanceRequest) {
+            return ApiResponse::error('Maintenance request not found.', 404);
+        }
+
+        $company = MaintenanceCompany::query()->find($validated['company_id']);
+        $maintenanceRequest->update(['assigned_company_id' => $company->id]);
+
+        return ApiResponse::success([
+            'request_id' => $maintenanceRequest->id,
+            'request_code' => $maintenanceRequest->request_code,
+            'maintenance_company' => [
+                'id' => $company->id,
+                'name' => $company->name,
+                'phone' => $company->phone,
+            ],
+        ], 'Maintenance company assigned successfully');
     }
     public function store(Request $request)
 {
@@ -142,7 +182,7 @@ $equipment = Equipment::create([
         201
     );
 }
-   private function formatEquipment(Equipment $equipment): array
+    private function formatEquipment(Equipment $equipment): array
     {
         return [
             'id'         => $equipment->id,
@@ -153,5 +193,13 @@ $equipment = Equipment::create([
             'created_at' => optional($equipment->created_at)?->toISOString(),
             'updated_at' => optional($equipment->updated_at)?->toISOString(),
         ];
+    }
+
+    private function defaultMaintenanceCompanyId(): ?int
+    {
+        return MaintenanceCompany::query()
+            ->where('status', MaintenanceCompany::STATUS_ACTIVE)
+            ->orderByDesc('ai_rating')
+            ->value('id');
     }
 }

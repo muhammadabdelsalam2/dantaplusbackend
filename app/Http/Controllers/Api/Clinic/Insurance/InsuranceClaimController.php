@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Api\Clinic\Insurance;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Clinic\Insurance\InsuranceAnalyticsRequest;
+use App\Http\Requests\Clinic\Insurance\InsuranceApprovalReportRequest;
+use App\Http\Requests\Clinic\Insurance\InsuranceMonthlyRequest;
 use App\Http\Requests\Clinic\Insurance\PatientLookupRequest;
 use App\Http\Requests\Clinic\Insurance\StoreInsuranceClaimRequest;
 use App\Http\Requests\Clinic\Insurance\UpdateInsuranceClaimRequest;
@@ -33,6 +36,36 @@ class InsuranceClaimController extends Controller
         }
 
         return ApiResponse::success($result['data'], $result['message'], $result['code']);
+    }
+
+    public function analytics(InsuranceAnalyticsRequest $request)
+    {
+        $result = $this->service->analytics();
+
+        return $result['success']
+            ? ApiResponse::success($result['data'], $result['message'], $result['code'])
+            : ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+    }
+
+    public function monthly(InsuranceMonthlyRequest $request)
+    {
+        $validated = $request->validated();
+        $validated['year'] = (int) ($validated['year'] ?? now()->format('Y'));
+
+        $result = $this->service->monthly($validated);
+
+        return $result['success']
+            ? ApiResponse::success($result['data'], $result['message'], $result['code'])
+            : ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+    }
+
+    public function approvalReport(InsuranceApprovalReportRequest $request)
+    {
+        $result = $this->service->approvalReport($request->validated());
+
+        return $result['success']
+            ? ApiResponse::success($result['data'], $result['message'], $result['code'])
+            : ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
     }
 
     public function store(StoreInsuranceClaimRequest $request)

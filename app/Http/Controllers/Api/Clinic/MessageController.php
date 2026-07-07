@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Clinic\Message;
 use App\Models\Clinic\MessageLog;
 use App\Models\Clinic\MessageTemplate;
+use App\Jobs\Clinic\SendPatientWhatsAppMessageJob;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -201,20 +202,23 @@ class MessageController extends Controller
 
         MessageLog::query()->insert($rows);
 
-        // TODO: dispatch actual SMS/WhatsApp jobs here per row
-        // After dispatch, status moves from 'pending' → 'sent' | 'failed'
-        // For now mark all as sent immediately
         MessageLog::query()
             ->where('batch_uuid', $batchUuid)
-            ->update(['status' => 'sent']);
+            ->orderBy('id')
+            ->get(['id'])
+            ->values()
+            ->each(function (MessageLog $log, int $index) {
+                SendPatientWhatsAppMessageJob::dispatch($log->id)
+                    ->delay(now()->addMinutes(5 * $index));
+            });
 
         return response()->json([
             'success' => true,
-            'message' => 'Messages sent successfully.',
+            'message' => 'Messages queued successfully.',
             'data'    => [
                 'message_id'    => $message->id,
                 'batch_uuid'    => $batchUuid,
-                'sent_count'    => count($rows),
+                'queued_count'  => count($rows),
                 'skipped_count' => $skippedCount,
             ],
         ]);

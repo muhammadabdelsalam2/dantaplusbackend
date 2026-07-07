@@ -55,4 +55,10 @@ return [
         ],
     ],
 
+    'sms' => [
+        'endpoint' => env('SMS_ENDPOINT'),
+        'api_key' => env('SMS_API_KEY'),
+        'sender' => env('SMS_SENDER'),
+    ],
+
 ];

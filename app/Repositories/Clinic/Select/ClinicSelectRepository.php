@@ -4,6 +4,7 @@ namespace App\Repositories\Clinic\Select;
 
 use App\Models\ClinicExpenseCategory;
 use App\Models\ClinicLabPartnership;
+use App\Models\InsuranceCompany;
 use App\Models\Patient;
 use App\Models\Setting;
 use App\Models\User;
@@ -66,6 +67,15 @@ class ClinicSelectRepository implements ClinicSelectRepositoryInterface
         return ClinicExpenseCategory::query()
             ->where('clinic_id', $clinicId)
             ->where('status', 'active')
+            ->orderBy('name')
+            ->get(['id', 'name']);
+    }
+
+    public function insuranceCompanies(int $clinicId): Collection
+    {
+        return InsuranceCompany::query()
+            ->where('clinic_id', $clinicId)
+            ->where('is_active', true)
             ->orderBy('name')
             ->get(['id', 'name']);
     }

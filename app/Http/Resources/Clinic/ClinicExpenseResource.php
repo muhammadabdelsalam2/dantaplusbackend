@@ -17,6 +17,8 @@ class ClinicExpenseResource extends JsonResource
             'payment_method' => $this->payment_method,
             'expense_date' => optional($this->expense_date)?->toDateString(),
             'notes' => $this->notes,
+            'attachment_path' => $this->attachment_path,
+            'attachment_url' => $this->attachment_path ? asset('storage/' . $this->attachment_path) : null,
             'category' => $this->category ? [
                 'id' => $this->category->id,
                 'name' => $this->category->name,

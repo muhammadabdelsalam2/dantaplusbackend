@@ -18,5 +18,7 @@ interface ClinicSelectRepositoryInterface
 
     public function expenseCategories(int $clinicId): Collection;
 
+    public function insuranceCompanies(int $clinicId): Collection;
+
     public function responseSpeeds(int $clinicId): Collection;
 }

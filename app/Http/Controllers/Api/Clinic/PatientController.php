@@ -8,6 +8,7 @@ use App\Http\Requests\Clinic\StorePatientLabCaseRequest;
 use App\Http\Requests\Clinic\StorePatientNoteRequest;
 use App\Http\Requests\Clinic\StorePatientRequest;
 use App\Http\Requests\Clinic\IndexClinicPatientsRequest;
+use App\Http\Requests\Clinic\UpdatePatientRequest;
 use App\Http\Requests\Clinic\UploadPatientRadiologyRequest;
 use App\Services\Clinic\PatientService;
 use App\Support\ApiResponse;
@@ -47,6 +48,17 @@ class PatientController extends Controller
     public function show(int $id)
     {
         $result = $this->service->show($id);
+
+        if (! $result['success']) {
+            return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+        }
+
+        return ApiResponse::success($result['data'], $result['message'], $result['code']);
+    }
+
+    public function update(UpdatePatientRequest $request, int $id)
+    {
+        $result = $this->service->update($id, $request->validated());
 
         if (! $result['success']) {
             return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);

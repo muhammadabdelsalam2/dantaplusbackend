@@ -26,6 +26,10 @@ class PatientResource extends JsonResource
                 'provider' => $this->insurance_provider,
                 'number' => $this->insurance_number,
             ], static fn ($value) => $value !== null),
+            'insurance_company' => $this->insuranceCompany ? [
+                'id' => $this->insuranceCompany->id,
+                'name' => $this->insuranceCompany->name,
+            ] : null,
             'notes' => $this->notes,
         ], static fn ($value) => $value !== null && $value !== []);
     }

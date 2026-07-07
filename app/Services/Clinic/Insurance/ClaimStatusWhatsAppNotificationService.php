@@ -4,6 +4,7 @@ namespace App\Services\Clinic\Insurance;
 
 use App\Models\Clinic\Insurance\InsuranceClaim;
 use App\Models\WhatsAppMessage;
+use App\Services\Clinic\WhatsappBot\Providers\WhatsAppProviderInterface;
 use Exception;
 use Illuminate\Support\Facades\Log;
 
@@ -11,7 +12,7 @@ class ClaimStatusWhatsAppNotificationService
 {
     private ?string $patientPhone = null;
 
-    public function __construct(private InsuranceClaim $claim)
+    public function __construct(private InsuranceClaim $claim, private WhatsAppProviderInterface $provider)
     {
         $this->patientPhone = $claim->patient?->user?->phone;
     }
@@ -71,30 +72,17 @@ class ClaimStatusWhatsAppNotificationService
     private function send(string $message): bool
     {
         try {
-            // Get WhatsApp provider from config or service
-            $provider = app('whatsapp.provider');
-            if (!$provider) {
-                Log::warning('WhatsApp provider not configured');
-                return false;
-            }
-
-            // Send message through provider
-            $result = $provider->send(
-                phone: $this->patientPhone,
-                message: $message
-            );
+            $result = $this->provider->sendMessage($this->patientPhone, $message, $this->claim->clinic);
 
             // Log success
             if (class_exists(WhatsAppMessage::class)) {
                 WhatsAppMessage::create([
                     'clinic_id' => $this->claim->clinic_id,
-                    'to' => $this->patientPhone,
+                    'patient_phone' => $this->patientPhone,
                     'message' => $message,
-                    'status' => 'sent',
-                    'sent_at' => now(),
-                    'related_type' => 'insurance_claim',
-                    'related_id' => $this->claim->id,
-                    'action' => 'claim_status_update',
+                    'reply' => null,
+                    'intent' => 'claim_status_update',
+                    'created_at' => now(),
                 ]);
             }
 
@@ -109,13 +97,11 @@ class ClaimStatusWhatsAppNotificationService
             if (class_exists(WhatsAppMessage::class)) {
                 WhatsAppMessage::create([
                     'clinic_id' => $this->claim->clinic_id,
-                    'to' => $this->patientPhone,
+                    'patient_phone' => $this->patientPhone,
                     'message' => $message,
-                    'status' => 'failed',
-                    'sent_at' => now(),
-                    'related_type' => 'insurance_claim',
-                    'related_id' => $this->claim->id,
-                    'action' => 'claim_status_update',
+                    'reply' => 'failed',
+                    'intent' => 'claim_status_update',
+                    'created_at' => now(),
                 ]);
             }
 

@@ -19,9 +19,11 @@ class MessageLog extends Model
         'template_id',
         'sent_by',
         'batch_uuid',
-        'type',
+        'channel',
+        'message_type',
         'status',
         'message_body',
+        'phone',
         'sent_at',
     ];
 

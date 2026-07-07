@@ -22,6 +22,7 @@ class Patient extends Model
         'allergies',
         'current_medication',
         'insurance_provider',
+        'insurance_company_id',
         'insurance_number',
         'notes',
     ];
@@ -81,6 +82,11 @@ class Patient extends Model
     public function documents(): HasMany
     {
         return $this->hasMany(PatientDocument::class);
+    }
+
+    public function insuranceCompany(): BelongsTo
+    {
+        return $this->belongsTo(InsuranceCompany::class, 'insurance_company_id');
     }
 
     public function getAgeAttribute(): ?int

@@ -18,6 +18,7 @@ class StoreEquipmentReportRequest extends FormRequest
             'malfunction_type' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string'],
             'urgency' => ['required', Rule::in(['low', 'medium', 'high', 'critical'])],
+            'company_id' => ['nullable', 'integer', 'exists:maintenance_companies,id'],
             'attachment'=> ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf,doc,docx', 'max:10240'],
         ];
     }

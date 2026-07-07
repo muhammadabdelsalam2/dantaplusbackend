@@ -15,9 +15,16 @@ class PayClinicOrderRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'payment_method' => ['nullable', Rule::in(['cash', 'visa', 'pay_later'])],
+            'payment_method' => ['nullable', Rule::in(['cash'])],
             'payment_status' => ['nullable', Rule::in(['paid', 'pending_cash', 'pending_payment', 'pending_invoice'])],
             'payment_reference' => ['nullable', 'string', 'max:255'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'payment_method.in' => 'Only cash payment is allowed for material orders.',
         ];
     }
 }

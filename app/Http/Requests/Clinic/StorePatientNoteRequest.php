@@ -15,6 +15,10 @@ class StorePatientNoteRequest extends FormRequest
     {
         return [
             'note' => ['required', 'string'],
+            'attachments' => ['nullable', 'array'],
+            'attachments.*' => ['file', 'max:10240'],
+            'mentions' => ['nullable', 'array'],
+            'mentions.*' => ['integer', 'exists:users,id'],
         ];
     }
 }
