@@ -23,24 +23,24 @@ class InsuranceClaimData
     }
 
     public static function fromArray(array $data): self
-    {
-        return new self(
-            insuranceCompanyId: (int) $data['insurance_company_id'],
-            patientId: (int) $data['patient_id'],
-            appointmentId: isset($data['appointment_id']) ? (int) $data['appointment_id'] : null,
-            clinicInvoiceId: isset($data['clinic_invoice_id']) ? (int) $data['clinic_invoice_id'] : null,
-            title: $data['title'],
-            description: $data['description'] ?? null,
-            serviceDate: $data['service_date'],
-            coveragePercentage: (float) $data['coverage_percentage'],
-            grossAmount: (float) $data['gross_amount'],
-            approvedAmount: isset($data['approved_amount']) ? (float) $data['approved_amount'] : null,
-            paidAmount: isset($data['paid_amount']) ? (float) $data['paid_amount'] : null,
-            status: $data['status'] ?? null,
-            notes: $data['notes'] ?? null,
-            statusNotes: $data['status_notes'] ?? null,
-        );
-    }
+{
+    return new self(
+        insuranceCompanyId: (int) $data['insurance_company_id'],
+        patientId: (int) $data['patient_id'],
+        appointmentId: isset($data['appointment_id']) ? (int) $data['appointment_id'] : null,
+        clinicInvoiceId: isset($data['clinic_invoice_id']) ? (int) $data['clinic_invoice_id'] : null,
+        title: $data['title'],
+        description: $data['description'] ?? null,
+        serviceDate: $data['service_date'],
+        coveragePercentage: (float) $data['coverage_percentage'],
+        grossAmount: (float) ($data['gross_amount'] ?? 0),
+        approvedAmount: isset($data['approved_amount']) ? (float) $data['approved_amount'] : null,
+        paidAmount: isset($data['paid_amount']) ? (float) $data['paid_amount'] : null,
+        status: $data['status'] ?? null,
+        notes: $data['notes'] ?? null,
+        statusNotes: $data['status_notes'] ?? null,
+    );
+}
 
     public function toArray(): array
     {
