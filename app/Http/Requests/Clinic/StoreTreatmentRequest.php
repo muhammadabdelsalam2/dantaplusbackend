@@ -14,7 +14,7 @@ class StoreTreatmentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'patient_id' => ['required', 'integer', 'exists:patients,id'],
+            'patient_id' => ['nullable', 'integer', 'exists:patients,id'],
             'doctor_id' => ['nullable', 'integer', 'exists:users,id'],
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],

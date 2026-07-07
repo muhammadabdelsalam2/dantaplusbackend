@@ -15,7 +15,7 @@ class RadiologyResource extends JsonResource
             'clinic_id' => $this->clinic_id,
             'modality' => $this->modality,
             'notes' => $this->notes,
-            'file_path' => $this->file_path,
+            'file_path' => $this->file_path ? \Storage::disk('public')->url($this->file_path) : null,
             'status' => $this->status,
             'created_at' => optional($this->created_at)?->toISOString(),
         ], static fn ($value) => $value !== null);

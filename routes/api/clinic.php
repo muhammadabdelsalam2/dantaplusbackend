@@ -206,8 +206,6 @@ Route::prefix('clinic')
         Route::middleware('permission:patients.view')->get('/patients/{id}/discussion',           [PatientController::class, 'discussion']);
         Route::middleware('permission:communication.send')->post('/patients/{id}/discussion',     [PatientController::class, 'storeDiscussion']);
         Route::middleware('permission:patients.view')->get('/patients/{id}/analytics',            [PatientController::class, 'analytics']);
-
-        // ─── Appointments ────────────────────────────────────────────────────
         Route::middleware('permission:appointments.view')->get('/appointments',       [AppointmentController::class, 'index']);
         Route::middleware('permission:appointments.create')->post('/appointments',    [AppointmentController::class, 'store']);
         Route::middleware('permission:appointments.update')->post('/appointments/{id}', [AppointmentController::class, 'update']);
@@ -225,6 +223,8 @@ Route::prefix('clinic')
         Route::middleware('permission:treatments.manage')->get('/treatments',       [TreatmentController::class, 'index']);
         Route::middleware('permission:treatments.manage')->post('/treatments',      [TreatmentController::class, 'store']);
         Route::middleware('permission:treatments.manage')->get('/treatments/{id}',  [TreatmentController::class, 'show']);
+        Route::middleware('permission:treatments.manage')->get('/patients/{id}/treatments',  [TreatmentController::class, 'indexForPatient']);
+        Route::middleware('permission:treatments.manage')->post('/patients/{id}/treatments', [TreatmentController::class, 'storeForPatient']);
 
         Route::get('/select/{resource}', [SelectController::class, 'show']);
 

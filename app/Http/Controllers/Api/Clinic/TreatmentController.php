@@ -47,4 +47,25 @@ class TreatmentController extends Controller
 
         return ApiResponse::success($result['data'], $result['message'], $result['code']);
     }
+    public function indexForPatient(int $patientId)
+{
+    $result = $this->service->indexForPatient($patientId);
+
+    if (! $result['success']) {
+        return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+    }
+
+    return ApiResponse::success($result['data'], $result['message'], $result['code']);
+}
+
+public function storeForPatient(StoreTreatmentRequest $request, int $patientId)
+{
+    $result = $this->service->createForPatient($patientId, $request->validated());
+
+    if (! $result['success']) {
+        return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+    }
+
+    return ApiResponse::success($result['data'], $result['message'], $result['code']);
+}
 }

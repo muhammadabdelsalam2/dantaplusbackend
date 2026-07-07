@@ -87,4 +87,32 @@ class TreatmentService
     {
         return auth()->user()?->clinic_id;
     }
+    public function indexForPatient(int $patientId): array
+{
+    $clinicId = $this->currentClinicId();
+    if (! $clinicId) {
+        return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
+    }
+
+    $patient = Patient::query()->where('clinic_id', $clinicId)->find($patientId);
+    if (! $patient) {
+        return ServiceResult::error('Patient not found.', null, null, 404);
+    }
+
+    $rows = ClinicTreatment::query()
+        ->with(['patient.user:id,name', 'doctor:id,name'])
+        ->where('clinic_id', $clinicId)
+        ->where('patient_id', $patient->id)
+        ->latest('id')
+        ->get();
+
+    return ServiceResult::success(TreatmentResource::collection($rows)->resolve(), 'Patient treatments fetched successfully');
+}
+
+public function createForPatient(int $patientId, array $data): array
+{
+    $data['patient_id'] = $patientId;
+
+    return $this->create($data);
+}
 }
