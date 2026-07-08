@@ -202,4 +202,41 @@ $equipment = Equipment::create([
             ->orderByDesc('ai_rating')
             ->value('id');
     }
+    public function companies(Request $request)
+{
+    $clinicId = auth()->user()?->clinic_id;
+    if (! $clinicId) {
+        return ApiResponse::error('Clinic account is not linked to a clinic.', 403);
+    }
+
+    $validated = $request->validate([
+        'search'   => ['nullable', 'string', 'max:255'],
+        'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+    ]);
+
+    $perPage = max(1, min((int) ($validated['per_page'] ?? 15), 100));
+
+    $companies = MaintenanceCompany::query()
+        ->where('status', MaintenanceCompany::STATUS_ACTIVE)
+        ->when($validated['search'] ?? null, fn ($q, $search) =>
+            $q->where('name', 'like', "%{$search}%")
+        )
+        ->orderByDesc('ai_rating')
+        ->paginate($perPage);
+
+    return ApiResponse::success([
+        'items' => collect($companies->items())->map(fn ($c) => [
+            'id'        => $c->id,
+            'name'      => $c->name,
+            'phone'     => $c->phone,
+            'ai_rating' => $c->ai_rating,
+        ])->values(),
+        'pagination' => [
+            'current_page' => $companies->currentPage(),
+            'last_page'    => $companies->lastPage(),
+            'per_page'     => $companies->perPage(),
+            'total'        => $companies->total(),
+        ],
+    ], 'Maintenance companies fetched successfully');
+}
 }

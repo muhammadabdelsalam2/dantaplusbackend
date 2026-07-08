@@ -279,6 +279,7 @@ Route::prefix('clinic')
             Route::get('/', [EquipmentController::class, 'index']);
             Route::post('/{equipment}/report', [EquipmentController::class, 'report']);
             Route::post('/', [EquipmentController::class, 'store']);
+            Route::get('/companies', [EquipmentController::class, 'companies']);
         });
         Route::middleware('permission:equipment.view')->post('/equipment-reports/{id}/assign-company', [EquipmentController::class, 'assignCompany']);
 
