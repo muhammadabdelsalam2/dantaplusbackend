@@ -39,11 +39,20 @@ use App\Http\Controllers\Api\Clinic\TreatmentController;
 use App\Http\Controllers\Api\Clinic\TaskController;
 use App\Http\Controllers\Api\Clinic\UserController;
 use App\Http\Controllers\Api\Owner\SupportCenterController;
+use App\Http\Controllers\Api\Clinic\CaseCommunicationController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('clinic')
     ->middleware(['api.error', 'auth:sanctum', 'role:clinic_admin|doctor|nurse|accountant|receptionist|staff'])
     ->group(function () {
+        Route::middleware('permission:dental_labs.view')->prefix('dental-lab-orders/{id}')->group(function () {
+    Route::get('/messages', [CaseCommunicationController::class, 'messages']);
+    Route::get('/attachments', [CaseCommunicationController::class, 'attachments']);
+});
+Route::middleware('permission:dental_labs.manage')->prefix('dental-lab-orders/{id}')->group(function () {
+    Route::post('/messages', [CaseCommunicationController::class, 'storeMessage']);
+    Route::post('/attachments', [CaseCommunicationController::class, 'storeAttachment']);
+});
 
         // ─── Patient Messaging ───────────────────────────────────────────────
         Route::prefix('messages')

@@ -1,0 +1,61 @@
+<?php
+
+return [
+    'clinic' => [
+        'appointments' => ['appointments.view', 'appointments.create', 'appointments.update'],
+        'billing' => ['billing.manage'],
+        'communications' => ['communication.send'],
+        'dashboard' => [],
+        'equipment' => ['equipment.view'],
+        'insurance' => ['insurance.view', 'insurance.create', 'insurance.update', 'insurance.delete'],
+        'inventories' => ['inventory.view', 'inventory.manage'],
+        'labs' => ['labs.send', 'labs.track', 'dental_labs.view', 'dental_labs.manage'],
+        'materials' => ['materials.view'],
+        'notifications' => [],
+        'orders' => ['orders.view', 'orders.manage'],
+        'patient-messages' => ['send_text', 'send_voice', 'send_file', 'access_patient_discussion'],
+        'patients' => ['patients.view', 'patients.create', 'patients.update'],
+        'settings' => ['settings.manage'],
+        'support-tickets' => ['support.view', 'support.create', 'support.manage'],
+        'tasks' => ['tasks.view', 'tasks.manage'],
+        'team-chat' => ['chat.view', 'chat.manage'],
+    ],
+
+    'lab' => [
+        'accounting' => [],
+        'clinics' => [],
+        'communication' => ['chat.view', 'chat.manage'],
+        'dashboard' => [],
+        'delivery-reports' => ['delivery.view'],
+        'delivery-reps' => ['delivery.assign'],
+        'equipment' => ['equipment.view'],
+        'inventories' => ['inventory.view', 'inventory.manage'],
+        'analytics' => [],
+        'orders' => ['cases.view', 'cases.create', 'cases.update'],
+        'settings' => ['settings.manage'],
+        'support' => ['support.view', 'support.create', 'support.manage'],
+    ],
+
+    'patient' => [
+        'appointments' => ['patient.appointments.view', 'patient.appointments.create', 'patient.appointments.cancel'],
+        'dashboard' => ['patient.dashboard.view'],
+        'documents' => ['patient.documents.view'],
+        'invoices' => ['patient.invoices.view'],
+        'payments' => ['patient.payments.view', 'patient.refunds.create'],
+        'profile' => ['patient.profile.view', 'patient.profile.update'],
+        'radiology' => [],
+    ],
+
+    'supplier' => [
+        'accounts' => ['billing.manage'],
+        'communication' => [],
+        'dashboard' => [],
+        'inventories' => ['inventory.view', 'inventory.manage'],
+        'invoices' => ['billing.manage'],
+        'orders' => ['orders.view', 'orders.manage'],
+        'products' => ['products.manage'],
+        'reports' => ['reports.view'],
+        'settings' => ['settings.manage'],
+        'users' => ['users.manage'],
+    ],
+];

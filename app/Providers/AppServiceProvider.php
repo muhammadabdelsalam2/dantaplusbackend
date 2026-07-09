@@ -7,6 +7,7 @@ use App\Models\ClinicAppointment;
 use App\Models\MaterialProduct;
 use App\Observers\ClinicAppointmentObserver;
 use App\Observers\MaterialProductObserver;
+use App\Repositories\Access\RoleAccessRepository;
 use App\Repositories\Chat\Message\MessageRepository;
 use App\Repositories\Chat\Team\TeamRepository;
 use App\Repositories\Clinic\Billing\ClinicBillingRepository;
@@ -19,6 +20,7 @@ use App\Repositories\Clinic\Settings\ClinicSettingsRepository;
 use App\Repositories\Clinic\Settings\ClinicSettingsRepositoryInterface;
 use App\Repositories\Clinic\Task\ClinicTaskRepository;
 use App\Repositories\Clinic\Task\ClinicTaskRepositoryInterface;
+use App\Repositories\Contracts\Access\RoleAccessRepositoryInterface;
 use App\Repositories\Contracts\Chat\Message\MessageRepositoryInterface;
 use App\Repositories\Contracts\Chat\Team\TeamRepositoryInterface;
 use App\Repositories\Contracts\SuperAdmin\RoleManagementRepositoryInterface;
@@ -50,6 +52,7 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        $this->app->bind(RoleAccessRepositoryInterface::class, RoleAccessRepository::class);
         $this->app->bind(UserManagementRepositoryInterface::class, UserManagementRepository::class);
         $this->app->bind(RoleManagementRepositoryInterface::class, RoleManagementRepository::class);
         $this->app->bind(SuperAdminSettingsRepositoryInterface::class, SuperAdminSettingsRepository::class);

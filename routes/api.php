@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\AccessController;
 use App\Http\Controllers\Api\CommunicationController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Broadcast;
@@ -16,7 +17,10 @@ Route::middleware('api.error')->group(function () {
     Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/me', fn() => auth()->user());
+        Route::get('/me/access', [AccessController::class, 'me']);
         Route::get('/user', fn(Request $request) => $request->user());
+        Route::get('/roles/permissions-matrix', [AccessController::class, 'permissionsMatrix']);
+        Route::post('/roles/{roleId}/permissions', [AccessController::class, 'syncRolePermissions'])->whereNumber('roleId');
 
         Route::prefix('communication')->group(function () {
             Route::get('/contacts', [CommunicationController::class, 'contacts']);

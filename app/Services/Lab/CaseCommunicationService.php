@@ -32,7 +32,8 @@ class CaseCommunicationService
             return ServiceResult::error('Case not found', null, null, 404);
         }
 
-        $messages = $this->caseMessageRepository->paginateByCase($caseId, $perPage);
+        $messages = $this->caseMessageRepository->paginateByCaseForViewer($caseId, 'lab', $perPage);
+
         $this->caseMessageRepository->markUnreadAsRead($caseId, auth()->id());
 
         return ServiceResult::success([

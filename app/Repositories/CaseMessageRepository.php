@@ -38,4 +38,16 @@ class CaseMessageRepository
             'read_at' => now(),
         ]);
     }
+    public function paginateByCaseForViewer(int $caseId, string $viewerType, int $perPage = 30)
+{
+    return CaseMessage::query()
+        ->where('case_id', $caseId)
+        ->where(function ($q) use ($viewerType) {
+            $q->where('is_internal', false)
+              ->orWhere('sender_type', $viewerType);
+        })
+        ->orderBy('created_at')
+        ->orderBy('id')
+        ->paginate($perPage);
+}
 }
