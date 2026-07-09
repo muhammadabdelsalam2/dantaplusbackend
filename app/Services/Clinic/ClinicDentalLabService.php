@@ -4,6 +4,7 @@ namespace App\Services\Clinic;
 
 use App\Http\Resources\Clinic\ClinicDentalLabAnalyticsResource;
 use App\Http\Resources\Clinic\ClinicDentalLabGalleryResource;
+use App\Http\Resources\Clinic\ClinicDentalLabOrderDetailResource;
 use App\Http\Resources\Clinic\ClinicDentalLabOrderResource;
 use App\Http\Resources\Clinic\ClinicDentalLabResource;
 use App\Http\Resources\Clinic\ClinicDentalLabServiceResource;
@@ -321,6 +322,24 @@ class ClinicDentalLabService
         return ServiceResult::success(
             (new ClinicDentalLabAnalyticsResource($analytics))->resolve(),
             'Dental lab analytics fetched successfully'
+        );
+    }
+
+    public function showOrder(int $orderId): array
+    {
+        $clinicId = $this->currentClinicId();
+        if (! $clinicId) {
+            return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
+        }
+
+        $order = $this->repository->findOrder($clinicId, $orderId);
+        if (! $order) {
+            return ServiceResult::error('Dental lab order not found.', null, null, 404);
+        }
+
+        return ServiceResult::success(
+            (new ClinicDentalLabOrderDetailResource($order))->resolve(),
+            'Dental lab order fetched successfully'
         );
     }
 

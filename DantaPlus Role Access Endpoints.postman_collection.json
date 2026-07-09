@@ -1,0 +1,323 @@
+{
+  "info": {
+    "_postman_id": "88366008-6d77-4169-b409-2fe08c2f8fcc",
+    "name": "DantaPlus Role Access Endpoints",
+    "description": "Three role access endpoints for current user access, permissions matrix, and scoped role permission updates.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "50905618"
+  },
+  "item": [
+    {
+      "name": "Current User Access",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/me/access",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "me",
+            "access"
+          ]
+        }
+      },
+      "response": [
+        {
+          "name": "Success",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/me/access",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "me",
+                "access"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"status\": \"success\",\n  \"success\": true,\n  \"message\": \"User access fetched successfully\",\n  \"data\": {\n    \"role\": \"clinic_admin\",\n    \"role_id\": 12,\n    \"permissions\": [\n      \"patients.view\",\n      \"settings.manage\"\n    ],\n    \"modules\": [\n      \"dashboard\",\n      \"notifications\",\n      \"patients\",\n      \"settings\"\n    ]\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "Roles Permissions Matrix",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/roles/permissions-matrix",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "roles",
+            "permissions-matrix"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Update Role Permissions",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"permissions\": [\n    \"patients.view\",\n    \"settings.manage\"\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/roles/{{role_id}}/permissions",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "roles",
+            "{{role_id}}",
+            "permissions"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Clinic Dental Labs Analytics",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/clinic/dental-labs/analytics",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "clinic",
+            "dental-labs",
+            "analytics"
+          ]
+        }
+      },
+      "response": [
+        {
+          "name": "Success",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/clinic/dental-labs/analytics",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "clinic",
+                "dental-labs",
+                "analytics"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"status\": \"success\",\n  \"success\": true,\n  \"message\": \"Dental lab analytics fetched successfully\",\n  \"data\": {\n    \"summary\": {\n      \"total_orders\": 120,\n      \"orders_completed\": 90,\n      \"late_deliveries\": 15,\n      \"avg_delivery_time\": 5,\n      \"on_time_rate\": 80.00,\n      \"on_time_count\": 72,\n      \"late_count\": 18\n    },\n    \"orders_by_dental_lab\": [\n      {\n        \"dental_lab_id\": 1,\n        \"dental_lab_name\": \"Precision Dental Labs\",\n        \"orders_count\": 75\n      },\n      {\n        \"dental_lab_id\": 2,\n        \"dental_lab_name\": \"Elite Lab Services\",\n        \"orders_count\": 45\n      }\n    ],\n    \"orders_by_provider\": [\n      {\n        \"provider_id\": 1,\n        \"provider_name\": \"Precision Dental Labs\",\n        \"orders_count\": 75\n      },\n      {\n        \"provider_id\": 2,\n        \"provider_name\": \"Elite Lab Services\",\n        \"orders_count\": 45\n      }\n    ],\n    \"delivery_time_trend\": [\n      {\n        \"date\": \"2026-06-10\",\n        \"avg_delivery_days\": 4.5,\n        \"orders_count\": 10\n      },\n      {\n        \"date\": \"2026-06-17\",\n        \"avg_delivery_days\": 5.2,\n        \"orders_count\": 12\n      }\n    ],\n    \"recent_orders\": []\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "Clinic Dental Lab Order Detail",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/clinic/dental-lab-orders/{{order_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "clinic",
+            "dental-lab-orders",
+            "{{order_id}}"
+          ]
+        }
+      },
+      "response": [
+        {
+          "name": "Success",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/clinic/dental-lab-orders/{{order_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "clinic",
+                "dental-lab-orders",
+                "{{order_id}}"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"status\": \"success\",\n  \"success\": true,\n  \"message\": \"Dental lab order fetched successfully\",\n  \"data\": {\n    \"id\": 501,\n    \"case_number\": \"LO-AB12CD\",\n    \"status\": \"Delivered\",\n    \"priority\": \"Normal\",\n    \"case_type\": \"Crown\",\n    \"tooth_numbers\": [1, 2, 3],\n    \"description\": \"Root canal required.\",\n    \"date_sent\": \"2026-06-10T08:15:00Z\",\n    \"expected_delivery\": \"2026-06-20\",\n    \"actual_delivery\": \"2026-06-18\",\n    \"patient\": {\n      \"id\": 129,\n      \"name\": \"Ahmed Samir\",\n      \"phone\": \"0123456789\",\n      \"file_number\": \"PT-00421\"\n    },\n    \"lab\": {\n      \"id\": 8,\n      \"name\": \"Precision Dental Labs\",\n      \"contact_person\": \"Mona Khaled\",\n      \"phone\": \"01088887777\",\n      \"address\": \"123 Lab Street\",\n      \"email\": \"contact@precisionlabs.com\"\n    },\n    \"dentist\": {\n      \"id\": 31,\n      \"name\": \"Dr. Sara Ahmed\"\n    },\n    \"delivery\": {\n      \"assigned_delivery_id\": 22,\n      \"latest_delivery_task\": {\n        \"id\": 41,\n        \"status\": \"delivered\",\n        \"scheduled_for\": \"2026-06-18T09:00:00Z\",\n        \"assigned_at\": \"2026-06-17T10:00:00Z\",\n        \"picked_up_at\": \"2026-06-18T09:30:00Z\",\n        \"delivered_at\": \"2026-06-18T13:15:00Z\",\n        \"pickup_address\": \"Clinic Branch A\",\n        \"delivery_address\": \"Patient Home\",\n        \"delivery_notes\": \"Handle with care\",\n        \"delivery_rep\": {\n          \"id\": 22,\n          \"name\": \"Khaled Hassan\"\n        }\n      }\n    }\n  }\n}"
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{bearer_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://your-domain.test"
+    },
+    {
+      "key": "bearer_token",
+      "value": "TOKEN_HERE"
+    },
+    {
+      "key": "role_id",
+      "value": "1"
+    }
+  ]
+}

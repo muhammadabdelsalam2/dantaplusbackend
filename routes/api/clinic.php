@@ -309,6 +309,7 @@ Route::middleware('permission:dental_labs.manage')->prefix('dental-lab-orders/{i
         Route::middleware('permission:dental_labs.manage')->post('/dental-labs/{id}/gallery',  [DentalLabController::class, 'storeGallery']);
         Route::middleware('permission:dental_labs.manage')->delete('/dental-lab-services/{id}',[DentalLabController::class, 'destroyService']);
         Route::middleware('permission:dental_labs.view')->get('/dental-lab-orders',            [DentalLabController::class, 'orders']);
+        Route::middleware('permission:dental_labs.view')->get('/dental-lab-orders/{id}',      [DentalLabController::class, 'showOrder']);
         Route::middleware('permission:dental_labs.manage')->post('/dental-lab-orders',         [DentalLabController::class, 'storeOrder']);
         Route::middleware('permission:dental_labs.manage')->post('/dental-lab-orders/{id}/status', [DentalLabController::class, 'updateOrderStatus']);
 

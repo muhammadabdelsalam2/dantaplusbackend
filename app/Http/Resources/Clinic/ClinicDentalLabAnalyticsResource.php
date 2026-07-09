@@ -20,6 +20,7 @@ class ClinicDentalLabAnalyticsResource extends JsonResource
                 ])
                 ->values()
                 ->all(),
+            'delivery_time_trend' => $this['delivery_time_trend'] ?? [],
             'recent_orders' => ClinicDentalLabOrderResource::collection($this['recent_orders'] ?? [])->resolve(),
         ];
     }

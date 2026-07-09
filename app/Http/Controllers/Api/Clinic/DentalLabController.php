@@ -11,6 +11,7 @@ use App\Http\Requests\Clinic\StoreClinicDentalLabServiceRequest;
 use App\Http\Requests\Clinic\StoreClinicDentalLabRequest;
 use App\Http\Requests\Clinic\UpdateClinicDentalLabRequest;
 use App\Http\Requests\Clinic\UpdateClinicDentalLabOrderStatusRequest;
+use App\Http\Resources\Clinic\ClinicDentalLabOrderDetailResource;
 use App\Services\Clinic\ClinicDentalLabService;
 use App\Support\ApiResponse;
 
@@ -124,6 +125,15 @@ class DentalLabController extends Controller
     public function analytics()
     {
         $result = $this->service->analytics();
+
+        return $result['success']
+            ? ApiResponse::success($result['data'], $result['message'], $result['code'])
+            : ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+    }
+
+    public function showOrder(int $id)
+    {
+        $result = $this->service->showOrder($id);
 
         return $result['success']
             ? ApiResponse::success($result['data'], $result['message'], $result['code'])

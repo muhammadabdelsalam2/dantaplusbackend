@@ -167,7 +167,14 @@ class ClinicDentalLabRepository implements ClinicDentalLabRepositoryInterface
     public function findOrder(int $clinicId, int $orderId): ?CaseModel
     {
         return CaseModel::query()
-            ->with(['lab:id,name', 'patient.user:id,name'])
+            ->with([
+                'lab:id,name,contact_person,phone,address,email',
+                'patient:id,user_id,patient_number,phone',
+                'patient.user:id,name',
+                'dentist:id,user_id',
+                'dentist.user:id,name',
+                'latestDeliveryTask.deliveryRep:id,name',
+            ])
             ->where('clinic_id', $clinicId)
             ->find($orderId);
     }
@@ -203,6 +210,9 @@ class ClinicDentalLabRepository implements ClinicDentalLabRepositoryInterface
         $onTimeDelivered = $deliveredOrders
             ->filter(fn (CaseModel $order) => $order->delivered_at && $order->due_date && $order->delivered_at->toDateString() <= $order->due_date->toDateString())
             ->count();
+        $lateDelivered = $deliveredOrders
+            ->filter(fn (CaseModel $order) => $order->delivered_at && $order->due_date && $order->delivered_at->toDateString() > $order->due_date->toDateString())
+            ->count();
 
         $avgDeliveryTime = (int) round(
             $deliveredOrders
@@ -231,8 +241,11 @@ class ClinicDentalLabRepository implements ClinicDentalLabRepositoryInterface
                 'late_deliveries' => $lateOrders,
                 'avg_delivery_time' => $avgDeliveryTime,
                 'on_time_rate' => $onTimeRate,
+                'on_time_count' => $onTimeDelivered,
+                'late_count' => $lateDelivered,
             ],
             'orders_by_dental_lab' => $ordersByDentalLab,
+            'delivery_time_trend' => $this->buildDeliveryTimeTrend($deliveredOrders),
         ];
     }
 
@@ -244,5 +257,26 @@ class ClinicDentalLabRepository implements ClinicDentalLabRepositoryInterface
             ->latest('id')
             ->limit($limit)
             ->get();
+    }
+
+    private function buildDeliveryTimeTrend(Collection $deliveredOrders, int $days = 90): array
+    {
+        $fromDate = now()->subDays($days)->startOfDay();
+
+        $trend = $deliveredOrders
+            ->filter(fn (CaseModel $order) => $order->delivered_at && $order->created_at && $order->delivered_at->gte($fromDate))
+            ->groupBy(fn (CaseModel $order) => $order->delivered_at->toDateString())
+            ->map(function (Collection $group, string $date) {
+                return [
+                    'date' => $date,
+                    'avg_delivery_days' => round($group->avg(fn (CaseModel $order) => $order->created_at->diffInDays($order->delivered_at)), 2),
+                    'orders_count' => $group->count(),
+                ];
+            })
+            ->sortBy('date')
+            ->values()
+            ->all();
+
+        return $trend;
     }
 }
