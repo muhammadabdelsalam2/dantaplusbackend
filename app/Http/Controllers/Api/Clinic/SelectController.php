@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Clinic;
 use App\Http\Controllers\Controller;
 use App\Services\Clinic\SelectService;
 use App\Support\ApiResponse;
+use Spatie\Permission\Models\Role;
 
 class SelectController extends Controller
 {
@@ -17,7 +18,16 @@ class SelectController extends Controller
     public function show(string $resource)
     {
         if ($resource === 'clinic_roles') {
-            return ApiResponse::success(collect(\App\Support\UserRoleManager::clinicRoles())
+            $roles = \App\Support\UserRoleManager::clinicRoles();
+
+            // include 'patient' if the role exists in the DB
+            if (Role::where('name', 'patient')->where('guard_name', 'web')->exists()) {
+                $roles[] = 'patient';
+            }
+
+            $roles = array_values(array_unique($roles));
+
+            return ApiResponse::success(collect($roles)
                 ->map(fn ($role) => [
                     'value' => $role,
                     'label' => str($role)->replace('_', ' ')->title()->toString(),
