@@ -35,7 +35,7 @@ class AccessController extends Controller
         $result = $this->service->syncRolePermissions(
             $request->user(),
             $roleId,
-            $request->validated()['permissions']
+            $request->validated()['modules']
         );
 
         if (! $result['success']) {

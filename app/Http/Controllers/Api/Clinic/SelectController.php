@@ -16,6 +16,14 @@ class SelectController extends Controller
 
     public function show(string $resource)
     {
+        if ($resource === 'clinic_roles') {
+            return ApiResponse::success(collect(\App\Support\UserRoleManager::clinicRoles())
+                ->map(fn ($role) => [
+                    'value' => $role,
+                    'label' => str($role)->replace('_', ' ')->title()->toString(),
+                ])->values()->all(), 'Select options fetched successfully');
+        }
+
         $result = $this->service->options($resource);
 
         return $result['success']

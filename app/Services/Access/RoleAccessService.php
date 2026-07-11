@@ -50,9 +50,9 @@ class RoleAccessService
     }
 
     /**
-     * @param array<int, string> $permissionNames
+     * @param array<int, string> $modules
      */
-    public function syncRolePermissions(User $user, int $roleId, array $permissionNames): array
+    public function syncRolePermissions(User $user, int $roleId, array $modules): array
     {
         $targetRole = $this->repository->findRoleOrFail($roleId);
         $allowedRoles = $this->manageableRoleNames($user);
@@ -65,7 +65,21 @@ class RoleAccessService
             return ServiceResult::error('You are not allowed to update permissions for this role.', null, null, 403);
         }
 
-        $role = DB::transaction(function () use ($targetRole, $permissionNames) {
+        $role = DB::transaction(function () use ($targetRole, $modules) {
+            // translate modules -> permissions based on frontend_modules config and role type
+            $type = $this->frontendModuleType($targetRole->name);
+            $moduleConfig = $type ? config("frontend_modules.{$type}", []) : [];
+
+            $permissionNames = [];
+            foreach ($modules as $module) {
+                $perms = $moduleConfig[$module] ?? [];
+                foreach ($perms as $p) {
+                    $permissionNames[] = $p;
+                }
+            }
+
+            $permissionNames = array_values(array_unique($permissionNames));
+
             $role = $this->repository->syncPermissions($targetRole, $permissionNames);
 
             app(PermissionRegistrar::class)->forgetCachedPermissions();
