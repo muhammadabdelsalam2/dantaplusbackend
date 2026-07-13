@@ -5,12 +5,14 @@ namespace App\Http\Controllers\Api\Clinic;
 use App\Http\Controllers\Controller;
 use App\Models\InventoryItem;
 use App\Models\InventoryLog;
+use App\Models\MaterialCategory;
 use App\Models\MaterialCompany;
 use App\Repositories\MaterialProductRepository;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+
 class InventoryController extends Controller
 {
     use ApiResponse;
@@ -91,22 +93,17 @@ class InventoryController extends Controller
         return ApiResponse::success($this->formatInventoryItem($item), 'Inventory item fetched successfully');
     }
 
-   public function store(Request $request)
+public function store(Request $request)
 {
     $clinicId = $this->currentClinicId();
     if (! $clinicId) {
         return ApiResponse::error('Clinic account is not linked to a clinic.', 403);
     }
 
-    $categoryNames = collect(config('material_market.product_category_items', []))
-        ->pluck('label')
-        ->filter()
-        ->values();
-
     $validated = $request->validate([
         'material_product_id' => ['nullable', 'integer', 'exists:material_products,id'],
         'material_name' => ['required_without:material_product_id', 'nullable', 'string', 'max:255'],
-        'category' => ['nullable', 'string', Rule::in($categoryNames)],
+        'category' => ['nullable', 'integer', 'exists:material_categories,id'],
         'initial_qty' => ['required_without:quantity', 'nullable', 'integer', 'min:0'],
         'quantity' => ['required_without:initial_qty', 'nullable', 'integer', 'min:0'],
         'unit_type' => ['required_without:unit', 'nullable', 'string', 'max:50'],
@@ -118,17 +115,11 @@ class InventoryController extends Controller
         'reorder_quantity' => ['nullable', 'integer', 'min:0'],
         'auto_purchase' => ['nullable', 'boolean'],
         'unit_price' => ['nullable', 'numeric', 'min:0'],
-        'supplier' => [
-            'required_without:material_product_id',
-            'nullable',
-            'string',
-            'max:255',
-            Rule::exists('material_companies', 'name'),
-        ],
+        'supplier' => ['required_without:material_product_id', 'nullable', 'integer', 'exists:material_companies,id'],
         'status' => ['nullable', 'in:in_stock,low_stock,out_of_stock'],
     ], [
-        'supplier.exists' => 'Supplier must match an existing material company.',
-        'category.in' => 'Category must be one of the predefined categories.',
+        'supplier.exists' => 'Supplier must match an existing material company id.',
+        'category.exists' => 'Category must be one of the predefined category ids.',
     ]);
 
     $material = ! empty($validated['material_product_id'])
@@ -141,9 +132,7 @@ class InventoryController extends Controller
 
     $supplierCompany = $material?->company;
     if (! $supplierCompany && ! empty($validated['supplier'])) {
-        $supplierCompany = MaterialCompany::query()
-            ->where('name', $validated['supplier'])
-            ->first();
+        $supplierCompany = MaterialCompany::query()->find($validated['supplier']);
     }
 
     if (! $supplierCompany) {
@@ -151,6 +140,10 @@ class InventoryController extends Controller
             'supplier' => ['Supplier must match an existing material company when material_product_id is not provided.'],
         ]);
     }
+
+    $category = ! empty($validated['category'])
+        ? MaterialCategory::query()->find($validated['category'])
+        : null;
 
     $quantity = (int) ($validated['initial_qty'] ?? $validated['quantity'] ?? 0);
     $minimumStockLevel = (int) ($validated['min_threshold'] ?? $validated['minimum_stock_level'] ?? 0);
@@ -161,7 +154,8 @@ class InventoryController extends Controller
         'company_id' => $supplierCompany->id,
         'barcode' => $material?->barcode,
         'product_name' => $material?->name ?? $validated['material_name'],
-        'category_name' => $material?->category ?? ($validated['category'] ?? null),
+        'category_id' => $category?->id,
+        'category_name' => $material?->category ?? $category?->label,
         'description' => $material?->description,
         'quantity' => $quantity,
         'minimum_stock_level' => $minimumStockLevel,
@@ -180,10 +174,7 @@ class InventoryController extends Controller
             ? InventoryItem::query()
                 ->withoutGlobalScopes()
                 ->updateOrCreate(
-                    [
-                        'clinic_id' => $clinicId,
-                        'product_id' => $material->id,
-                    ],
+                    ['clinic_id' => $clinicId, 'product_id' => $material->id],
                     $attributes
                 )
             : InventoryItem::query()
@@ -198,7 +189,7 @@ class InventoryController extends Controller
         return $item;
     });
 
-    return ApiResponse::success($this->formatInventoryItem($item->fresh(['product.company'])), 'Inventory item created successfully');
+    return ApiResponse::success($this->formatInventoryItem($item->fresh(['product.company', 'category'])), 'Inventory item created successfully');
 }
 
     public function update(Request $request, int $inventory)
@@ -218,7 +209,7 @@ class InventoryController extends Controller
             'unit' => ['sometimes', 'string', 'max:50'],
             'unit_type' => ['sometimes', 'string', 'max:50'],
             'material_name' => ['sometimes', 'string', 'max:255'],
-            'category' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'category' => ['sometimes', 'nullable', 'integer', 'exists:material_categories,id'],
             'consumption_per_case' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'auto_purchase' => ['sometimes', 'boolean'],
             'unit_price' => ['sometimes', 'nullable', 'numeric', 'min:0'],
@@ -252,11 +243,16 @@ class InventoryController extends Controller
                     $supplier = $supplierCompany->name;
                 }
             }
+            $category = array_key_exists('category', $validated) && $validated['category']
+    ? MaterialCategory::query()->find($validated['category'])
+    : null;
 
             $item->update([
                 'company_id' => $supplierCompanyId,
                 'product_name' => $validated['material_name'] ?? $item->product_name,
-                'category_name' => array_key_exists('category', $validated) ? $validated['category'] : $item->category_name,
+    'category_id' => array_key_exists('category', $validated) ? $category?->id : $item->category_id,
+                    'category_name' => array_key_exists('category', $validated) ? $category?->label : $item->category_name,
+
                 'quantity' => $quantity,
                 'minimum_stock_level' => $minimumStockLevel,
                 'reorder_quantity' => $reorderQuantity,
@@ -373,13 +369,14 @@ class InventoryController extends Controller
     {
         return [
             'id' => $item->id,
-            'clinic_id' => $item->clinic_id,
-            'company_id' => $item->company_id,
-            'product_id' => $item->product_id,
-            'barcode' => $item->barcode,
-            'product_name' => $item->product_name,
-            'category_name' => $item->category_name,
-            'description' => $item->description,
+        'clinic_id' => $item->clinic_id,
+        'company_id' => $item->company_id,
+        'product_id' => $item->product_id,
+        'barcode' => $item->barcode,
+        'product_name' => $item->product_name,
+        'category_id' => $item->category_id,
+        'category_name' => $item->category_name,
+        'description' => $item->description,
             'image_url' => $item->image_path ? asset('storage/' . $item->image_path) : ($item->product?->image_url ?? null),
             'quantity' => (int) $item->quantity,
             'minimum_stock_level' => (int) $item->minimum_stock_level,

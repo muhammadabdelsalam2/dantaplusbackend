@@ -21,6 +21,12 @@ class SelectService
         'insurance-companies' => 'insuranceCompanies',
         'insurance_companies' => 'insuranceCompanies',
         'response-speeds' => 'responseSpeeds',
+            'suppliers' => 'materialCompanies',
+    'material-companies' => 'materialCompanies',
+    'material_companies' => 'materialCompanies',
+    'material-categories' => 'materialCategories',
+    'material_categories' => 'materialCategories',
+    'inventory-categories' => 'materialCategories',
     ];
 
     public function __construct(private ClinicSelectRepositoryInterface $repository)
@@ -44,4 +50,5 @@ class SelectService
             'Select options fetched successfully'
         );
     }
+
 }

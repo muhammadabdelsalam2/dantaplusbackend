@@ -5,6 +5,8 @@ namespace App\Repositories\Clinic\Select;
 use App\Models\ClinicExpenseCategory;
 use App\Models\ClinicLabPartnership;
 use App\Models\InsuranceCompany;
+use App\Models\MaterialCategory;
+use App\Models\MaterialCompany;
 use App\Models\Patient;
 use App\Models\Setting;
 use App\Models\User;
@@ -107,4 +109,28 @@ class ClinicSelectRepository implements ClinicSelectRepositoryInterface
                 'name' => (string) $value,
             ]);
     }
+    public function materialCompanies(int $clinicId, array $filters = []): Collection
+{
+    $search = $filters['search'] ?? null;
+
+    return MaterialCompany::query()
+        ->whereIn('status', ['Active', 'active'])
+        ->when($search, fn ($query, $search) => $query->where('name', 'like', "%{$search}%"))
+        ->orderBy('name')
+        ->get(['id', 'name']);
+}
+
+public function materialCategories(int $clinicId, array $filters = []): Collection
+{
+    $search = $filters['search'] ?? null;
+
+    return MaterialCategory::query()
+        ->when($search, fn ($query, $search) => $query->where('label', 'like', "%{$search}%"))
+        ->orderBy('label')
+        ->get()
+        ->map(fn (MaterialCategory $category) => (object) [
+            'id' => $category->id,
+            'name' => $category->label,
+        ]);
+}
 }

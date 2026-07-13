@@ -15,7 +15,7 @@ class InventoryItem extends Model
     protected $fillable = [
         'company_id', 'clinic_id', 'product_id', 'barcode', 'product_name', 'category_name', 'description', 'image_path',
         'quantity', 'minimum_stock_level', 'reorder_quantity', 'unit', 'consumption_per_case', 'auto_purchase',
-        'supplier', 'unit_price', 'status', 'last_updated_at',
+        'supplier', 'unit_price', 'status', 'last_updated_at','category_id',
     ];
 
     protected function casts(): array
@@ -35,4 +35,8 @@ class InventoryItem extends Model
     public function clinic(): BelongsTo { return $this->belongsTo(Clinic::class); }
     public function product(): BelongsTo { return $this->belongsTo(MaterialProduct::class, 'product_id'); }
     public function logs(): HasMany { return $this->hasMany(InventoryLog::class); }
+    public function category(): BelongsTo
+{
+    return $this->belongsTo(MaterialCategory::class, 'category_id');
+}
 }

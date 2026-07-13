@@ -21,4 +21,7 @@ interface ClinicSelectRepositoryInterface
     public function insuranceCompanies(int $clinicId, array $filters = []): Collection;
 
     public function responseSpeeds(int $clinicId, array $filters = []): Collection;
+    public function materialCompanies(int $clinicId, array $filters = []): Collection;
+
+public function materialCategories(int $clinicId, array $filters = []): Collection;
 }
