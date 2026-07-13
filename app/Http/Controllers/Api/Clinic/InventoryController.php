@@ -10,7 +10,7 @@ use App\Repositories\MaterialProductRepository;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-
+use Illuminate\Validation\Rule;
 class InventoryController extends Controller
 {
     use ApiResponse;
@@ -50,7 +50,7 @@ class InventoryController extends Controller
             ->when($validated['category'] ?? null, fn ($builder, $category) =>
                 $builder->where('category_name', $category)
             )
-            
+
             ->when($validated['supplier'] ?? null, fn ($builder, $supplier) =>
                 $builder->where('supplier', 'like', "%{$supplier}%")
             )
@@ -91,101 +91,115 @@ class InventoryController extends Controller
         return ApiResponse::success($this->formatInventoryItem($item), 'Inventory item fetched successfully');
     }
 
-    public function store(Request $request)
-    {
-        $clinicId = $this->currentClinicId();
-        if (! $clinicId) {
-            return ApiResponse::error('Clinic account is not linked to a clinic.', 403);
-        }
-
-        $validated = $request->validate([
-            'material_product_id' => ['nullable', 'integer', 'exists:material_products,id'],
-            'material_name' => ['required_without:material_product_id', 'nullable', 'string', 'max:255'],
-            'category' => ['nullable', 'string', 'max:255'],
-            'initial_qty' => ['required_without:quantity', 'nullable', 'integer', 'min:0'],
-            'quantity' => ['required_without:initial_qty', 'nullable', 'integer', 'min:0'],
-            'unit_type' => ['required_without:unit', 'nullable', 'string', 'max:50'],
-            'unit' => ['required_without:unit_type', 'nullable', 'string', 'max:50'],
-            'consumption_per_case' => ['nullable', 'numeric', 'min:0'],
-            'min_threshold' => ['required_without:minimum_stock_level', 'nullable', 'integer', 'min:0'],
-            'minimum_stock_level' => ['required_without:min_threshold', 'nullable', 'integer', 'min:0'],
-            'reorder_qty' => ['nullable', 'integer', 'min:0'],
-            'reorder_quantity' => ['nullable', 'integer', 'min:0'],
-            'auto_purchase' => ['nullable', 'boolean'],
-            'unit_price' => ['nullable', 'numeric', 'min:0'],
-            'supplier' => ['nullable', 'string', 'max:255'],
-            'status' => ['nullable', 'in:in_stock,low_stock,out_of_stock'],
-        ]);
-
-        $material = ! empty($validated['material_product_id'])
-            ? $this->materialProductRepository->findCatalogById((int) $validated['material_product_id'])
-            : null;
-
-        if (! empty($validated['material_product_id']) && ! $material) {
-            return ApiResponse::error('Material not found.', 422, ['material_product_id' => ['Material not found.']]);
-        }
-
-        $supplierCompany = $material?->company;
-        if (! $supplierCompany && ! empty($validated['supplier'])) {
-            $supplierCompany = MaterialCompany::query()
-                ->where('name', $validated['supplier'])
-                ->first();
-        }
-
-        if (! $supplierCompany) {
-            return ApiResponse::error('Supplier not found.', 422, [
-                'supplier' => ['Supplier must match an existing material company when material_product_id is not provided.'],
-            ]);
-        }
-
-        $quantity = (int) ($validated['initial_qty'] ?? $validated['quantity'] ?? 0);
-        $minimumStockLevel = (int) ($validated['min_threshold'] ?? $validated['minimum_stock_level'] ?? 0);
-        $reorderQuantity = (int) ($validated['reorder_qty'] ?? $validated['reorder_quantity'] ?? 0);
-        $unit = $validated['unit_type'] ?? $validated['unit'] ?? 'piece';
-
-        $attributes = [
-            'company_id' => $supplierCompany->id,
-            'barcode' => $material?->barcode,
-            'product_name' => $material?->name ?? $validated['material_name'],
-            'category_name' => $material?->category ?? ($validated['category'] ?? null),
-            'description' => $material?->description,
-            'quantity' => $quantity,
-            'minimum_stock_level' => $minimumStockLevel,
-            'reorder_quantity' => $reorderQuantity,
-            'unit' => $unit,
-            'consumption_per_case' => $validated['consumption_per_case'] ?? null,
-            'auto_purchase' => (bool) ($validated['auto_purchase'] ?? false),
-            'supplier' => $supplierCompany->name,
-            'unit_price' => $validated['unit_price'] ?? ($material?->price),
-            'status' => $validated['status'] ?? $this->resolveStatus($quantity, $minimumStockLevel),
-            'last_updated_at' => now(),
-        ];
-
-        $item = DB::transaction(function () use ($clinicId, $material, $attributes, $quantity) {
-            $item = $material
-                ? InventoryItem::query()
-                    ->withoutGlobalScopes()
-                    ->updateOrCreate(
-                        [
-                            'clinic_id' => $clinicId,
-                            'product_id' => $material->id,
-                        ],
-                        $attributes
-                    )
-                : InventoryItem::query()
-                    ->withoutGlobalScopes()
-                    ->create(array_merge($attributes, [
-                        'clinic_id' => $clinicId,
-                        'product_id' => null,
-                    ]));
-
-            $this->storeInventoryLog($item, 'seed_stock', $quantity, 'Initial clinic inventory stock');
-
-            return $item;
-        });
-
-        return ApiResponse::success($this->formatInventoryItem($item->fresh(['product.company'])), 'Inventory item created successfully');
+   public function store(Request $request)
+{
+    $clinicId = $this->currentClinicId();
+    if (! $clinicId) {
+        return ApiResponse::error('Clinic account is not linked to a clinic.', 403);
     }
+
+    $categoryNames = collect(config('material_market.product_category_items', []))
+        ->pluck('label')
+        ->filter()
+        ->values();
+
+    $validated = $request->validate([
+        'material_product_id' => ['nullable', 'integer', 'exists:material_products,id'],
+        'material_name' => ['required_without:material_product_id', 'nullable', 'string', 'max:255'],
+        'category' => ['nullable', 'string', Rule::in($categoryNames)],
+        'initial_qty' => ['required_without:quantity', 'nullable', 'integer', 'min:0'],
+        'quantity' => ['required_without:initial_qty', 'nullable', 'integer', 'min:0'],
+        'unit_type' => ['required_without:unit', 'nullable', 'string', 'max:50'],
+        'unit' => ['required_without:unit_type', 'nullable', 'string', 'max:50'],
+        'consumption_per_case' => ['nullable', 'numeric', 'min:0'],
+        'min_threshold' => ['required_without:minimum_stock_level', 'nullable', 'integer', 'min:0'],
+        'minimum_stock_level' => ['required_without:min_threshold', 'nullable', 'integer', 'min:0'],
+        'reorder_qty' => ['nullable', 'integer', 'min:0'],
+        'reorder_quantity' => ['nullable', 'integer', 'min:0'],
+        'auto_purchase' => ['nullable', 'boolean'],
+        'unit_price' => ['nullable', 'numeric', 'min:0'],
+        'supplier' => [
+            'required_without:material_product_id',
+            'nullable',
+            'string',
+            'max:255',
+            Rule::exists('material_companies', 'name'),
+        ],
+        'status' => ['nullable', 'in:in_stock,low_stock,out_of_stock'],
+    ], [
+        'supplier.exists' => 'Supplier must match an existing material company.',
+        'category.in' => 'Category must be one of the predefined categories.',
+    ]);
+
+    $material = ! empty($validated['material_product_id'])
+        ? $this->materialProductRepository->findCatalogById((int) $validated['material_product_id'])
+        : null;
+
+    if (! empty($validated['material_product_id']) && ! $material) {
+        return ApiResponse::error('Material not found.', 422, ['material_product_id' => ['Material not found.']]);
+    }
+
+    $supplierCompany = $material?->company;
+    if (! $supplierCompany && ! empty($validated['supplier'])) {
+        $supplierCompany = MaterialCompany::query()
+            ->where('name', $validated['supplier'])
+            ->first();
+    }
+
+    if (! $supplierCompany) {
+        return ApiResponse::error('Supplier not found.', 422, [
+            'supplier' => ['Supplier must match an existing material company when material_product_id is not provided.'],
+        ]);
+    }
+
+    $quantity = (int) ($validated['initial_qty'] ?? $validated['quantity'] ?? 0);
+    $minimumStockLevel = (int) ($validated['min_threshold'] ?? $validated['minimum_stock_level'] ?? 0);
+    $reorderQuantity = (int) ($validated['reorder_qty'] ?? $validated['reorder_quantity'] ?? 0);
+    $unit = $validated['unit_type'] ?? $validated['unit'] ?? 'piece';
+
+    $attributes = [
+        'company_id' => $supplierCompany->id,
+        'barcode' => $material?->barcode,
+        'product_name' => $material?->name ?? $validated['material_name'],
+        'category_name' => $material?->category ?? ($validated['category'] ?? null),
+        'description' => $material?->description,
+        'quantity' => $quantity,
+        'minimum_stock_level' => $minimumStockLevel,
+        'reorder_quantity' => $reorderQuantity,
+        'unit' => $unit,
+        'consumption_per_case' => $validated['consumption_per_case'] ?? null,
+        'auto_purchase' => (bool) ($validated['auto_purchase'] ?? false),
+        'supplier' => $supplierCompany->name,
+        'unit_price' => $validated['unit_price'] ?? ($material?->price),
+        'status' => $validated['status'] ?? $this->resolveStatus($quantity, $minimumStockLevel),
+        'last_updated_at' => now(),
+    ];
+
+    $item = DB::transaction(function () use ($clinicId, $material, $attributes, $quantity) {
+        $item = $material
+            ? InventoryItem::query()
+                ->withoutGlobalScopes()
+                ->updateOrCreate(
+                    [
+                        'clinic_id' => $clinicId,
+                        'product_id' => $material->id,
+                    ],
+                    $attributes
+                )
+            : InventoryItem::query()
+                ->withoutGlobalScopes()
+                ->create(array_merge($attributes, [
+                    'clinic_id' => $clinicId,
+                    'product_id' => null,
+                ]));
+
+        $this->storeInventoryLog($item, 'seed_stock', $quantity, 'Initial clinic inventory stock');
+
+        return $item;
+    });
+
+    return ApiResponse::success($this->formatInventoryItem($item->fresh(['product.company'])), 'Inventory item created successfully');
+}
 
     public function update(Request $request, int $inventory)
     {
