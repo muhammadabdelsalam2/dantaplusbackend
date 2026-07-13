@@ -32,7 +32,7 @@ class InsuranceClaimData
         title: $data['title'],
         description: $data['description'] ?? null,
         serviceDate: $data['service_date'],
-        coveragePercentage: (float) $data['coverage_percentage'],
+        coveragePercentage: (float) ($data['coverage_percentage'] ?? 100),
         grossAmount: (float) ($data['gross_amount'] ?? 0),
         approvedAmount: isset($data['approved_amount']) ? (float) $data['approved_amount'] : null,
         paidAmount: isset($data['paid_amount']) ? (float) $data['paid_amount'] : null,

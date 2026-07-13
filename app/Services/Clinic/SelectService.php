@@ -27,7 +27,7 @@ class SelectService
     {
     }
 
-    public function options(string $resource): array
+    public function options(string $resource, array $filters = []): array
     {
         $clinicId = auth()->user()?->clinic_id;
         if (! $clinicId) {
@@ -40,7 +40,7 @@ class SelectService
         }
 
         return ServiceResult::success(
-            SelectOptionResource::collection($this->repository->{$method}($clinicId))->resolve(),
+            SelectOptionResource::collection($this->repository->{$method}($clinicId, $filters))->resolve(),
             'Select options fetched successfully'
         );
     }

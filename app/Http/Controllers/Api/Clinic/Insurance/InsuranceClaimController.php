@@ -8,6 +8,7 @@ use App\Http\Requests\Clinic\Insurance\InsuranceApprovalReportRequest;
 use App\Http\Requests\Clinic\Insurance\InsuranceMonthlyRequest;
 use App\Http\Requests\Clinic\Insurance\PatientLookupRequest;
 use App\Http\Requests\Clinic\Insurance\StoreInsuranceClaimRequest;
+use App\Http\Requests\Clinic\Insurance\UpdateInsuranceClaimStatusRequest;
 use App\Http\Requests\Clinic\Insurance\UpdateInsuranceClaimRequest;
 use App\Http\Requests\Clinic\Insurance\UploadPatientConsentRequest;
 use App\Services\Clinic\Insurance\InsuranceClaimService;
@@ -93,6 +94,17 @@ class InsuranceClaimController extends Controller
     public function update(UpdateInsuranceClaimRequest $request, int $id)
     {
         $result = $this->service->update($id, $request->validated());
+
+        if (! $result['success']) {
+            return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+        }
+
+        return ApiResponse::success($result['data'], $result['message'], $result['code']);
+    }
+
+    public function updateStatus(UpdateInsuranceClaimStatusRequest $request, int $id)
+    {
+        $result = $this->service->updateStatus($id, $request->validated()['status']);
 
         if (! $result['success']) {
             return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);

@@ -7,6 +7,7 @@ use App\Models\ClinicAppointment;
 use App\Models\Patient;
 use App\Models\User;
 use App\Support\ServiceResult;
+use Carbon\Carbon;
 
 class AppointmentService
 {
@@ -30,6 +31,36 @@ class AppointmentService
 
     if (! empty($filters['day'])) {
         $query->whereDay('appointment_at', $filters['day']);
+    }
+
+    if (! empty($filters['date']) && ($filters['view'] ?? null) === 'month') {
+        $date = Carbon::parse($filters['date']);
+        $query->whereBetween('appointment_at', [$date->copy()->startOfMonth(), $date->copy()->endOfMonth()]);
+    } elseif (! empty($filters['date']) && ($filters['view'] ?? null) === 'week') {
+        $date = Carbon::parse($filters['date']);
+        $query->whereBetween('appointment_at', [$date->copy()->startOfWeek(), $date->copy()->endOfWeek()]);
+    } elseif (! empty($filters['date']) && empty($filters['year']) && empty($filters['month']) && empty($filters['day'])) {
+        $date = Carbon::parse($filters['date']);
+        $query->whereBetween('appointment_at', [$date->copy()->startOfDay(), $date->copy()->endOfDay()]);
+    }
+
+    if (! empty($filters['start_date']) || ! empty($filters['end_date'])) {
+        $startDate = ! empty($filters['start_date'])
+            ? Carbon::parse($filters['start_date'])->startOfDay()
+            : Carbon::parse($filters['end_date'])->startOfDay();
+        $endDate = ! empty($filters['end_date'])
+            ? Carbon::parse($filters['end_date'])->endOfDay()
+            : $startDate->copy()->endOfDay();
+
+        $query->whereBetween('appointment_at', [$startDate, $endDate]);
+    }
+
+    if (! empty($filters['branch'])) {
+        $query->where('branch', $filters['branch']);
+    }
+
+    if (! empty($filters['room'])) {
+        $query->where('room', $filters['room']);
     }
 
     if (! empty($filters['search'])) {

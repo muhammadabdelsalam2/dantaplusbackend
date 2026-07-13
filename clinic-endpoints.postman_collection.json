@@ -1,0 +1,365 @@
+{
+  "info": {
+    "_postman_id": "4b49f3b1-5ab9-45fc-8292-541491f4a12b",
+    "name": "Clinic Dynamic Endpoints",
+    "description": "Calendar, insurance claim status, inventory material registration, claim creation, and patient search endpoints for the clinic API.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://danta.matgary.io"
+    },
+    {
+      "key": "token",
+      "value": ""
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Calendar - Day",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "description": "Fetch appointments for one day, with optional branch and room filters.",
+        "url": {
+          "raw": "{{base_url}}/api/clinic/appointments?view=day&date=2026-07-13&branch=Moamen Main Branch&room=Moamen Room 1",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "clinic",
+            "appointments"
+          ],
+          "query": [
+            {
+              "key": "view",
+              "value": "day"
+            },
+            {
+              "key": "date",
+              "value": "2026-07-13"
+            },
+            {
+              "key": "branch",
+              "value": "Moamen Main Branch"
+            },
+            {
+              "key": "room",
+              "value": "Moamen Room 1"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Calendar - Week",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "description": "Fetch appointments between start_date and end_date.",
+        "url": {
+          "raw": "{{base_url}}/api/clinic/appointments?view=week&start_date=2026-07-13&end_date=2026-07-19",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "clinic",
+            "appointments"
+          ],
+          "query": [
+            {
+              "key": "view",
+              "value": "week"
+            },
+            {
+              "key": "start_date",
+              "value": "2026-07-13"
+            },
+            {
+              "key": "end_date",
+              "value": "2026-07-19"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Calendar - Month",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "description": "Fetch appointments for a specific month and year.",
+        "url": {
+          "raw": "{{base_url}}/api/clinic/appointments?view=month&year=2026&month=7",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "clinic",
+            "appointments"
+          ],
+          "query": [
+            {
+              "key": "view",
+              "value": "month"
+            },
+            {
+              "key": "year",
+              "value": "2026"
+            },
+            {
+              "key": "month",
+              "value": "7"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Change Claim Status",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "description": "Update only the insurance claim status. Allowed values are submitted, approved, rejected.",
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "status",
+              "value": "approved",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/api/clinic/insurance/claims/1/status",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "clinic",
+            "insurance",
+            "claims",
+            "1",
+            "status"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Create Material Inventory",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "description": "Register a new material inventory item using the clinic form fields.",
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "material_name",
+              "value": "Composite Resin A2",
+              "type": "text"
+            },
+            {
+              "key": "category",
+              "value": "restorative",
+              "type": "text"
+            },
+            {
+              "key": "initial_qty",
+              "value": "20",
+              "type": "text"
+            },
+            {
+              "key": "unit_type",
+              "value": "box",
+              "type": "text"
+            },
+            {
+              "key": "consumption_per_case",
+              "value": "1",
+              "type": "text"
+            },
+            {
+              "key": "min_threshold",
+              "value": "5",
+              "type": "text"
+            },
+            {
+              "key": "reorder_qty",
+              "value": "10",
+              "type": "text"
+            },
+            {
+              "key": "auto_purchase",
+              "value": "1",
+              "type": "text"
+            },
+            {
+              "key": "unit_price",
+              "value": "45.50",
+              "type": "text"
+            },
+            {
+              "key": "supplier",
+              "value": "Demo Supplier",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/api/clinic/inventory",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "clinic",
+            "inventory"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Create Claim",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "description": "Create an insurance claim using the fields from the clinic claim form.",
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "patient_id",
+              "value": "1",
+              "type": "text"
+            },
+            {
+              "key": "insurance_company_id",
+              "value": "1",
+              "type": "text"
+            },
+            {
+              "key": "invoice_id",
+              "value": "1",
+              "type": "text"
+            },
+            {
+              "key": "dentist_id",
+              "value": "1",
+              "type": "text"
+            },
+            {
+              "key": "branch_id",
+              "value": "1",
+              "type": "text"
+            },
+            {
+              "key": "service",
+              "value": "Root Canal",
+              "type": "text"
+            },
+            {
+              "key": "claim_amount",
+              "value": "350",
+              "type": "text"
+            },
+            {
+              "key": "submission_date",
+              "value": "2026-07-13",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/api/clinic/insurance/claims",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "clinic",
+            "insurance",
+            "claims"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Patient Search",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "description": "Search clinic patients by name or phone for select inputs.",
+        "url": {
+          "raw": "{{base_url}}/api/clinic/select/patients?search=010",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "clinic",
+            "select",
+            "patients"
+          ],
+          "query": [
+            {
+              "key": "search",
+              "value": "010"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

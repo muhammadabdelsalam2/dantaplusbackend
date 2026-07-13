@@ -175,6 +175,7 @@ Route::middleware('permission:dental_labs.manage')->prefix('dental-lab-orders/{i
             Route::middleware('permission:insurance.update')->group(function () {
                 Route::post('/companies/{id}', [InsuranceCompanyController::class, 'update']);
                 Route::post('/claims/{id}',    [InsuranceClaimController::class, 'update']);
+                Route::post('/claims/{id}/status', [InsuranceClaimController::class, 'updateStatus']);
                 Route::post('/claims/{id}/patient-consent', [InsuranceClaimController::class, 'uploadConsent']);
             });
             Route::middleware('permission:insurance.delete')->group(function () {

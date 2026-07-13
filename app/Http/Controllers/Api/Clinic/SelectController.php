@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Clinic;
 use App\Http\Controllers\Controller;
 use App\Services\Clinic\SelectService;
 use App\Support\ApiResponse;
+use Illuminate\Http\Request;
 use Spatie\Permission\Models\Role;
 
 class SelectController extends Controller
@@ -15,7 +16,7 @@ class SelectController extends Controller
     {
     }
 
-    public function show(string $resource)
+    public function show(Request $request, string $resource)
     {
         if ($resource === 'clinic_roles') {
             $roles = \App\Support\UserRoleManager::clinicRoles();
@@ -34,7 +35,7 @@ class SelectController extends Controller
                 ])->values()->all(), 'Select options fetched successfully');
         }
 
-        $result = $this->service->options($resource);
+        $result = $this->service->options($resource, $request->only(['search']));
 
         return $result['success']
             ? ApiResponse::success($result['data'], $result['message'], $result['code'])

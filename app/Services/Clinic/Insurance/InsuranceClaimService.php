@@ -190,7 +190,7 @@ class InsuranceClaimService
 
             $amounts = $this->calculateAmounts($grossAmount, $coveragePercentage, $approvedAmount, $paidAmount);
 
-            $attributes = array_filter($data, fn ($key) => !in_array($key, ['items'], true), ARRAY_FILTER_USE_KEY);
+            $attributes = array_filter($data, fn ($key) => in_array($key, $this->persistedClaimKeys(), true), ARRAY_FILTER_USE_KEY);
             $attributes = array_merge($attributes, [
                 'gross_amount' => $grossAmount,
                 'coverage_percentage' => $coveragePercentage,
@@ -244,6 +244,44 @@ class InsuranceClaimService
         return ServiceResult::success(
             (new InsuranceClaimResource($updatedClaim))->resolve(),
             'Insurance claim updated successfully'
+        );
+    }
+
+    public function updateStatus(int $claimId, string $status): array
+    {
+        $clinicId = $this->currentClinicId();
+        if (! $clinicId) {
+            return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
+        }
+
+        $claim = $this->repository->findForClinic($clinicId, $claimId);
+        if (! $claim) {
+            return ServiceResult::error('Insurance claim not found.', null, null, 404);
+        }
+
+        $attributes = [
+            'status' => $status,
+            'updated_by' => auth()->id(),
+        ];
+
+        if ($status === InsuranceClaim::STATUS_SUBMITTED && $claim->submitted_at === null) {
+            $attributes['submitted_at'] = now();
+        }
+
+        if (in_array($status, [InsuranceClaim::STATUS_APPROVED, InsuranceClaim::STATUS_REJECTED], true)) {
+            $attributes['reviewed_at'] = now();
+        }
+
+        $previousStatus = $claim->status;
+        $updatedClaim = $this->repository->update($claim, $attributes);
+
+        if ($status !== $previousStatus) {
+            $this->triggerStatusNotification($updatedClaim, $previousStatus, $status);
+        }
+
+        return ServiceResult::success(
+            (new InsuranceClaimResource($updatedClaim))->resolve(),
+            'Insurance claim status updated successfully'
         );
     }
 
@@ -547,6 +585,27 @@ class InsuranceClaimService
     private function currentClinicId(): ?int
     {
         return auth()->user()?->clinic_id;
+    }
+
+    private function persistedClaimKeys(): array
+    {
+        return [
+            'insurance_company_id',
+            'patient_id',
+            'appointment_id',
+            'clinic_invoice_id',
+            'title',
+            'description',
+            'service_date',
+            'coverage_percentage',
+            'gross_amount',
+            'approved_amount',
+            'paid_amount',
+            'status',
+            'notes',
+            'status_notes',
+            'patient_consent_required',
+        ];
     }
 
     /**

@@ -14,7 +14,8 @@ class InventoryItem extends Model
 
     protected $fillable = [
         'company_id', 'clinic_id', 'product_id', 'barcode', 'product_name', 'category_name', 'description', 'image_path',
-        'quantity', 'minimum_stock_level', 'reorder_quantity', 'unit', 'supplier', 'status', 'last_updated_at',
+        'quantity', 'minimum_stock_level', 'reorder_quantity', 'unit', 'consumption_per_case', 'auto_purchase',
+        'supplier', 'unit_price', 'status', 'last_updated_at',
     ];
 
     protected function casts(): array
@@ -23,6 +24,9 @@ class InventoryItem extends Model
             'quantity' => 'integer',
             'minimum_stock_level' => 'integer',
             'reorder_quantity' => 'integer',
+            'consumption_per_case' => 'decimal:2',
+            'auto_purchase' => 'boolean',
+            'unit_price' => 'decimal:2',
             'last_updated_at' => 'datetime',
         ];
     }

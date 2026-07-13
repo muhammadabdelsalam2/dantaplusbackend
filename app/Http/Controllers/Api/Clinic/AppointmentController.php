@@ -18,15 +18,28 @@ class AppointmentController extends Controller
     }
 
     public function index(Request $request)
-{
-    $result = $this->service->index($request->only(['search', 'year', 'month', 'day']));
+    {
+        $validated = $request->validate([
+            'search' => ['nullable', 'string', 'max:255'],
+            'view' => ['nullable', 'in:day,week,month'],
+            'date' => ['nullable', 'date'],
+            'start_date' => ['nullable', 'date'],
+            'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
+            'year' => ['nullable', 'integer', 'min:1900', 'max:2100'],
+            'month' => ['nullable', 'integer', 'min:1', 'max:12'],
+            'day' => ['nullable', 'integer', 'min:1', 'max:31'],
+            'branch' => ['nullable', 'string', 'max:255'],
+            'room' => ['nullable', 'string', 'max:255'],
+        ]);
 
-    if (! $result['success']) {
-        return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+        $result = $this->service->index($validated);
+
+        if (! $result['success']) {
+            return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+        }
+
+        return ApiResponse::success($result['data'], $result['message'], $result['code']);
     }
-
-    return ApiResponse::success($result['data'], $result['message'], $result['code']);
-}
 
     public function store(StoreAppointmentRequest $request)
     {
@@ -60,15 +73,14 @@ class AppointmentController extends Controller
 
         return ApiResponse::success($result['data'], $result['message'], $result['code']);
     }
-    // AppointmentController.php
-public function approve(UpdateAppointmentRequest $request, int $id)
-{
-    $result = $this->service->approve($id, $request->validated());
+    public function approve(UpdateAppointmentRequest $request, int $id)
+    {
+        $result = $this->service->approve($id, $request->validated());
 
-    if (! $result['success']) {
-        return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+        if (! $result['success']) {
+            return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+        }
+
+        return ApiResponse::success($result['data'], $result['message'], $result['code']);
     }
-
-    return ApiResponse::success($result['data'], $result['message'], $result['code']);
-}
 }
