@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Clinic\Insurance;
 
+use App\Http\Resources\PatientDocumentResource;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
