@@ -27,7 +27,11 @@ class SyncRolePermissionsRequest extends FormRequest
     {
         $validator->after(function (Validator $v) {
             $roleId = $this->route('roleId');
-            $role = $roleId ? Role::find($roleId) : null;
+$role = $roleId
+    ? (is_numeric($roleId)
+        ? Role::find($roleId)
+        : Role::where('name', $roleId)->first())
+    : null;
 
             $type = null;
             if ($role) {

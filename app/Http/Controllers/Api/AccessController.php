@@ -30,7 +30,7 @@ class AccessController extends Controller
         return ApiResponse::success($result['data'], $result['message'], $result['code']);
     }
 
-    public function syncRolePermissions(SyncRolePermissionsRequest $request, int $roleId)
+    public function syncRolePermissions(SyncRolePermissionsRequest $request, string $roleId)
     {
         $result = $this->service->syncRolePermissions(
             $request->user(),

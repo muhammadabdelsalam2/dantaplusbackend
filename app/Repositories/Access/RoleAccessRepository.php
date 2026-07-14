@@ -20,11 +20,13 @@ class RoleAccessRepository implements RoleAccessRepositoryInterface
             ->first();
     }
 
-    public function findRoleOrFail(int $roleId): Role
+    public function findRoleOrFail(int|string $roleId): Role
     {
-        return Role::query()
-            ->where('guard_name', $this->guardName)
-            ->findOrFail($roleId);
+        $query = Role::query()->where('guard_name', $this->guardName);
+
+        return is_numeric($roleId)
+            ? $query->where('id', $roleId)->firstOrFail()
+            : $query->where('name', $roleId)->firstOrFail();
     }
 
     public function rolesWithPermissions(): Collection

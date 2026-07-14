@@ -52,7 +52,7 @@ class RoleAccessService
     /**
      * @param array<int, string> $modules
      */
-    public function syncRolePermissions(User $user, int $roleId, array $modules): array
+    public function syncRolePermissions(User $user, string  $roleId, array $modules): array
     {
         $targetRole = $this->repository->findRoleOrFail($roleId);
         $allowedRoles = $this->manageableRoleNames($user);

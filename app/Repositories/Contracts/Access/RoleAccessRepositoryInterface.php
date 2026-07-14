@@ -10,7 +10,7 @@ interface RoleAccessRepositoryInterface
 {
     public function findRoleByName(string $roleName): ?Role;
 
-    public function findRoleOrFail(int $roleId): Role;
+    public function findRoleOrFail(int|string $roleId): Role;
 
     public function rolesWithPermissions(): Collection;
 

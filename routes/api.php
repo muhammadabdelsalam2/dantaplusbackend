@@ -20,8 +20,8 @@ Route::middleware('api.error')->group(function () {
         Route::get('/me/access', [AccessController::class, 'me']);
         Route::get('/user', fn(Request $request) => $request->user());
         Route::get('/roles/permissions-matrix', [AccessController::class, 'permissionsMatrix']);
-        Route::post('/roles/{roleId}/permissions', [AccessController::class, 'syncRolePermissions'])->whereNumber('roleId');
-
+        Route::post('/roles/{roleId}/permissions', [AccessController::class, 'syncRolePermissions'])
+    ->where('roleId', '[A-Za-z0-9_\-]+');
         Route::prefix('communication')->group(function () {
             Route::get('/contacts', [CommunicationController::class, 'contacts']);
             Route::get('/conversations/{id}/messages', [CommunicationController::class, 'messages']);
