@@ -172,16 +172,18 @@ class RoleAccessService
 
         return null;
     }
-  public function modulesForType(User $user, string $type): array
+ public function modulesForType(User $user, string $type): array
 {
-    $ownType = $this->adminModuleType($user);
+    if (! $user->hasRole('super-admin')) {
+        $ownType = $this->userModuleType($user);
 
-    if ($ownType === null) {
-        return ServiceResult::error('Only admin roles can access this resource.', null, null, 403);
-    }
+        if ($ownType === null) {
+            return ServiceResult::error('Unable to determine your module type.', null, null, 403);
+        }
 
-    if ($ownType !== $type) {
-        return ServiceResult::error('You are not allowed to access modules for this type.', null, null, 403);
+        if ($ownType !== $type) {
+            return ServiceResult::error('You are not allowed to access modules for this type.', null, null, 403);
+        }
     }
 
     $modules = config("frontend_modules.{$type}");
@@ -196,6 +198,34 @@ class RoleAccessService
     );
 }
 
+/**
+ * بيرجع نوع الموديولز بتاع الـ user بناءً على أي role عنده،
+ * مش بس role واحد محدد — بيغطي كل الرولز (أدمن وغير أدمن).
+ */
+private function userModuleType(User $user): ?string
+{
+    if ($user->hasRole('patient')) {
+        return 'patient';
+    }
+
+    foreach ($user->getRoleNames() as $roleName) {
+        $normalized = UserRoleManager::normalize($roleName);
+
+        if (UserRoleManager::isClinicScopedRole($normalized)) {
+            return 'clinic';
+        }
+
+        if (UserRoleManager::isLabScopedRole($normalized)) {
+            return 'lab';
+        }
+
+        if (UserRoleManager::isCompanyScopedRole($normalized)) {
+            return 'supplier';
+        }
+    }
+
+    return null;
+}
 /**
  * يرجع نوع الموديولز المسموح للأدمن يشوفه، أو null لو مش أدمن أصلاً.
  */
@@ -218,5 +248,26 @@ private function adminModuleType(User $user): ?string
     }
 
     return null;
+}
+public function modulesForRole(User $user, string $roleName): array
+{
+    $targetType = $this->frontendModuleType($roleName);
+
+    if ($targetType === null) {
+        return ServiceResult::error('Invalid role.', null, null, 422);
+    }
+
+    if (! $user->hasRole('super-admin')) {
+        $ownType = $this->frontendModuleType(UserRoleManager::primaryRole($user));
+
+        if ($ownType === null || $ownType !== $targetType) {
+            return ServiceResult::error('You are not allowed to access modules for this role.', null, null, 403);
+        }
+    }
+
+    return ServiceResult::success(
+        collect(config("frontend_modules.{$targetType}"))->keys()->values()->all(),
+        'Modules fetched successfully'
+    );
 }
 }

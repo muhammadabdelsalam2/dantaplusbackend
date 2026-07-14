@@ -20,6 +20,7 @@ Route::middleware('api.error')->group(function () {
         Route::get('/me/access', [AccessController::class, 'me']);
         Route::get('/modules/{type}', [AccessController::class, 'modulesForType'])
     ->where('type', 'clinic|lab|supplier|patient|super-admin');
+    Route::get('/roles/{role}/modules', [AccessController::class, 'modulesForRole']);
         Route::get('/user', fn(Request $request) => $request->user());
         Route::get('/roles/permissions-matrix', [AccessController::class, 'permissionsMatrix']);
         Route::post('/roles/{roleId}/permissions', [AccessController::class, 'syncRolePermissions'])
