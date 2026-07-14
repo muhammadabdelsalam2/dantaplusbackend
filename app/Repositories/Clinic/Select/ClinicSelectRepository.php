@@ -4,6 +4,7 @@ namespace App\Repositories\Clinic\Select;
 
 use App\Models\ClinicAppointment;
 use App\Models\ClinicExpenseCategory;
+use App\Models\ClinicInvoice;
 use App\Models\ClinicLabPartnership;
 use App\Models\InsuranceCompany;
 use App\Models\MaterialCategory;
@@ -152,6 +153,23 @@ public function rooms(int $clinicId, array $filters = []): Collection
         ->map(fn ($room, $index) => (object) [
             'id' => $index + 1,
             'name' => $room,
+        ]);
+}
+
+public function invoices(int $clinicId, array $filters = []): Collection
+{
+    $search = $filters['search'] ?? null;
+    $patientId = $filters['patient_id'] ?? null;
+
+    return ClinicInvoice::query()
+        ->where('clinic_id', $clinicId)
+        ->when($patientId, fn ($query, $patientId) => $query->where('patient_id', $patientId))
+        ->when($search, fn ($query, $search) => $query->where('invoice_number', 'like', "%{$search}%"))
+        ->orderByDesc('id')
+        ->get(['id', 'invoice_number'])
+        ->map(fn (ClinicInvoice $invoice) => (object) [
+            'id' => $invoice->id,
+            'name' => $invoice->invoice_number,
         ]);
 }
 }
