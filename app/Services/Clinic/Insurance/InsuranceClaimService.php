@@ -247,43 +247,65 @@ class InsuranceClaimService
         );
     }
 
-    public function updateStatus(int $claimId, string $status): array
-    {
-        $clinicId = $this->currentClinicId();
-        if (! $clinicId) {
-            return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
-        }
+  public function updateStatus(int $claimId, string $status): array
+{
+    $clinicId = $this->currentClinicId();
+    if (! $clinicId) {
+        return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
+    }
 
-        $claim = $this->repository->findForClinic($clinicId, $claimId);
-        if (! $claim) {
-            return ServiceResult::error('Insurance claim not found.', null, null, 404);
-        }
+    $claim = $this->repository->findForClinic($clinicId, $claimId);
+    if (! $claim) {
+        return ServiceResult::error('Insurance claim not found.', null, null, 404);
+    }
 
-        $attributes = [
-            'status' => $status,
-            'updated_by' => auth()->id(),
-        ];
-
-        if ($status === InsuranceClaim::STATUS_SUBMITTED && $claim->submitted_at === null) {
-            $attributes['submitted_at'] = now();
-        }
-
-        if (in_array($status, [InsuranceClaim::STATUS_APPROVED, InsuranceClaim::STATUS_REJECTED], true)) {
-            $attributes['reviewed_at'] = now();
-        }
-
-        $previousStatus = $claim->status;
-        $updatedClaim = $this->repository->update($claim, $attributes);
-
-        if ($status !== $previousStatus) {
-            $this->triggerStatusNotification($updatedClaim, $previousStatus, $status);
-        }
-
-        return ServiceResult::success(
-            (new InsuranceClaimResource($updatedClaim))->resolve(),
-            'Insurance claim status updated successfully'
+    if ($status !== $claim->status && ! $this->isValidTransition($claim->status, $status)) {
+        return ServiceResult::error(
+            'Insurance claim status transition is not allowed.',
+            null,
+            ['status' => ['The requested status transition is not allowed.']],
+            422
         );
     }
+
+    $attributes = [
+        'status' => $status,
+        'updated_by' => auth()->id(),
+    ];
+
+    if ($status === InsuranceClaim::STATUS_SUBMITTED && $claim->submitted_at === null) {
+        $attributes['submitted_at'] = now();
+    }
+
+    if (in_array($status, [
+        InsuranceClaim::STATUS_APPROVED,
+        InsuranceClaim::STATUS_PARTIALLY_APPROVED,
+        InsuranceClaim::STATUS_APPROVED_WITH_LIMIT,
+        InsuranceClaim::STATUS_REJECTED,
+        InsuranceClaim::STATUS_PAID,
+    ], true)) {
+        $attributes['reviewed_at'] = now();
+    }
+
+    if ($status === InsuranceClaim::STATUS_PAID) {
+        $attributes['settled_at'] = now();
+        if ((float) $claim->paid_amount <= 0) {
+            $attributes['paid_amount'] = (float) $claim->approved_amount;
+        }
+    }
+
+    $previousStatus = $claim->status;
+    $updatedClaim = $this->repository->update($claim, $attributes);
+
+    if ($status !== $previousStatus) {
+        $this->triggerStatusNotification($updatedClaim, $previousStatus, $status);
+    }
+
+    return ServiceResult::success(
+        (new InsuranceClaimResource($updatedClaim))->resolve(),
+        'Insurance claim status updated successfully'
+    );
+}
 
     public function destroy(int $claimId): array
     {

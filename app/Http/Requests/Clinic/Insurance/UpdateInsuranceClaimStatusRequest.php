@@ -16,11 +16,7 @@ class UpdateInsuranceClaimStatusRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'status' => ['required', Rule::in([
-                InsuranceClaim::STATUS_SUBMITTED,
-                InsuranceClaim::STATUS_APPROVED,
-                InsuranceClaim::STATUS_REJECTED,
-            ])],
+            'status' => ['required', Rule::in(InsuranceClaim::statuses())],
         ];
     }
 }
