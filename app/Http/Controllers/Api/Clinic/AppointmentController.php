@@ -30,6 +30,7 @@ class AppointmentController extends Controller
             'day' => ['nullable', 'integer', 'min:1', 'max:31'],
             'branch' => ['nullable', 'string', 'max:255'],
             'room' => ['nullable', 'string', 'max:255'],
+            'room_id' => ['nullable', 'integer'], 
         ]);
 
         $result = $this->service->index($validated);

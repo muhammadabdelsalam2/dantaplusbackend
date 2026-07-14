@@ -59,9 +59,11 @@ class AppointmentService
         $query->where('branch', $filters['branch']);
     }
 
-    if (! empty($filters['room'])) {
-        $query->where('room', $filters['room']);
-    }
+   if (! empty($filters['room_id'])) {
+    $query->where('room_id', $filters['room_id']);
+} elseif (! empty($filters['room'])) {
+    $query->where('room', $filters['room']);
+}
 
     if (! empty($filters['search'])) {
         $search = $filters['search'];
@@ -129,6 +131,7 @@ class AppointmentService
             'duration' => $data['duration'] ?? $data['duration_minutes'] ?? 30,
             'branch' => $data['branch'] ?? null,
             'room' => $data['room'] ?? null,
+            'room_id' => $data['room_id'] ?? null,
             'payment_type' => $data['payment_type'] ?? null,
             'status' => $data['status'] ?? 'scheduled',
             'notes' => $data['notes'] ?? null,
@@ -201,7 +204,7 @@ public function approve(int $id, array $data = []): array
 
     $data['status'] = 'scheduled';
 
-    
+
     return $this->update($id, $data);
 }
 

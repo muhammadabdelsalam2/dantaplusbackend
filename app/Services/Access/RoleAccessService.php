@@ -25,6 +25,7 @@ class RoleAccessService
             : $this->repository->userPermissionNames($user);
 
         return ServiceResult::success([
+            'name' => $user->name,          
             'role' => $roleName,
             'role_id' => $role?->id,
             'permissions' => $permissions,
@@ -153,6 +154,9 @@ class RoleAccessService
         if ($roleName === 'patient') {
             return 'patient';
         }
+        if ($roleName === 'super-admin') {
+        return 'super-admin';
+    }
 
         if (UserRoleManager::isClinicScopedRole($roleName)) {
             return 'clinic';
@@ -168,4 +172,17 @@ class RoleAccessService
 
         return null;
     }
+    public function modulesForType(string $type): array
+{
+    $modules = config("frontend_modules.{$type}");
+
+    if ($modules === null) {
+        return ServiceResult::error('Invalid module type.', null, null, 422);
+    }
+
+    return ServiceResult::success(
+        collect($modules)->keys()->values()->all(),
+        'Modules fetched successfully'
+    );
+}
 }

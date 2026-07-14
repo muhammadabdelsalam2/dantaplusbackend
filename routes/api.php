@@ -18,6 +18,8 @@ Route::middleware('api.error')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/me', fn() => auth()->user());
         Route::get('/me/access', [AccessController::class, 'me']);
+        Route::get('/modules/{type}', [AccessController::class, 'modulesForType'])
+    ->where('type', 'clinic|lab|supplier|patient|super-admin');
         Route::get('/user', fn(Request $request) => $request->user());
         Route::get('/roles/permissions-matrix', [AccessController::class, 'permissionsMatrix']);
         Route::post('/roles/{roleId}/permissions', [AccessController::class, 'syncRolePermissions'])
