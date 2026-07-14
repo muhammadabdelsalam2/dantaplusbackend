@@ -133,4 +133,24 @@ public function materialCategories(int $clinicId, array $filters = []): Collecti
             'name' => $category->label,
         ]);
 }
+public function rooms(int $clinicId, array $filters = []): Collection
+{
+    $branch = $filters['branch'] ?? null;
+    $search = $filters['search'] ?? null;
+
+    return ClinicAppointment::query()
+        ->where('clinic_id', $clinicId)
+        ->whereNotNull('room')
+        ->where('room', '!=', '')
+        ->when($branch, fn ($query, $branch) => $query->where('branch', $branch))
+        ->when($search, fn ($query, $search) => $query->where('room', 'like', "%{$search}%"))
+        ->distinct()
+        ->orderBy('room')
+        ->pluck('room')
+        ->values()
+        ->map(fn ($room, $index) => (object) [
+            'id' => $index + 1,
+            'name' => $room,
+        ]);
+}
 }

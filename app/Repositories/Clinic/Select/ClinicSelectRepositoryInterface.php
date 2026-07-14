@@ -24,4 +24,5 @@ interface ClinicSelectRepositoryInterface
     public function materialCompanies(int $clinicId, array $filters = []): Collection;
 
 public function materialCategories(int $clinicId, array $filters = []): Collection;
+public function rooms(int $clinicId, array $filters = []): Collection;
 }

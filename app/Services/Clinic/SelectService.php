@@ -27,6 +27,8 @@ class SelectService
     'material-categories' => 'materialCategories',
     'material_categories' => 'materialCategories',
     'inventory-categories' => 'materialCategories',
+        'rooms' => 'rooms',
+
     ];
 
     public function __construct(private ClinicSelectRepositoryInterface $repository)
