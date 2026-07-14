@@ -25,7 +25,7 @@ class RoleAccessService
             : $this->repository->userPermissionNames($user);
 
         return ServiceResult::success([
-            'name' => $user->name,          
+            'name' => $user->name,
             'role' => $roleName,
             'role_id' => $role?->id,
             'permissions' => $permissions,
@@ -172,8 +172,18 @@ class RoleAccessService
 
         return null;
     }
-    public function modulesForType(string $type): array
+  public function modulesForType(User $user, string $type): array
 {
+    $ownType = $this->adminModuleType($user);
+
+    if ($ownType === null) {
+        return ServiceResult::error('Only admin roles can access this resource.', null, null, 403);
+    }
+
+    if ($ownType !== $type) {
+        return ServiceResult::error('You are not allowed to access modules for this type.', null, null, 403);
+    }
+
     $modules = config("frontend_modules.{$type}");
 
     if ($modules === null) {
@@ -184,5 +194,29 @@ class RoleAccessService
         collect($modules)->keys()->values()->all(),
         'Modules fetched successfully'
     );
+}
+
+/**
+ * يرجع نوع الموديولز المسموح للأدمن يشوفه، أو null لو مش أدمن أصلاً.
+ */
+private function adminModuleType(User $user): ?string
+{
+    if ($user->hasRole('super-admin')) {
+        return 'super-admin';
+    }
+
+    if ($user->hasRole('clinic_admin')) {
+        return 'clinic';
+    }
+
+    if ($user->hasRole('lab_admin')) {
+        return 'lab';
+    }
+
+    if ($user->hasRole('material_company_admin')) {
+        return 'supplier';
+    }
+
+    return null;
 }
 }

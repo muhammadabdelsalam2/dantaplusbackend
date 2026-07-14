@@ -29,9 +29,9 @@ class AccessController extends Controller
 
         return ApiResponse::success($result['data'], $result['message'], $result['code']);
     }
-    public function modulesForType(string $type)
+ public function modulesForType(Request $request, string $type)
 {
-    $result = $this->service->modulesForType($type);
+    $result = $this->service->modulesForType($request->user(), $type);
 
     if (! $result['success']) {
         return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
