@@ -2,6 +2,7 @@
 
 namespace App\Repositories\Clinic\Select;
 
+use App\Models\ClinicAppointment;
 use App\Models\ClinicExpenseCategory;
 use App\Models\ClinicLabPartnership;
 use App\Models\InsuranceCompany;
