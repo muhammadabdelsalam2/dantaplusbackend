@@ -172,4 +172,22 @@ public function invoices(int $clinicId, array $filters = []): Collection
             'name' => $invoice->invoice_number,
         ]);
 }
+public function branches(int $clinicId, array $filters = []): Collection
+{
+    $search = $filters['search'] ?? null;
+
+    return ClinicAppointment::query()
+        ->where('clinic_id', $clinicId)
+        ->whereNotNull('branch')
+        ->where('branch', '!=', '')
+        ->when($search, fn ($query, $search) => $query->where('branch', 'like', "%{$search}%"))
+        ->distinct()
+        ->orderBy('branch')
+        ->pluck('branch')
+        ->values()
+        ->map(fn ($branch, $index) => (object) [
+            'id' => $index + 1,
+            'name' => $branch,
+        ]);
+}
 }
