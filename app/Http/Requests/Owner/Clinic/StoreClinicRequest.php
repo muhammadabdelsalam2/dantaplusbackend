@@ -48,12 +48,12 @@ class StoreClinicRequest extends FormRequest
             'payment_method' => ['required', 'in:Stripe,PayPal,Manual'],
             'max_users' => ['required', 'integer', 'min:0'],
             'max_branches' => ['required', 'integer', 'min:0'],
-            'modules' => ['required', 'array', 'min:1'],
-            'modules.*' => [
-                'required',
-                'string',
-                Rule::in(config('clinic_modules.keys')),
-            ],
+            // 'modules' => ['', 'array', 'min:1'],
+            // 'modules.*' => [
+            //     'required',
+            //     'string',
+            //     Rule::in(config('clinic_modules.keys')),
+            // ],
             'admin_password' => ['required', 'string', 'min:8'],
         ];
     }
