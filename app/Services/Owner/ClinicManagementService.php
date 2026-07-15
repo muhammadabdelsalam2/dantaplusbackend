@@ -36,7 +36,7 @@ class ClinicManagementService
     public function store(array $data): array
     {
         return DB::transaction(function () use ($data) {
-            $modules = $data['modules'];
+            $modules = $data['modules'] ?? [];
 
             $clinic = $this->clinicRepository->create([
                 'name' => $data['name'],
@@ -53,7 +53,9 @@ class ClinicManagementService
                 'max_branches' => $data['max_branches'],
             ]);
 
-            $this->clinicRepository->syncModules($clinic, $modules);
+            if (!empty($modules)) {
+    $this->clinicRepository->syncModules($clinic, $modules);
+}
 
             $adminRole = Role::firstOrCreate([
                 'name' => 'clinic_admin',
