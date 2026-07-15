@@ -7,26 +7,21 @@ use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('doctor')
-    ->middleware(['auth:sanctum', 'api.error'])
+    ->middleware(['auth:sanctum', 'api.error', 'role:clinic_admin|doctor|nurse|accountant|receptionist|staff'])   // ⬅️ جديد
     ->group(function () {
-
-        // ─── Teams ───────────────────────────────────────────
         Route::get('chats/teams', [TeamController::class, 'index']);
         Route::post('chats/teams', [TeamController::class, 'store']);
 
-        // ─── Chats ───────────────────────────────────────────
         Route::prefix('chats')->group(function () {
-            Route::get('/',                                     [ChatController::class, 'index']);
-            Route::post('/',                                    [ChatController::class, 'store']);
-            Route::delete('{chatId}',                          [ChatController::class, 'destroy']);
-            Route::post('{chatId}/participants',               [ChatController::class, 'addParticipants']);
-            Route::delete('{chatId}/participants/{userId}',    [ChatController::class, 'removeParticipant']);
+            Route::get('/', [ChatController::class, 'index']);
+            Route::post('/', [ChatController::class, 'store']);
+            Route::delete('{chatId}', [ChatController::class, 'destroy']);
+            Route::post('{chatId}/participants', [ChatController::class, 'addParticipants']);
+            Route::delete('{chatId}/participants/{userId}', [ChatController::class, 'removeParticipant']);
 
-            // ─── Messages ─────────────────────────────────────
-            Route::get('{chatId}/messages',  [MessageController::class, 'index']);
-            Route::post('messages/send',     [MessageController::class, 'store']);
+            Route::get('{chatId}/messages', [MessageController::class, 'index']);
+            Route::post('messages/send', [MessageController::class, 'store']);
         });
 
-        // ─── Broadcasting ─────────────────────────────────────
         Broadcast::routes(['middleware' => ['auth:sanctum']]);
     });

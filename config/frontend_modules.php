@@ -13,13 +13,13 @@ return [
         'materials' => ['materials.view'],
         'notifications' => [],
         'orders' => ['orders.view', 'orders.manage'],
-        'patient-messages' => [],   // ⬅️ اتصلحت: الراوت مفتوح لأي role clinic-scoped، مفيش permission check
+        'patient-messages' => [],   
         'patients' => ['patients.view', 'patients.create', 'patients.update'],
         'settings' => ['settings.manage'],
         'support-tickets' => ['support.view', 'support.create', 'support.manage'],
         'tasks' => ['tasks.view', 'tasks.manage'],
-        'treatments' => ['treatments.manage'],   // ⬅️ جديدة، كانت ناقصة خالص
-        // 'team-chat' اتشالت نهائيًا — مفيش أي route في clinic.php بيستخدم chat.view/chat.manage
+        'treatments' => ['treatments.manage'],
+         'team-chat' => [],
     ],
 
     'lab' => [
