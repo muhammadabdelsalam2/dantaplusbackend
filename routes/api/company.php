@@ -30,8 +30,8 @@ Route::prefix('company')
         Route::get('/dashboard/order-trends', [DashboardController::class, 'orderTrends']);
         Route::get('/clinics', [DashboardController::class, 'clinic']);
 
-
-        Route::middleware('role:material_company_admin')->group(function () {
+        // ─── Users (كان role:material_company_admin) ───
+        Route::middleware('permission:users.manage')->group(function () {
             Route::get('/users/roles', [UserController::class, 'roles']);
             Route::get('/users', [UserController::class, 'index']);
             Route::post('/users', [UserController::class, 'store']);
@@ -40,7 +40,8 @@ Route::prefix('company')
             Route::delete('/users/{id}', [UserController::class, 'destroy']);
         });
 
-        Route::middleware('role:material_company_admin|sales_rep')->group(function () {
+        // ─── Products (كان role:material_company_admin|sales_rep) ───
+        Route::middleware('permission:products.manage')->group(function () {
             Route::get('/products', [ProductController::class, 'index']);
             Route::post('/products', [ProductController::class, 'store']);
             Route::get('/products/{id}', [ProductController::class, 'show']);
@@ -49,22 +50,30 @@ Route::prefix('company')
             Route::get('/categories', [ProductController::class, 'categories']);
         });
 
-        Route::middleware('role:material_company_admin')->group(function () {
+        // ─── Inventory (كان role:material_company_admin) ───
+        Route::middleware('permission:inventory.view')->group(function () {
             Route::get('/inventory', [InventoryController::class, 'index']);
-            Route::post('/inventory', [InventoryController::class, 'store']);
             Route::get('/inventory/{id}', [InventoryController::class, 'show']);
+            Route::get('/inventory/{id}/logs', [InventoryController::class, 'logs']);
+        });
+        Route::middleware('permission:inventory.manage')->group(function () {
+            Route::post('/inventory', [InventoryController::class, 'store']);
             Route::patch('/inventory/{id}', [InventoryController::class, 'update']);
             Route::delete('/inventory/{id}', [InventoryController::class, 'destroy']);
             Route::post('/inventory/{id}/stock-adjustments', [InventoryController::class, 'stockAdjustment']);
-            Route::get('/inventory/{id}/logs', [InventoryController::class, 'logs']);
         });
 
-        Route::get('/orders', [OrderController::class, 'index']);
-        Route::get('/orders/{id}', [OrderController::class, 'show']);
-        Route::patch('/orders/{id}/status', [OrderController::class, 'updateStatus']);
-        Route::patch('/orders/{id}', [OrderController::class, 'update']);
-        Route::post('/orders/{id}/complete', [OrderController::class, 'complete']);
-        Route::get('/orders/{id}/communication-logs', [OrderController::class, 'communicationLogs']);
+        // ─── Orders (مفتوحة للكل حاليًا، سبتها زي ما هي) ───
+        Route::middleware('permission:orders.view')->group(function () {
+            Route::get('/orders', [OrderController::class, 'index']);
+            Route::get('/orders/{id}', [OrderController::class, 'show']);
+            Route::get('/orders/{id}/communication-logs', [OrderController::class, 'communicationLogs']);
+        });
+        Route::middleware('permission:orders.manage')->group(function () {
+            Route::patch('/orders/{id}/status', [OrderController::class, 'updateStatus']);
+            Route::patch('/orders/{id}', [OrderController::class, 'update']);
+            Route::post('/orders/{id}/complete', [OrderController::class, 'complete']);
+        });
 
         Route::post('/external-orders', [ExternalOrderController::class, 'store']);
         Route::get('/external-orders', [ExternalOrderController::class, 'index']);
@@ -72,7 +81,8 @@ Route::prefix('company')
         Route::patch('/external-orders/{id}/status', [ExternalOrderController::class, 'updateStatus']);
         Route::post('/external-orders/{id}/send-whatsapp', [ExternalOrderController::class, 'sendWhatsApp']);
 
-        Route::middleware('role:material_company_admin|sales_rep')->group(function () {
+        // ─── Billing / Invoices (كان role:material_company_admin|sales_rep) ───
+        Route::middleware('permission:billing.manage')->group(function () {
             Route::get('/invoices', [BillingController::class, 'index']);
             Route::get('/invoices/{id}', [BillingController::class, 'show']);
             Route::post('/invoices', [BillingController::class, 'store']);
@@ -83,7 +93,7 @@ Route::prefix('company')
             Route::post('/payments', [BillingController::class, 'payments']);
         });
 
-        Route::middleware('role:material_company_admin|sales_rep')->prefix('accounts')->group(function () {
+        Route::middleware('permission:billing.manage')->prefix('accounts')->group(function () {
             Route::get('/summary', [AccountController::class, 'summary']);
             Route::get('/invoices', [AccountController::class, 'invoices']);
             Route::get('/expenses', [AccountController::class, 'expenses']);
@@ -100,15 +110,16 @@ Route::prefix('company')
         Route::get('/conversations/{id}/files', [CommunicationController::class, 'files']);
         Route::post('/conversations/{id}/send-invoice', [CommunicationController::class, 'sendInvoice']);
 
-        Route::middleware('role:material_company_admin|sales_rep')->prefix('reports')->group(function () {
+        // ─── Reports (كان role:material_company_admin|sales_rep) ───
+        Route::middleware('permission:reports.view')->prefix('reports')->group(function () {
             Route::get('/orders-by-month', [ReportController::class, 'ordersByMonth']);
             Route::get('/revenue-by-clinic', [ReportController::class, 'revenueByClinic']);
             Route::get('/most-requested-materials', [ReportController::class, 'mostRequestedMaterials']);
             Route::get('/generate', [ReportController::class, 'generate']);
-
         });
 
-        Route::middleware('role:material_company_admin')->prefix('settings')->group(function () {
+        // ─── Settings (كان role:material_company_admin) ───
+        Route::middleware('permission:settings.manage')->prefix('settings')->group(function () {
             Route::get('/', [SettingController::class, 'show']);
             Route::patch('/profile', [SettingController::class, 'updateProfile']);
             Route::patch('/communication', [SettingController::class, 'updateCommunication']);
@@ -117,7 +128,7 @@ Route::prefix('company')
             Route::get('/whatsapp-logs', [SettingController::class, 'whatsappLogs']);
         });
 
-        Route::middleware('role:material_company_admin')->group(function () {
+        Route::middleware('permission:settings.manage')->group(function () {
             Route::get('/shipping-zones', [ShippingZoneController::class, 'index']);
             Route::post('/shipping-zones', [ShippingZoneController::class, 'store']);
             Route::patch('/shipping-zones/{id}', [ShippingZoneController::class, 'update']);

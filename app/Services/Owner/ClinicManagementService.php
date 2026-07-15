@@ -56,7 +56,7 @@ class ClinicManagementService
             $this->clinicRepository->syncModules($clinic, $modules);
 
             $adminRole = Role::firstOrCreate([
-                'name' => 'Admin',
+                'name' => 'clinic_admin',
                 'guard_name' => 'web',
             ]);
 
@@ -122,7 +122,7 @@ class ClinicManagementService
             }
 
             $adminUser = User::where('clinic_id', $updatedClinic->id)
-                ->role('Admin')
+                ->role('clinic_admin')
                 ->first();
 
             if ($adminUser) {
@@ -147,7 +147,7 @@ class ClinicManagementService
         }
 
         $updated = $this->clinicRepository->update($clinic, ['status' => $status]);
-        
+
         return ServiceResult::success($updated, 'Clinic status updated successfully');
     }
 

@@ -63,15 +63,9 @@ class StoreDentalLabRequest extends FormRequest
             'services.*.turnaround_days' => ['nullable', 'numeric', 'min:0'],
 
             // Optional lab login account provisioning
-            'admin_name' => ['nullable', 'string', 'max:255'],
-            'admin_email' => [
-                'nullable',
-                'email',
-                'max:255',
-                'required_with:admin_password',
-                Rule::unique('users', 'email'),
-            ],
-            'admin_password' => ['nullable', 'string', 'min:8', 'max:255', 'required_with:admin_email'],
+    'admin_name' => ['required', 'string', 'max:255'],
+'admin_email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
+'admin_password' => ['required', 'string', 'min:8', 'max:255'],
             'admin_is_active' => ['sometimes', 'boolean'],
         ];
     }
