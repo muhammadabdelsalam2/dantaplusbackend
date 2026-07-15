@@ -270,4 +270,38 @@ public function modulesForRole(User $user, string $roleName): array
         'Modules fetched successfully'
     );
 }
+private function visibleModulesForRole(?string $roleName, array $permissions): array
+{
+    $type = $this->frontendModuleType($roleName);
+
+    if ($type === null) {
+        return [];
+    }
+
+    // Lab بيستخدم role-based mapping مباشر لأن الراوتس بتاعته role-gated مش permission-gated
+    if ($type === 'lab') {
+        return config("frontend_modules.lab_role_modules.{$roleName}", []);
+    }
+
+    $permissionLookup = array_flip($permissions);
+    $modules = config("frontend_modules.{$type}", []);
+
+    return collect($modules)
+        ->filter(function (array $modulePermissions) use ($permissionLookup) {
+            if ($modulePermissions === []) {
+                return true;
+            }
+
+            foreach ($modulePermissions as $permission) {
+                if (array_key_exists($permission, $permissionLookup)) {
+                    return true;
+                }
+            }
+
+            return false;
+        })
+        ->keys()
+        ->values()
+        ->all();
+}
 }

@@ -13,36 +13,38 @@ return [
         'materials' => ['materials.view'],
         'notifications' => [],
         'orders' => ['orders.view', 'orders.manage'],
-        'patient-messages' => ['send_text', 'send_voice', 'send_file', 'access_patient_discussion'],
+        'patient-messages' => [],   // ⬅️ اتصلحت: الراوت مفتوح لأي role clinic-scoped، مفيش permission check
         'patients' => ['patients.view', 'patients.create', 'patients.update'],
         'settings' => ['settings.manage'],
         'support-tickets' => ['support.view', 'support.create', 'support.manage'],
         'tasks' => ['tasks.view', 'tasks.manage'],
-        'team-chat' => ['chat.view', 'chat.manage'],
+        'treatments' => ['treatments.manage'],   // ⬅️ جديدة، كانت ناقصة خالص
+        // 'team-chat' اتشالت نهائيًا — مفيش أي route في clinic.php بيستخدم chat.view/chat.manage
     ],
 
     'lab' => [
-        'accounting' => [],
-        'clinics' => [],
-        'communication' => ['chat.view', 'chat.manage'],
         'dashboard' => [],
+        'accounting' => [],       // ⚠️ لسه فاضية — شوف "الحل الجذري" تحت
+        'clinics' => [],          // ⚠️ لسه فاضية — شوف "الحل الجذري" تحت
+        'analytics' => [],        // ⚠️ لسه فاضية — شوف "الحل الجذري" تحت
         'delivery-reports' => ['delivery.view'],
         'delivery-reps' => ['delivery.assign'],
+        'delivery-tasks' => [],   // ⬅️ جديدة، كانت ناقصة خالص
         'equipment' => ['equipment.view'],
         'inventories' => ['inventory.view', 'inventory.manage'],
-        'analytics' => [],
         'orders' => ['cases.view', 'cases.create', 'cases.update'],
         'settings' => ['settings.manage'],
         'support' => ['support.view', 'support.create', 'support.manage'],
+        // 'communication' اتشالت — مفيش route حقيقي اسمه /lab/communication، الرسايل جوه /cases/{id}/messages
     ],
 
     'patient' => [
-        'appointments' => ['patient.appointments.view', 'patient.appointments.create', 'patient.appointments.cancel'],
-        'dashboard' => ['patient.dashboard.view'],
-        'documents' => ['patient.documents.view'],
-        'invoices' => ['patient.invoices.view'],
-        'payments' => ['patient.payments.view', 'patient.refunds.create'],
-        'profile' => ['patient.profile.view', 'patient.profile.update'],
+        'appointments' => [],
+        'dashboard' => [],
+        'documents' => [],
+        'invoices' => [],
+        'payments' => [],
+        'profile' => [],
         'radiology' => [],
     ],
 
@@ -58,22 +60,29 @@ return [
         'settings' => ['settings.manage'],
         'users' => ['users.manage'],
     ],
+
     'super-admin' => [
-    'clinics' => [],
-    'labs' => [],
-    'materials-companies' => [],
-    'materials-orders' => [],
-    'materials-commission' => [],
-    'equipment' => [],
-    'communication' => [],
-    'notifications' => [],
-    'notification-logs' => [],
-    'feedback-reports' => [],
-    'support-tickets' => [],
-    'renewal-alerts' => [],
-    'users' => [],
-    'roles' => [],
-    'subscriptions' => [],
-    'settings' => [],
+        'clinics' => [],
+        'labs' => [],
+        'materials-companies' => [],
+        'materials-orders' => [],
+        'materials-commission' => [],
+        'equipment' => [],
+        'communication' => [],
+        'notifications' => [],
+        'notification-logs' => [],
+        'feedback-reports' => [],
+        'support-tickets' => [],
+        'renewal-alerts' => [],
+        'users' => [],
+        'roles' => [],
+        'subscriptions' => [],
+        'settings' => [],
+    ],
+    'lab_role_modules' => [
+    'lab_admin' => ['dashboard', 'accounting', 'analytics', 'clinics', 'orders', 'inventories', 'support', 'delivery-reps', 'delivery-reports', 'delivery-tasks', 'equipment', 'settings'],
+    'lab_receptionist' => ['dashboard', 'accounting', 'analytics', 'clinics', 'orders', 'inventories', 'support', 'delivery-reps', 'delivery-reports', 'delivery-tasks'],
+    'lab_technician' => ['dashboard', 'orders', 'inventories', 'support'],
+    'delivery_representative' => ['dashboard', 'support', 'delivery-tasks'],
 ],
 ];
