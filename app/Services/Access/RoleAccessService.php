@@ -33,23 +33,24 @@ class RoleAccessService
         ], 'User access fetched successfully');
     }
 
-    public function permissionsMatrix(): array
-    {
-        $roles = $this->repository->rolesWithPermissions()
-            ->map(fn (Role $role) => [
+  public function permissionsMatrix(): array
+{
+    $roles = $this->repository->rolesWithPermissions()
+        ->map(function (Role $role) {
+            $permissions = $role->permissions->pluck('name')->values()->all();
+
+            return [
                 'role_id' => $role->id,
                 'role' => $role->name,
-                'permissions' => $role->permissions
-                    ->pluck('name')
-                    ->values()
-                    ->all(),
-            ])
-            ->values()
-            ->all();
+                'permissions' => $permissions,
+                'modules' => $this->visibleModulesForRole($role->name, $permissions),   // ⬅️ جديد
+            ];
+        })
+        ->values()
+        ->all();
 
-        return ServiceResult::success($roles, 'Roles permissions matrix fetched successfully');
-    }
-
+    return ServiceResult::success($roles, 'Roles permissions matrix fetched successfully');
+}
     /**
      * @param array<int, string> $modules
      */
@@ -265,8 +266,15 @@ public function modulesForRole(User $user, string $roleName): array
         }
     }
 
+    $targetRole = $this->repository->findRoleByName($roleName);
+
+    if (! $targetRole) {
+        return ServiceResult::error('Role not found.', null, null, 404);
+    }
+
+    $permissions = $this->repository->permissionNames($targetRole);
     return ServiceResult::success(
-        collect(config("frontend_modules.{$targetType}"))->keys()->values()->all(),
+        $this->visibleModulesForRole($roleName, $permissions),
         'Modules fetched successfully'
     );
 }
