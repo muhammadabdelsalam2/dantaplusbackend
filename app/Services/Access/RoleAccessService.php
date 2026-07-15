@@ -119,35 +119,35 @@ class RoleAccessService
      * @param array<int, string> $permissions
      * @return array<int, string>
      */
-    private function visibleModulesForRole(?string $roleName, array $permissions): array
-    {
-        $type = $this->frontendModuleType($roleName);
+    // private function visibleModulesForRole(?string $roleName, array $permissions): array
+    // {
+    //     $type = $this->frontendModuleType($roleName);
 
-        if ($type === null) {
-            return [];
-        }
+    //     if ($type === null) {
+    //         return [];
+    //     }
 
-        $permissionLookup = array_flip($permissions);
-        $modules = config("frontend_modules.{$type}", []);
+    //     $permissionLookup = array_flip($permissions);
+    //     $modules = config("frontend_modules.{$type}", []);
 
-        return collect($modules)
-            ->filter(function (array $modulePermissions) use ($permissionLookup) {
-                if ($modulePermissions === []) {
-                    return true;
-                }
+    //     return collect($modules)
+    //         ->filter(function (array $modulePermissions) use ($permissionLookup) {
+    //             if ($modulePermissions === []) {
+    //                 return true;
+    //             }
 
-                foreach ($modulePermissions as $permission) {
-                    if (array_key_exists($permission, $permissionLookup)) {
-                        return true;
-                    }
-                }
+    //             foreach ($modulePermissions as $permission) {
+    //                 if (array_key_exists($permission, $permissionLookup)) {
+    //                     return true;
+    //                 }
+    //             }
 
-                return false;
-            })
-            ->keys()
-            ->values()
-            ->all();
-    }
+    //             return false;
+    //         })
+    //         ->keys()
+    //         ->values()
+    //         ->all();
+    // }
 
     private function frontendModuleType(?string $roleName): ?string
     {
