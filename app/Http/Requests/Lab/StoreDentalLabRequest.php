@@ -38,18 +38,36 @@ class StoreDentalLabRequest extends FormRequest
             'address' => ['nullable', 'string', 'max:1000'],
             'city' => ['nullable', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:50'],
-            'email' => ['nullable', 'email', 'max:255'],
+
+            // نفس الإيميل هيستخدم للـ Lab والـ Admin
+            'email' => [
+                'required',
+                'email',
+                'max:255',
+                Rule::unique('dental_labs', 'email'),
+                Rule::unique('users', 'email'),
+            ],
+
             'working_hours' => ['nullable', 'string', 'max:255'],
             'avg_delivery_days' => ['required', 'numeric', 'min:0'],
-            'response_speed' => ['nullable', Rule::in([
-                DentalLab::RESPONSE_SPEED_FAST,
-                DentalLab::RESPONSE_SPEED_MEDIUM,
-                DentalLab::RESPONSE_SPEED_SLOW,
-            ])],
-            'status' => ['sometimes', Rule::in([
-                DentalLab::STATUS_ACTIVE,
-                DentalLab::STATUS_INACTIVE,
-            ])],
+
+            'response_speed' => [
+                'nullable',
+                Rule::in([
+                    DentalLab::RESPONSE_SPEED_FAST,
+                    DentalLab::RESPONSE_SPEED_MEDIUM,
+                    DentalLab::RESPONSE_SPEED_SLOW,
+                ]),
+            ],
+
+            'status' => [
+                'sometimes',
+                Rule::in([
+                    DentalLab::STATUS_ACTIVE,
+                    DentalLab::STATUS_INACTIVE,
+                ]),
+            ],
+
             'logo' => ['nullable', 'file', 'image', 'max:5120'],
             'rating' => ['nullable', 'numeric', 'min:0', 'max:5'],
             'is_external' => ['sometimes', 'boolean'],
@@ -62,27 +80,20 @@ class StoreDentalLabRequest extends FormRequest
             'services.*.price' => ['nullable', 'numeric', 'min:0'],
             'services.*.turnaround_days' => ['nullable', 'numeric', 'min:0'],
 
-            // Optional lab login account provisioning
+            // إنشاء حساب الأدمن باستخدام نفس Email الخاص بالـ Lab
             'admin_name' => ['nullable', 'string', 'max:255'],
-            'admin_email' => [
-                'required',
-                'email',
-                'max:255',
-                'required_with:admin_password',
-                Rule::unique('users', 'email'),
-            ],
-            'admin_password' => ['required', 'string', 'min:8', 'max:255', 'required_with:admin_email'],
+            'admin_password' => ['required', 'string', 'min:8', 'max:255'],
             'admin_is_active' => ['sometimes', 'boolean'],
         ];
     }
 
     protected function passedValidation(): void
     {
-        if ($this->filled('admin_email') && !$this->has('admin_is_active')) {
+        if (!$this->has('admin_is_active')) {
             $this->merge([
                 'admin_is_active' => 1,
             ]);
-        } elseif ($this->has('admin_is_active')) {
+        } else {
             $this->merge([
                 'admin_is_active' => $this->boolean('admin_is_active') ? 1 : 0,
             ]);
@@ -92,9 +103,8 @@ class StoreDentalLabRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'admin_email.required_with' => 'Admin email is required when admin password is provided.',
-            'admin_password.required_with' => 'Admin password is required when admin email is provided.',
-            'admin_email.unique' => 'This admin email is already used by another user.',
+            'email.unique' => 'This email is already used.',
+            'admin_password.required' => 'Admin password is required.',
         ];
     }
 }

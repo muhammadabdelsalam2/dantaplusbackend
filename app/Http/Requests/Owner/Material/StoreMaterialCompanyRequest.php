@@ -17,7 +17,25 @@ class StoreMaterialCompanyRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:material_companies,email'],
+            'email' => [
+    'required',
+    'email',
+    'max:255',
+    Rule::unique('material_companies', 'email'),
+    Rule::unique('users', 'email'),
+],
+
+'admin_password' => [
+    'required',
+    'string',
+    'min:8',
+    'max:255',
+],
+
+'admin_is_active' => [
+    'sometimes',
+    'boolean',
+],
             'commission_percentage' => ['required', 'numeric', 'min:0', 'max:100'],
             'logo' => ['nullable', 'image', 'max:5120'],
             'description' => ['nullable', 'string'],

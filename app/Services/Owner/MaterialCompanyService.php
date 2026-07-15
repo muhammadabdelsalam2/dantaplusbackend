@@ -39,10 +39,11 @@ class MaterialCompanyService
                 $data['logo_url'] = Storage::url($path);
             }
 
-            $adminName = Arr::pull($data, 'admin_name');
-            $adminEmail = Arr::pull($data, 'admin_email');
-            $adminPassword = Arr::pull($data, 'admin_password');
-            $adminIsActive = (int) Arr::pull($data, 'admin_is_active', 1);
+           $adminPassword = Arr::pull($data, 'admin_password');
+$adminIsActive = (int) Arr::pull($data, 'admin_is_active', 1);
+
+$adminEmail = $data['email'];
+$adminName = $data['name'];
 
             unset($data['logo']);
 
@@ -66,20 +67,18 @@ class MaterialCompanyService
             $createdUser = null;
 
             // Backward-compatible: create supplier login account only if admin credentials are sent
-            if (!empty($adminEmail) && !empty($adminPassword)) {
-                UserRoleManager::ensureRoleExists('material_company_admin');
+       UserRoleManager::ensureRoleExists('material_company_admin');
 
-                $createdUser = User::create([
-                    'name' => $adminName ?: $data['name'],
-                    'email' => $adminEmail,
-                    'password' => $adminPassword,
-                    'is_active' => $adminIsActive,
-                    'company_id' => $company->id,
-                    'role' => 'material_company_admin',
-                ]);
+$createdUser = User::create([
+    'name' => $adminName,
+    'email' => $adminEmail,
+    'password' => $adminPassword,
+    'is_active' => $adminIsActive,
+    'company_id' => $company->id,
+    'role' => 'material_company_admin',
+]);
 
-                $createdUser->syncRoles(['material_company_admin']);
-            }
+$createdUser->syncRoles(['material_company_admin']);
 
             $payload = (new MaterialCompanyResource($company))->resolve();
             $payload['login_account_created'] = $createdUser !== null;
