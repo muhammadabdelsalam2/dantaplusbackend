@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\Owner\NotificationLogController;
 use App\Http\Controllers\Api\Owner\RenewalAlertsController;
 use App\Http\Controllers\Api\Owner\SupportCenterController;
 use App\Http\Controllers\Api\SuperAdmin\RoleController;
+use App\Http\Controllers\Api\SuperAdmin\AnalyticsDashboardController;
 use App\Http\Controllers\Api\SuperAdmin\Settings\BackupSettingsController;
 use App\Http\Controllers\Api\SuperAdmin\Settings\BillingPlansController;
 use App\Http\Controllers\Api\SuperAdmin\Settings\CustomizationSettingsController;
@@ -37,6 +38,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Super Admin routes Eslam
     Route::prefix('owner')->middleware(['role:super-admin'])->group(function () {
+
+    Route::prefix('analytics')->group(function () {
+    Route::get('/dashboard', [AnalyticsDashboardController::class, 'index']);
+});
         Route::get('/clinics', [ClinicManagementController::class, 'index']);
         Route::post('/clinics', [ClinicManagementController::class, 'store']);
         Route::get('/clinics/{clinic}', [ClinicManagementController::class, 'show']);
