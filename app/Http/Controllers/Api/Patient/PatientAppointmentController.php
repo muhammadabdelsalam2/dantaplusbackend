@@ -244,75 +244,79 @@ class PatientAppointmentController extends BasePatientController
         return ApiResponse::success($branches, 'Branches retrieved successfully');
     }
 
-    public function availableSlots(Request $request, int $doctorId)
-    {
-        $patient = $this->currentPatient($request);
-        if ($this->isResponse($patient)) {
-            return $patient;
-        }
-
-        $doctor = User::query()
-            ->with('doctor')
-            ->where('id', $doctorId)
-            ->where('clinic_id', $patient->clinic_id)
-            ->role('doctor')
-            ->first();
-
-        if (! $doctor) {
-            return ApiResponse::error('Doctor not found', 404);
-        }
-
-        $data = $request->validate([
-            'date' => ['required', 'date_format:Y-m-d'],
-            'branch_id' => ['required', 'integer', Rule::exists('branches', 'id')->where(fn ($query) => $query->where('clinic_id', $patient->clinic_id)->where('status', 'Active'))],
-        ]);
-
-        $date = $data['date'];
-        $branch = Branch::query()
-            ->where('clinic_id', $patient->clinic_id)
-            ->where('status', 'Active')
-            ->find($data['branch_id']);
-
-        $settingsResult = $this->settingsService->show();
-        $settings = $settingsResult['data'] ?? [];
-
-        $slotDuration = (int) ($settings['slot_duration'] ?? $settings['default_duration'] ?? 30);
-        [$startTime, $endTime] = $this->resolveWorkingHours($doctor, $branch);
-
-        $dayStart = Carbon::parse("{$date} {$startTime}");
-        $dayEnd = Carbon::parse("{$date} {$endTime}");
-
-        $booked = ClinicAppointment::query()
-            ->where('clinic_id', $patient->clinic_id)
-            ->where('doctor_user_id', $doctorId)
-            ->whereDate('appointment_at', $date)
-            ->where('branch_id', $branch->id)
-            ->whereNotIn('status', ['cancelled'])
-            ->get();
-
-        $slots = [];
-        $cursor = $dayStart->copy();
-
-        while ($cursor->copy()->addMinutes($slotDuration)->lte($dayEnd)) {
-            $time = $cursor->format('H:i');
-            $slotEnd = $cursor->copy()->addMinutes($slotDuration);
-            $hasConflict = $booked->contains(function ($appointment) use ($cursor, $slotEnd) {
-                $appointmentStart = Carbon::parse($appointment->appointment_at);
-                $appointmentEnd = $appointmentStart->copy()->addMinutes((int) ($appointment->duration_minutes ?? $appointment->duration ?? 30));
-
-                return $cursor->lt($appointmentEnd) && $slotEnd->gt($appointmentStart);
-            });
-
-            $slots[] = [
-                'time' => $time,
-                'available' => ! $hasConflict && (! $cursor->isToday() || $cursor->greaterThan(now())),
-            ];
-
-            $cursor->addMinutes($slotDuration);
-        }
-
-        return ApiResponse::success($slots, 'Available slots retrieved successfully');
+  public function availableSlots(Request $request, int $doctorId)
+{
+    $patient = $this->currentPatient($request);
+    if ($this->isResponse($patient)) {
+        return $patient;
     }
+
+    $doctor = User::query()
+        ->with('doctor')
+        ->where('id', $doctorId)
+        ->where('clinic_id', $patient->clinic_id)
+        ->role('doctor')
+        ->first();
+
+    if (! $doctor) {
+        return ApiResponse::error('Doctor not found', 404);
+    }
+
+    $data = $request->validate([
+        'date' => ['required', 'date_format:Y-m-d'],
+        'branch_id' => ['required', 'integer', Rule::exists('branches', 'id')->where(fn ($query) => $query->where('clinic_id', $patient->clinic_id)->where('status', 'Active'))],
+    ]);
+
+    $date = $data['date'];
+    $branch = Branch::query()
+        ->where('clinic_id', $patient->clinic_id)
+        ->where('status', 'Active')
+        ->find($data['branch_id']);
+
+    if (! $branch) {
+        return ApiResponse::error('Branch not found or inactive', 404);
+    }
+
+    $settingsResult = $this->settingsService->show();
+    $settings = $settingsResult['data'] ?? [];
+
+    $slotDuration = (int) ($settings['slot_duration'] ?? $settings['default_duration'] ?? 30);
+    [$startTime, $endTime] = $this->resolveWorkingHours($doctor, $branch);
+
+    $dayStart = Carbon::parse("{$date} {$startTime}");
+    $dayEnd = Carbon::parse("{$date} {$endTime}");
+
+    $booked = ClinicAppointment::query()
+        ->where('clinic_id', $patient->clinic_id)
+        ->where('doctor_user_id', $doctorId)
+        ->whereDate('appointment_at', $date)
+        ->where('branch_id', $branch->id)
+        ->whereNotIn('status', ['cancelled'])
+        ->get();
+
+    $slots = [];
+    $cursor = $dayStart->copy();
+
+    while ($cursor->copy()->addMinutes($slotDuration)->lte($dayEnd)) {
+        $time = $cursor->format('H:i');
+        $slotEnd = $cursor->copy()->addMinutes($slotDuration);
+        $hasConflict = $booked->contains(function ($appointment) use ($cursor, $slotEnd) {
+            $appointmentStart = Carbon::parse($appointment->appointment_at);
+            $appointmentEnd = $appointmentStart->copy()->addMinutes((int) ($appointment->duration_minutes ?? $appointment->duration ?? 30));
+
+            return $cursor->lt($appointmentEnd) && $slotEnd->gt($appointmentStart);
+        });
+
+        $slots[] = [
+            'time' => $time,
+            'available' => ! $hasConflict && (! $cursor->isToday() || $cursor->greaterThan(now())),
+        ];
+
+        $cursor->addMinutes($slotDuration);
+    }
+
+    return ApiResponse::success($slots, 'Available slots retrieved successfully');
+}
 
     private function slotIsAvailable(int $clinicId, User $doctor, string $appointmentAt, Branch $branch): bool
     {
