@@ -20,6 +20,11 @@ class DentistResource extends JsonResource
             'role' => $this->getRoleNames()->first() ?? $this->role,
             'specialization' => $this->doctor?->specialization,
             'license_number' => $this->doctor?->license_number,
+            'branch_id' => $this->doctor?->branch_id,
+            'branch' => $this->doctor?->branch ? [
+                'id' => $this->doctor->branch->id,
+                'name' => $this->doctor->branch->name,
+            ] : null,
             'working_hours_from' => $this->doctor?->working_hours_from,
             'working_hours_to' => $this->doctor?->working_hours_to,
             'insurance_commission' => $commissionRates['insurance_commission'] ?? 15,

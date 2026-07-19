@@ -95,7 +95,7 @@ class ClinicSettingsRepository implements ClinicSettingsRepositoryInterface
     public function listDentists(int $clinicId): Collection
     {
         return User::query()
-            ->with('doctor')
+            ->with('doctor.branch:id,name')
             ->where('clinic_id', $clinicId)
             ->whereHas('roles', fn (Builder $query) => $query->where('name', 'doctor'))
             ->orderBy('name')
@@ -105,7 +105,7 @@ class ClinicSettingsRepository implements ClinicSettingsRepositoryInterface
     public function findDentistUserForClinic(int $clinicId, int $userId): ?User
     {
         return User::query()
-            ->with('doctor')
+            ->with('doctor.branch:id,name')
             ->where('clinic_id', $clinicId)
             ->whereHas('roles', fn (Builder $query) => $query->where('name', 'doctor'))
             ->find($userId);

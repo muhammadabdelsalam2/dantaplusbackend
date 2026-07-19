@@ -10,6 +10,7 @@ class Doctor extends Model
 {
     protected $fillable = [
         'user_id',
+        'branch_id',
         'specialization',
         'license_number',
         'working_hours_from',
@@ -19,6 +20,11 @@ class Doctor extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
     }
 
     public function cases(): HasMany

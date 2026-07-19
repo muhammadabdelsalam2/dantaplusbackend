@@ -56,6 +56,7 @@ class DentistService
 
             $this->repository->createDoctorProfile([
                 'user_id' => $user->id,
+                'branch_id' => $data['branch_id'] ?? null,
                 'specialization' => $data['specialization'] ?? 'General Dentistry',
                 'license_number' => 'DOC-' . now()->format('YmdHis') . '-' . strtoupper(Str::random(4)),
                 'working_hours_from' => $data['working_hours_from'] ?? null,
@@ -108,11 +109,13 @@ class DentistService
 
             if (
                 array_key_exists('specialization', $data)
+                || array_key_exists('branch_id', $data)
                 || array_key_exists('working_hours_from', $data)
                 || array_key_exists('working_hours_to', $data)
             ) {
                 $doctor = $user->doctor ?: $this->repository->createDoctorProfile([
                     'user_id' => $user->id,
+                    'branch_id' => $data['branch_id'] ?? null,
                     'specialization' => $data['specialization'] ?? 'General Dentistry',
                     'license_number' => 'DOC-' . now()->format('YmdHis') . '-' . strtoupper(Str::random(4)),
                     'working_hours_from' => $data['working_hours_from'] ?? null,
@@ -122,7 +125,7 @@ class DentistService
                 if ($user->doctor) {
                     $doctorPayload = [];
 
-                    foreach (['specialization', 'working_hours_from', 'working_hours_to'] as $field) {
+                    foreach (['specialization', 'branch_id', 'working_hours_from', 'working_hours_to'] as $field) {
                         if (array_key_exists($field, $data)) {
                             $doctorPayload[$field] = $data[$field];
                         }
