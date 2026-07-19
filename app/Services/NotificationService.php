@@ -278,6 +278,10 @@ class NotificationService
             return 'clinic';
         }
 
+        if ($user->hasRole('patient') || $user->role === 'patient') {
+            return 'patient';
+        }
+
         return 'owner';
     }
 

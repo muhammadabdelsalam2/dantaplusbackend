@@ -1,0 +1,1863 @@
+{
+  "info": {
+    "name": "DantaPlus - Endpoints from patient.pdf + supplier.pdf only",
+    "description": "Only the endpoints that were added or modified as a direct result of the feedback points in these two files. Each folder is labeled with the original feedback point number. Does not include unrelated general changes (e.g. PATCH->POST cleanup on shipping-zones or users) that aren't tied to this specific feedback.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://danta.matgary.io"
+    },
+    {
+      "key": "token",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Patient",
+      "item": [
+        {
+          "name": "Auth",
+          "item": [
+            {
+              "name": "Login (name + phone)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/patient/login",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "patient",
+                    "login"
+                  ]
+                },
+                "description": "Patient portal login. Patients are created by the clinic and log in with name + phone only.",
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "name",
+                      "value": "Ahmed Patient",
+                      "type": "text",
+                      "description": ""
+                    },
+                    {
+                      "key": "phone",
+                      "value": "+201000000000",
+                      "type": "text",
+                      "description": ""
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Dashboard & Profile",
+          "item": [
+            {
+              "name": "Dashboard",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/patient/dashboard",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "patient",
+                    "dashboard"
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            },
+            {
+              "name": "Profile - Show",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/patient/profile",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "patient",
+                    "profile"
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            },
+            {
+              "name": "Profile - Update",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/patient/profile",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "patient",
+                    "profile"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "phone",
+                      "value": "+201000000000",
+                      "type": "text",
+                      "description": ""
+                    },
+                    {
+                      "key": "address",
+                      "value": "Cairo",
+                      "type": "text",
+                      "description": ""
+                    },
+                    {
+                      "key": "medical_history",
+                      "value": "",
+                      "type": "text",
+                      "description": ""
+                    },
+                    {
+                      "key": "allergies",
+                      "value": "",
+                      "type": "text",
+                      "description": ""
+                    },
+                    {
+                      "key": "current_medication",
+                      "value": "",
+                      "type": "text",
+                      "description": ""
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Booking",
+          "item": [
+            {
+              "name": "Branches - Active only",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/patient/branches",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "patient",
+                    "branches"
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            },
+            {
+              "name": "Doctors - List by branch",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/patient/doctors?branch_id={{branch_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "patient",
+                    "doctors"
+                  ],
+                  "query": [
+                    {
+                      "key": "branch_id",
+                      "value": "{{branch_id}}"
+                    }
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            },
+            {
+              "name": "Doctor Slots - Real availability",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/patient/doctors/{{doctor_id}}/slots?date=2026-07-20&branch_id={{branch_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "patient",
+                    "doctors",
+                    "{{doctor_id}}",
+                    "slots"
+                  ],
+                  "query": [
+                    {
+                      "key": "date",
+                      "value": "2026-07-20"
+                    },
+                    {
+                      "key": "branch_id",
+                      "value": "{{branch_id}}"
+                    }
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            },
+            {
+              "name": "Appointments - List",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/patient/appointments?upcoming=1&per_page=15",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "patient",
+                    "appointments"
+                  ],
+                  "query": [
+                    {
+                      "key": "upcoming",
+                      "value": "1"
+                    },
+                    {
+                      "key": "per_page",
+                      "value": "15"
+                    }
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            },
+            {
+              "name": "Appointments - Store",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/patient/appointments",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "patient",
+                    "appointments"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "doctor_user_id",
+                      "value": "{{doctor_id}}",
+                      "type": "text",
+                      "description": ""
+                    },
+                    {
+                      "key": "service_name",
+                      "value": "Consultation",
+                      "type": "text",
+                      "description": ""
+                    },
+                    {
+                      "key": "appointment_at",
+                      "value": "2026-07-20 10:00:00",
+                      "type": "text",
+                      "description": ""
+                    },
+                    {
+                      "key": "branch_id",
+                      "value": "{{branch_id}}",
+                      "type": "text",
+                      "description": "Required. Must be an Active branch in the patient clinic."
+                    },
+                    {
+                      "key": "duration_minutes",
+                      "value": "30",
+                      "type": "text",
+                      "description": ""
+                    },
+                    {
+                      "key": "notes",
+                      "value": "",
+                      "type": "text",
+                      "description": ""
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Appointments - Show",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/patient/appointments/{{appointment_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "patient",
+                    "appointments",
+                    "{{appointment_id}}"
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            },
+            {
+              "name": "Appointments - Cancel",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/patient/appointments/{{appointment_id}}/cancel",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "patient",
+                    "appointments",
+                    "{{appointment_id}}",
+                    "cancel"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "reason",
+                      "value": "Patient requested cancellation",
+                      "type": "text",
+                      "description": ""
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Appointments - Rating",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/patient/appointments/{{appointment_id}}/rating",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "patient",
+                    "appointments",
+                    "{{appointment_id}}",
+                    "rating"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "rating",
+                      "value": "5",
+                      "type": "text",
+                      "description": ""
+                    },
+                    {
+                      "key": "comment",
+                      "value": "Great visit",
+                      "type": "text",
+                      "description": ""
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Invoices & Payments",
+          "item": [
+            {
+              "name": "Invoices - List",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/patient/invoices?per_page=15",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "patient",
+                    "invoices"
+                  ],
+                  "query": [
+                    {
+                      "key": "per_page",
+                      "value": "15"
+                    }
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            },
+            {
+              "name": "Invoices - Show",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/patient/invoices/{{invoice_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "patient",
+                    "invoices",
+                    "{{invoice_id}}"
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            },
+            {
+              "name": "Invoices - Download PDF",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/patient/invoices/{{invoice_id}}/download",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "patient",
+                    "invoices",
+                    "{{invoice_id}}",
+                    "download"
+                  ]
+                },
+                "description": "Returns application/pdf."
+              },
+              "response": []
+            },
+            {
+              "name": "Payments - List",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/patient/payments?per_page=15",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "patient",
+                    "payments"
+                  ],
+                  "query": [
+                    {
+                      "key": "per_page",
+                      "value": "15"
+                    }
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            },
+            {
+              "name": "Payments - Refund Request",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/patient/payments/{{payment_id}}/refund-request",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "patient",
+                    "payments",
+                    "{{payment_id}}",
+                    "refund-request"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "reason",
+                      "value": "Duplicate payment",
+                      "type": "text",
+                      "description": ""
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Documents & Radiology",
+          "item": [
+            {
+              "name": "Documents - List",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/patient/documents?per_page=15",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "patient",
+                    "documents"
+                  ],
+                  "query": [
+                    {
+                      "key": "per_page",
+                      "value": "15"
+                    }
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            },
+            {
+              "name": "Documents - Show",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/patient/documents/{{document_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "patient",
+                    "documents",
+                    "{{document_id}}"
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            },
+            {
+              "name": "Documents - Download",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/patient/documents/{{document_id}}/download",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "patient",
+                    "documents",
+                    "{{document_id}}",
+                    "download"
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            },
+            {
+              "name": "Radiology - List",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/patient/radiology?per_page=15",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "patient",
+                    "radiology"
+                  ],
+                  "query": [
+                    {
+                      "key": "per_page",
+                      "value": "15"
+                    }
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            },
+            {
+              "name": "Radiology - Download",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/patient/radiology/{{radiology_id}}/download",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "patient",
+                    "radiology",
+                    "{{radiology_id}}",
+                    "download"
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            },
+            {
+              "name": "Medical Notes",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/patient/medical-notes?per_page=15",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "patient",
+                    "medical-notes"
+                  ],
+                  "query": [
+                    {
+                      "key": "per_page",
+                      "value": "15"
+                    }
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Notifications",
+          "item": [
+            {
+              "name": "Notifications - List",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/patient/notifications?per_page=15",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "patient",
+                    "notifications"
+                  ],
+                  "query": [
+                    {
+                      "key": "per_page",
+                      "value": "15"
+                    }
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            },
+            {
+              "name": "Notifications - Unread",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/patient/notifications/unread?per_page=15",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "patient",
+                    "notifications",
+                    "unread"
+                  ],
+                  "query": [
+                    {
+                      "key": "per_page",
+                      "value": "15"
+                    }
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            },
+            {
+              "name": "Notifications - Mark Read",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/patient/notifications/{{notification_id}}/read",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "patient",
+                    "notifications",
+                    "{{notification_id}}",
+                    "read"
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            },
+            {
+              "name": "Notifications - Mark All Read",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/patient/notifications/mark-all-read",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "patient",
+                    "notifications",
+                    "mark-all-read"
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Treatment History",
+          "item": [
+            {
+              "name": "Treatments - List",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/patient/treatments?per_page=15",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "patient",
+                    "treatments"
+                  ],
+                  "query": [
+                    {
+                      "key": "per_page",
+                      "value": "15"
+                    }
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Insurance",
+          "item": [
+            {
+              "name": "Claims - List",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/patient/insurance/claims?per_page=15",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "patient",
+                    "insurance",
+                    "claims"
+                  ],
+                  "query": [
+                    {
+                      "key": "per_page",
+                      "value": "15"
+                    }
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            },
+            {
+              "name": "Claims - Show",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/patient/insurance/claims/{{claim_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "patient",
+                    "insurance",
+                    "claims",
+                    "{{claim_id}}"
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            },
+            {
+              "name": "Consents - List",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/patient/insurance/consents",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "patient",
+                    "insurance",
+                    "consents"
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Company (from supplier.pdf)",
+      "item": [
+        {
+          "name": "1) Notification icon missing",
+          "item": [
+            {
+              "name": "Notifications - List (NEW)",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/company/notifications",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "company",
+                    "notifications"
+                  ]
+                },
+                "description": "From feedback: notification icon is missing from the header"
+              },
+              "response": []
+            },
+            {
+              "name": "Notifications - Unread (NEW)",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/company/notifications/unread",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "company",
+                    "notifications",
+                    "unread"
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            },
+            {
+              "name": "Notifications - Mark One Read (NEW)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/company/notifications/{id}/read",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "company",
+                    "notifications",
+                    "{id}",
+                    "read"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "formdata",
+                  "formdata": []
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Notifications - Mark All Read (NEW)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/company/notifications/mark-all-read",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "company",
+                    "notifications",
+                    "mark-all-read"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "formdata",
+                  "formdata": []
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "2) Products - view broken, duplicate submit, multiple images",
+          "item": [
+            {
+              "name": "Products - Show",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/company/products/{id}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "company",
+                    "products",
+                    "{id}"
+                  ]
+                },
+                "description": "From feedback: view button not working"
+              },
+              "response": []
+            },
+            {
+              "name": "Products - Store (images[] + duplicate protection)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/company/products",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "company",
+                    "products"
+                  ]
+                },
+                "description": "From two feedback points: (1) clicking Add twice creates the product twice (2) need more than one image",
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "name",
+                      "value": "",
+                      "type": "text",
+                      "description": ""
+                    },
+                    {
+                      "key": "category_id",
+                      "value": "",
+                      "type": "text",
+                      "description": ""
+                    },
+                    {
+                      "key": "price",
+                      "value": "",
+                      "type": "text",
+                      "description": ""
+                    },
+                    {
+                      "key": "description",
+                      "value": "",
+                      "type": "text",
+                      "description": ""
+                    },
+                    {
+                      "key": "stock",
+                      "value": "",
+                      "type": "text",
+                      "description": ""
+                    },
+                    {
+                      "key": "images[]",
+                      "value": "",
+                      "type": "text",
+                      "description": "new - multiple images"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Products - Update (images[])",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/company/products/{id}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "company",
+                    "products",
+                    "{id}"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "name",
+                      "value": "",
+                      "type": "text",
+                      "description": ""
+                    },
+                    {
+                      "key": "category_id",
+                      "value": "",
+                      "type": "text",
+                      "description": ""
+                    },
+                    {
+                      "key": "price",
+                      "value": "",
+                      "type": "text",
+                      "description": ""
+                    },
+                    {
+                      "key": "description",
+                      "value": "",
+                      "type": "text",
+                      "description": ""
+                    },
+                    {
+                      "key": "stock",
+                      "value": "",
+                      "type": "text",
+                      "description": ""
+                    },
+                    {
+                      "key": "images[]",
+                      "value": "",
+                      "type": "text",
+                      "description": ""
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Products - Delete Single Image (NEW)",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/company/products/{id}/images/{imageId}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "company",
+                    "products",
+                    "{id}",
+                    "images",
+                    "{imageId}"
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "3) Inventories - table, popup, and cards incorrect",
+          "item": [
+            {
+              "name": "Inventory - Summary Cards (NEW)",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/company/inventory/summary",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "company",
+                    "inventory",
+                    "summary"
+                  ]
+                },
+                "description": "From feedback: the cards at the top are not the ones that should be there"
+              },
+              "response": []
+            },
+            {
+              "name": "Inventory - List (expanded fields)",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/company/inventory",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "company",
+                    "inventory"
+                  ]
+                },
+                "description": "From feedback: table is not correct, missing data"
+              },
+              "response": []
+            },
+            {
+              "name": "Inventory - Show (expanded fields for popup)",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/company/inventory/{id}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "company",
+                    "inventory",
+                    "{id}"
+                  ]
+                },
+                "description": "From feedback: popup should match the design with the same data"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "4) Communication - missing part",
+          "item": [
+            {
+              "name": "Conversation - Mark As Read (NEW)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/company/conversations/{id}/read",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "company",
+                    "conversations",
+                    "{id}",
+                    "read"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "formdata",
+                  "formdata": []
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Conversation - Update Status (NEW)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/company/conversations/{id}/status",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "company",
+                    "conversations",
+                    "{id}",
+                    "status"
+                  ]
+                },
+                "description": "From feedback: a part of the conversation/communication system is missing (compared to clinic.php)",
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "status",
+                      "value": "",
+                      "type": "text",
+                      "description": ""
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "5) Invoices - view not working",
+          "item": [
+            {
+              "name": "Invoices - Show",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/company/invoices/{id}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "company",
+                    "invoices",
+                    "{id}"
+                  ]
+                },
+                "description": "From feedback: view button not working (table position is frontend-only)"
+              },
+              "response": []
+            },
+            {
+              "name": "Invoices - Download",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/company/invoices/{id}/download",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "company",
+                    "invoices",
+                    "{id}",
+                    "download"
+                  ]
+                },
+                "description": "Actual invoice download endpoint (returns PDF, not JSON)"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "6) Accounts - missing period filter + incomplete Profit & Loss",
+          "item": [
+            {
+              "name": "Accounts Summary (period param)",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/company/accounts/summary?period=week",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "company",
+                    "accounts",
+                    "summary"
+                  ]
+                },
+                "description": "From feedback: day/week/year filter is missing on the dashboard page"
+              },
+              "response": []
+            },
+            {
+              "name": "Profit & Loss (period + breakdown)",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/company/accounts/profit-loss?period=month",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "company",
+                    "accounts",
+                    "profit-loss"
+                  ]
+                },
+                "description": "From feedback: Profit & Loss page is not correct and is missing several things"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "7) Settings - profile incomplete",
+          "item": [
+            {
+              "name": "Settings - Update Profile (new fields)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/company/settings/profile",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "company",
+                    "settings",
+                    "profile"
+                  ]
+                },
+                "description": "From feedback: profile is incomplete, missing data",
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "company_name",
+                      "value": "",
+                      "type": "text",
+                      "description": ""
+                    },
+                    {
+                      "key": "tax_number",
+                      "value": "",
+                      "type": "text",
+                      "description": ""
+                    },
+                    {
+                      "key": "website",
+                      "value": "",
+                      "type": "text",
+                      "description": ""
+                    },
+                    {
+                      "key": "address",
+                      "value": "",
+                      "type": "text",
+                      "description": ""
+                    },
+                    {
+                      "key": "description",
+                      "value": "",
+                      "type": "text",
+                      "description": ""
+                    },
+                    {
+                      "key": "logo",
+                      "value": "",
+                      "type": "text",
+                      "description": "file"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

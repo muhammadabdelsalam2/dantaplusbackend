@@ -18,6 +18,7 @@ class StorePatientAppointmentRequest extends FormRequest
         'doctor_id'=> ['required_without:doctor_user_id', 'integer', 'exists:users,id'],
             'service_name' => ['required', 'string', 'max:255'],
             'appointment_at' => ['required', 'date', 'after:now'],
+            'branch_id' => ['required', 'integer', 'exists:branches,id'],
             'duration' => ['nullable', 'integer', 'min:5', 'max:480'],
             'duration_minutes' => ['nullable', 'integer', 'min:5', 'max:480'],
             'branch' => ['nullable', 'string', 'max:255'],

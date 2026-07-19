@@ -99,4 +99,25 @@ class CommunicationService
             'related_id' => $invoice->id,
         ]);
     }
+
+    public function read(Conversation $conversation): array
+    {
+        $updated = $conversation->messages()
+            ->where('sender_type', '!=', 'company_user')
+            ->where('is_read', false)
+            ->update([
+                'is_read' => true,
+                'read_at' => now(),
+            ]);
+
+        return ['updated_count' => $updated];
+    }
+
+    public function updateStatus(Conversation $conversation, string $status): array
+    {
+        $normalized = ucfirst(strtolower($status));
+        $conversation->update(['status' => $normalized]);
+
+        return (new ConversationResource($conversation->fresh()))->resolve();
+    }
 }

@@ -7,24 +7,27 @@ use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
-class PatientDocumentResource extends JsonResource
+class PatientRadiologyResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        return array_filter([
+        $imageUrl = $this->fileUrl($this->file_path);
+        $status = Str::lower((string) $this->status);
+
+        return [
             'id' => $this->id,
             'clinic_id' => $this->clinic_id,
             'patient_id' => $this->patient_id,
-            'document_type' => $this->document_type,
-            'title' => $this->title,
-            'file_path' => $this->file_path,
-            'file_url' => $this->fileUrl($this->file_path),
-            'original_name' => $this->original_name,
-            'mime_type' => $this->mime_type,
-            'size' => $this->size,
+            'modality' => $this->modality,
             'notes' => $this->notes,
+            'status' => $this->status,
+            'file_path' => $this->file_path,
+            'image_url' => $imageUrl,
+            'before_image_url' => in_array($status, ['before', 'pre', 'pre-treatment'], true) ? $imageUrl : null,
+            'after_image_url' => in_array($status, ['after', 'post', 'post-treatment'], true) ? $imageUrl : null,
             'created_at' => optional($this->created_at)?->toISOString(),
-        ], static fn ($value) => $value !== null);
+            'updated_at' => optional($this->updated_at)?->toISOString(),
+        ];
     }
 
     private function fileUrl(?string $path): ?string

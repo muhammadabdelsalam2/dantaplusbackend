@@ -34,6 +34,17 @@ class BillingController extends Controller
     public function update(UpdateInvoiceRequest $request, Invoice $id) { return ApiResponse::success($this->service->update($id, $request->validated()), 'Invoice updated successfully'); }
     public function markPaid(Invoice $id) { return ApiResponse::success($this->service->markPaid($id), 'Invoice marked as paid successfully'); }
     public function send(Invoice $id) { return ApiResponse::success($this->service->send($id), 'Invoice send queued successfully'); }
-    public function download(Invoice $id) { return ApiResponse::success($this->service->download($id), 'Invoice download prepared successfully'); }
+    public function download(Invoice $id)
+    {
+        $payload = $this->service->download($id);
+        $filename = $payload['filename'];
+        $content = base64_decode($payload['content']);
+        $contentType = str_ends_with($filename, '.pdf') ? 'application/pdf' : 'application/json';
+
+        return response($content, 200, [
+            'Content-Type' => $contentType,
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
+    }
     public function payments(StorePaymentRequest $request) { return ApiResponse::success($this->service->payment($request->validated()), 'Payment created successfully', 201); }
 }

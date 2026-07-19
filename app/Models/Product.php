@@ -29,6 +29,7 @@ public const APPROVAL_REJECTED = 'rejected';
 
     public function company(): BelongsTo { return $this->belongsTo(Company::class, 'company_id'); }
     public function categoryRelation(): BelongsTo { return $this->belongsTo(Category::class, 'category_id'); }
+    public function images(): HasMany { return $this->hasMany(ProductImage::class, 'product_id'); }
     public function orderItems(): HasMany { return $this->hasMany(OrderItem::class, 'product_id'); }
     public function creator(): BelongsTo { return $this->belongsTo(User::class, 'created_by'); }
     public function updater(): BelongsTo { return $this->belongsTo(User::class, 'updated_by'); }

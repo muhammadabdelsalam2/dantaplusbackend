@@ -22,5 +22,6 @@ class ProductController extends Controller
     public function show(Product $id) { return ApiResponse::success($this->service->show($id), 'Product fetched successfully'); }
     public function update(UpdateProductRequest $request, Product $id) { return ApiResponse::success($this->service->update($id, $request->validated()), 'Product updated successfully'); }
     public function destroy(Product $id) { $this->service->delete($id); return ApiResponse::success(null, 'Product deleted successfully'); }
+    public function destroyImage(Product $id, int $imageId) { $this->service->deleteImage($id, $imageId); return ApiResponse::success(null, 'Product image deleted successfully'); }
     public function categories() { return ApiResponse::success(Category::query()->where('status', 'active')->get(), 'Categories fetched successfully'); }
 }

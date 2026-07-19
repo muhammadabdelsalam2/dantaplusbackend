@@ -14,6 +14,11 @@ class ProductResource extends JsonResource
             'name' => $this->name,
             'brand' => $this->brand,
             'image_url' => $this->image_path ? asset('storage/' . $this->image_path) : ($this->image_url ?: null),
+            'images' => $this->whenLoaded('images', fn () => $this->images->map(fn ($image) => [
+                'id' => $image->id,
+                'image_url' => asset('storage/' . $image->image_path),
+                'is_primary' => (bool) $image->is_primary,
+            ])->values()),
             'category' => $this->categoryRelation ? [
                 'id' => $this->categoryRelation->id,
                 'name' => $this->categoryRelation->name,

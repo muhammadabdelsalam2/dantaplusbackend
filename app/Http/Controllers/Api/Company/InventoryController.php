@@ -24,4 +24,5 @@ class InventoryController extends Controller
     public function destroy(InventoryItem $id) { $this->service->delete($id); return ApiResponse::success(null, 'Inventory item deleted successfully'); }
     public function stockAdjustment(StockAdjustmentRequest $request, InventoryItem $id) { return ApiResponse::success($this->service->adjust($id, $request->validated()), 'Stock adjusted successfully'); }
     public function logs(InventoryItem $id) { return ApiResponse::success($this->service->logs($id), 'Inventory logs fetched successfully'); }
+    public function summary() { return ApiResponse::success($this->service->summary(), 'Inventory summary fetched successfully'); }
 }

@@ -19,6 +19,8 @@ class StoreProductRequest extends FormRequest
             'status' => 'required|in:active,inactive',
             'description' => 'nullable|string',
             'image' => 'nullable|image|max:2048',
+            'images' => 'nullable|array|max:10',
+            'images.*' => 'image|max:2048',
             'estimated_delivery_time' => 'nullable|string|max:255',
             'rating' => 'nullable|numeric|min:0|max:5',
             'review_count' => 'nullable|integer|min:0',

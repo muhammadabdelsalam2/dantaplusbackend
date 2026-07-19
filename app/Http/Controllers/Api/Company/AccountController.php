@@ -14,7 +14,14 @@ class AccountController extends Controller
 
     public function __construct(private AccountService $service) {}
 
-    public function summary() { return ApiResponse::success($this->service->summary(), 'Account summary fetched successfully'); }
+    public function summary(Request $request)
+    {
+        $filters = $request->validate([
+            'period' => 'nullable|in:day,week,month,year',
+        ]);
+
+        return ApiResponse::success($this->service->summary($filters['period'] ?? null), 'Account summary fetched successfully');
+    }
 
     public function invoices(Request $request)
     {
@@ -32,5 +39,12 @@ class AccountController extends Controller
     public function storeExpense(StoreExpenseRequest $request) { return ApiResponse::success($this->service->createExpense($request->validated()), 'Expense created successfully', 201); }
     public function bankTransactions() { return ApiResponse::success($this->service->bankTransactions(), 'Bank transactions fetched successfully'); }
     public function syncBankTransactions() { return ApiResponse::success($this->service->syncBankTransactions(), 'Bank transactions synced successfully'); }
-    public function profitLoss() { return ApiResponse::success($this->service->profitLoss(), 'Profit and loss report fetched successfully'); }
+    public function profitLoss(Request $request)
+    {
+        $filters = $request->validate([
+            'period' => 'nullable|in:day,week,month,year',
+        ]);
+
+        return ApiResponse::success($this->service->profitLoss($filters['period'] ?? null), 'Profit and loss report fetched successfully');
+    }
 }

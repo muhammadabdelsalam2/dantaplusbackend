@@ -21,6 +21,7 @@ class ClinicAppointment extends Model
         'appointment_at',
         'duration_minutes',
         'duration',
+        'branch_id',
         'branch',
         'room',
         'room_id',

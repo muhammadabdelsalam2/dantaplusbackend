@@ -3,11 +3,14 @@
 namespace App\Http\Controllers\Api\Patient;
 
 use App\Http\Resources\Patient\PatientDocumentResource;
+use App\Http\Resources\Patient\PatientRadiologyResource;
 use App\Models\PatientDocument;
 use App\Models\PatientNote;
 use App\Models\PatientRadiology;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class PatientDocumentController extends BasePatientController
 {
@@ -63,7 +66,56 @@ class PatientDocumentController extends BasePatientController
             ->latest()
             ->paginate((int) $request->query('per_page', 15));
 
-        return ApiResponse::success($radiology, 'Patient radiology files retrieved successfully');
+        return ApiResponse::success(PatientRadiologyResource::collection($radiology), 'Patient radiology files retrieved successfully');
+    }
+
+    public function download(Request $request, int $id)
+    {
+        $patient = $this->currentPatient($request);
+
+        if ($this->isResponse($patient)) {
+            return $patient;
+        }
+
+        $document = PatientDocument::query()
+            ->where('id', $id)
+            ->where('patient_id', $patient->id)
+            ->where('clinic_id', $patient->clinic_id)
+            ->first();
+
+        $path = $document ? $this->publicStoragePath($document->file_path) : null;
+
+        if (! $document || ! $path || ! Storage::disk('public')->exists($path)) {
+            return ApiResponse::error('Document file not found', 404);
+        }
+
+        return Storage::disk('public')->download(
+            $path,
+            $document->original_name ?: basename($path)
+        );
+    }
+
+    public function downloadRadiology(Request $request, int $id)
+    {
+        $patient = $this->currentPatient($request);
+
+        if ($this->isResponse($patient)) {
+            return $patient;
+        }
+
+        $radiology = PatientRadiology::query()
+            ->where('id', $id)
+            ->where('patient_id', $patient->id)
+            ->where('clinic_id', $patient->clinic_id)
+            ->first();
+
+        $path = $radiology ? $this->publicStoragePath($radiology->file_path) : null;
+
+        if (! $radiology || ! $path || ! Storage::disk('public')->exists($path)) {
+            return ApiResponse::error('Radiology file not found', 404);
+        }
+
+        return Storage::disk('public')->download($path, basename($path));
     }
 
     public function notes(Request $request)
@@ -82,5 +134,30 @@ class PatientDocumentController extends BasePatientController
             ->paginate((int) $request->query('per_page', 15));
 
         return ApiResponse::success($notes, 'Patient medical notes retrieved successfully');
+    }
+
+    private function publicStoragePath(?string $path): ?string
+    {
+        if (! $path) {
+            return null;
+        }
+
+        $path = trim($path);
+
+        if (Str::startsWith($path, ['http://', 'https://'])) {
+            $path = parse_url($path, PHP_URL_PATH) ?: $path;
+        }
+
+        $path = ltrim(str_replace('\\', '/', $path), '/');
+
+        if (Str::startsWith($path, 'storage/')) {
+            $path = Str::after($path, 'storage/');
+        }
+
+        if (Str::startsWith($path, 'public/')) {
+            $path = Str::after($path, 'public/');
+        }
+
+        return $path ?: null;
     }
 }
