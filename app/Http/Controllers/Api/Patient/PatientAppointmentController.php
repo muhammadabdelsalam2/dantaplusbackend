@@ -65,13 +65,14 @@ class PatientAppointmentController extends BasePatientController
             return ApiResponse::error('Selected service not found for this clinic', 422);
         }
 
-        $doctorExists = User::query()
+        $doctor = User::query()
+            ->with('doctor')
             ->where('id', $doctorId)
             ->where('clinic_id', $patient->clinic_id)
             ->role('doctor')
-            ->exists();
+            ->first();
 
-        if (! $doctorExists) {
+        if (! $doctor) {
             return ApiResponse::error('Selected doctor not found in this clinic', 422);
         }
 
@@ -85,7 +86,7 @@ class PatientAppointmentController extends BasePatientController
             return ApiResponse::error('Selected branch not found or inactive', 422);
         }
 
-        if (! $this->slotIsAvailable($patient->clinic_id, $doctorId, $data['appointment_at'], $branch)) {
+        if (! $this->slotIsAvailable($patient->clinic_id, $doctor, $data['appointment_at'], $branch)) {
             return ApiResponse::error('This time slot is no longer available, please choose another', 422);
         }
 
@@ -250,13 +251,14 @@ class PatientAppointmentController extends BasePatientController
             return $patient;
         }
 
-        $doctorExists = User::query()
+        $doctor = User::query()
+            ->with('doctor')
             ->where('id', $doctorId)
             ->where('clinic_id', $patient->clinic_id)
             ->role('doctor')
-            ->exists();
+            ->first();
 
-        if (! $doctorExists) {
+        if (! $doctor) {
             return ApiResponse::error('Doctor not found', 404);
         }
 
@@ -275,7 +277,7 @@ class PatientAppointmentController extends BasePatientController
         $settings = $settingsResult['data'] ?? [];
 
         $slotDuration = (int) ($settings['slot_duration'] ?? $settings['default_duration'] ?? 30);
-        [$startTime, $endTime] = $this->branchWorkingHours($branch);
+        [$startTime, $endTime] = $this->resolveWorkingHours($doctor, $branch);
 
         $dayStart = Carbon::parse("{$date} {$startTime}");
         $dayEnd = Carbon::parse("{$date} {$endTime}");
@@ -301,22 +303,24 @@ class PatientAppointmentController extends BasePatientController
                 return $cursor->lt($appointmentEnd) && $slotEnd->gt($appointmentStart);
             });
 
-            if (! $hasConflict && (! $cursor->isToday() || $cursor->greaterThan(now()))) {
-                $slots[] = $time;
-            }
+            $slots[] = [
+                'time' => $time,
+                'available' => ! $hasConflict && (! $cursor->isToday() || $cursor->greaterThan(now())),
+            ];
+
             $cursor->addMinutes($slotDuration);
         }
 
         return ApiResponse::success($slots, 'Available slots retrieved successfully');
     }
 
-    private function slotIsAvailable(int $clinicId, int $doctorId, string $appointmentAt, Branch $branch): bool
+    private function slotIsAvailable(int $clinicId, User $doctor, string $appointmentAt, Branch $branch): bool
     {
         $appointment = Carbon::parse($appointmentAt);
         $settingsResult = $this->settingsService->show();
         $settings = $settingsResult['data'] ?? [];
         $slotDuration = (int) ($settings['slot_duration'] ?? $settings['default_duration'] ?? 30);
-        [$startTime, $endTime] = $this->branchWorkingHours($branch);
+        [$startTime, $endTime] = $this->resolveWorkingHours($doctor, $branch);
         $dayStart = Carbon::parse($appointment->toDateString().' '.$startTime);
         $dayEnd = Carbon::parse($appointment->toDateString().' '.$endTime);
         $appointmentEnd = $appointment->copy()->addMinutes($slotDuration);
@@ -327,7 +331,7 @@ class PatientAppointmentController extends BasePatientController
 
         return ! ClinicAppointment::query()
             ->where('clinic_id', $clinicId)
-            ->where('doctor_user_id', $doctorId)
+            ->where('doctor_user_id', $doctor->id)
             ->where('branch_id', $branch->id)
             ->whereDate('appointment_at', $appointment->toDateString())
             ->whereNotIn('status', ['cancelled'])
@@ -338,6 +342,18 @@ class PatientAppointmentController extends BasePatientController
 
                 return $appointment->lt($bookedEnd) && $appointmentEnd->gt($bookedStart);
             });
+    }
+
+    private function resolveWorkingHours(User $doctor, Branch $branch): array
+    {
+        if (filled($doctor->doctor?->working_hours_from) && filled($doctor->doctor?->working_hours_to)) {
+            return [
+                $doctor->doctor->working_hours_from,
+                $doctor->doctor->working_hours_to,
+            ];
+        }
+
+        return $this->branchWorkingHours($branch);
     }
 
     private function branchWorkingHours(Branch $branch): array

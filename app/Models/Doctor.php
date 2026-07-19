@@ -12,6 +12,8 @@ class Doctor extends Model
         'user_id',
         'specialization',
         'license_number',
+        'working_hours_from',
+        'working_hours_to',
     ];
 
     public function user(): BelongsTo

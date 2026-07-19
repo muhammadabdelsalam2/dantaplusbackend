@@ -17,6 +17,8 @@ class UpdateDentistRequest extends StoreDentistRequest
             'email' => ['sometimes', 'nullable', 'email', 'max:255', Rule::unique('users', 'email')->ignore($userId)],
             'insurance_commission' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:100'],
             'cash_commission' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:100'],
+            'working_hours_from' => ['sometimes', 'nullable', 'date_format:H:i'],
+            'working_hours_to' => ['sometimes', 'nullable', 'date_format:H:i'],
         ];
     }
 }

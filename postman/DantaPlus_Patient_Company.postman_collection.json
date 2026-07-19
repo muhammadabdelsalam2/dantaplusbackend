@@ -296,7 +296,57 @@
                 },
                 "description": ""
               },
-              "response": []
+              "response": [
+                {
+                  "name": "Available slots with availability flags",
+                  "originalRequest": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/api/patient/doctors/{{doctor_id}}/slots?date=2026-07-20&branch_id={{branch_id}}",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "api",
+                        "patient",
+                        "doctors",
+                        "{{doctor_id}}",
+                        "slots"
+                      ],
+                      "query": [
+                        {
+                          "key": "date",
+                          "value": "2026-07-20"
+                        },
+                        {
+                          "key": "branch_id",
+                          "value": "{{branch_id}}"
+                        }
+                      ]
+                    }
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"status\": \"success\",\n  \"success\": true,\n  \"message\": \"Available slots retrieved successfully\",\n  \"data\": [\n    {\n      \"time\": \"09:00\",\n      \"available\": true\n    },\n    {\n      \"time\": \"09:30\",\n      \"available\": true\n    },\n    {\n      \"time\": \"10:00\",\n      \"available\": false\n    },\n    {\n      \"time\": \"10:30\",\n      \"available\": true\n    }\n  ]\n}"
+                }
+              ]
             },
             {
               "name": "Doctor Slots - Real availability",

@@ -58,6 +58,8 @@ class DentistService
                 'user_id' => $user->id,
                 'specialization' => $data['specialization'] ?? 'General Dentistry',
                 'license_number' => 'DOC-' . now()->format('YmdHis') . '-' . strtoupper(Str::random(4)),
+                'working_hours_from' => $data['working_hours_from'] ?? null,
+                'working_hours_to' => $data['working_hours_to'] ?? null,
             ]);
 
             return $user->fresh()->load('doctor');
@@ -104,17 +106,29 @@ class DentistService
                 $this->repository->updateDentistUser($user, $payload);
             }
 
-            if (array_key_exists('specialization', $data)) {
+            if (
+                array_key_exists('specialization', $data)
+                || array_key_exists('working_hours_from', $data)
+                || array_key_exists('working_hours_to', $data)
+            ) {
                 $doctor = $user->doctor ?: $this->repository->createDoctorProfile([
                     'user_id' => $user->id,
                     'specialization' => $data['specialization'] ?? 'General Dentistry',
                     'license_number' => 'DOC-' . now()->format('YmdHis') . '-' . strtoupper(Str::random(4)),
+                    'working_hours_from' => $data['working_hours_from'] ?? null,
+                    'working_hours_to' => $data['working_hours_to'] ?? null,
                 ]);
 
                 if ($user->doctor) {
-                    $this->repository->updateDoctorProfile($doctor, [
-                        'specialization' => $data['specialization'] ?? 'General Dentistry',
-                    ]);
+                    $doctorPayload = [];
+
+                    foreach (['specialization', 'working_hours_from', 'working_hours_to'] as $field) {
+                        if (array_key_exists($field, $data)) {
+                            $doctorPayload[$field] = $data[$field];
+                        }
+                    }
+
+                    $this->repository->updateDoctorProfile($doctor, $doctorPayload);
                 }
             }
         });

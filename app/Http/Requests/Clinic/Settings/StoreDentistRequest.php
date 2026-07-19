@@ -21,6 +21,8 @@ class StoreDentistRequest extends FormRequest
             'email' => ['nullable', 'email', 'max:255', Rule::unique('users', 'email')],
             'insurance_commission' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'cash_commission' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'working_hours_from' => ['nullable', 'date_format:H:i'],
+            'working_hours_to' => ['nullable', 'date_format:H:i'],
         ];
     }
 }
