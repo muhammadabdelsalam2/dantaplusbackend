@@ -298,10 +298,7 @@ class PatientAppointmentController extends BasePatientController
             return ApiResponse::error('Branch not found or inactive', 404);
         }
 
-        $settingsResult = $this->settingsService->show();
-        $settings = $settingsResult['data'] ?? [];
-
-        $slotDuration = (int) ($settings['slot_duration'] ?? $settings['default_duration'] ?? 30);
+        $slotDuration = $this->resolveSlotDuration();
         [$startTime, $endTime] = $this->branchWorkingHours($branch);
 
         $dayStart = Carbon::parse("{$date} {$startTime}");
@@ -345,9 +342,7 @@ class PatientAppointmentController extends BasePatientController
     private function slotIsAvailable(int $clinicId, int $doctorId, string $appointmentAt, Branch $branch): bool
     {
         $appointment = Carbon::parse($appointmentAt);
-        $settingsResult = $this->settingsService->show();
-        $settings = $settingsResult['data'] ?? [];
-        $slotDuration = (int) ($settings['slot_duration'] ?? $settings['default_duration'] ?? 30);
+        $slotDuration = $this->resolveSlotDuration();
         [$startTime, $endTime] = $this->branchWorkingHours($branch);
         $dayStart = Carbon::parse($appointment->toDateString().' '.$startTime);
         $dayEnd = Carbon::parse($appointment->toDateString().' '.$endTime);
@@ -383,6 +378,24 @@ class PatientAppointmentController extends BasePatientController
             filled($branch->working_hours_from) ? $branch->working_hours_from : self::DEFAULT_WORKING_HOURS_FROM,
             filled($branch->working_hours_to) ? $branch->working_hours_to : self::DEFAULT_WORKING_HOURS_TO,
         ];
+    }
+
+    /**
+     * قيمة slot_duration بتيجي من إعدادات العيادة (appointments settings)، لكن لو القيمة
+     * غايبة أو غير منطقية (زي 480 دقيقة = يوم كامل بدل سلوت فردي)، بترجع default معقول
+     * (30 دقيقة) عشان منقعش تاني في مشكلة "سلوت واحد بس بيغطي اليوم كله".
+     */
+    private function resolveSlotDuration(): int
+    {
+        $settingsResult = $this->settingsService->show();
+        $settings = $settingsResult['data'] ?? [];
+        $duration = (int) ($settings['slot_duration'] ?? $settings['default_duration'] ?? 30);
+
+        if ($duration < 5 || $duration > 120) {
+            return 30;
+        }
+
+        return $duration;
     }
 
     private function availableServicesQuery(int $clinicId)
