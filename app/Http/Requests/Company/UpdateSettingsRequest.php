@@ -13,7 +13,8 @@ class UpdateSettingsRequest extends FormRequest
         return [
             'profile' => 'sometimes|array',
             'company_name' => 'sometimes|string|max:255',
-            'tax_number' => 'sometimes|nullable|string|max:100',
+            'contact_email' => 'sometimes|nullable|email|max:255',
+            'phone' => 'sometimes|nullable|string|max:50',
             'address' => 'sometimes|nullable|string|max:500',
             'website' => 'sometimes|nullable|url|max:255',
             'description' => 'sometimes|nullable|string',

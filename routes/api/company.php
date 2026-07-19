@@ -101,15 +101,17 @@ Route::prefix('company')
             Route::post('/payments', [BillingController::class, 'payments']);
         });
 
-        Route::middleware('role:material_company_admin|sales_rep')->prefix('accounts')->group(function () {
-            Route::get('/summary', [AccountController::class, 'summary']);
-            Route::get('/invoices', [AccountController::class, 'invoices']);
-            Route::get('/expenses', [AccountController::class, 'expenses']);
-            Route::post('/expenses', [AccountController::class, 'storeExpense']);
-            Route::get('/bank-transactions', [AccountController::class, 'bankTransactions']);
-            Route::post('/bank-transactions/sync', [AccountController::class, 'syncBankTransactions']);
-            Route::get('/profit-loss', [AccountController::class, 'profitLoss']);
-        });
+ Route::middleware('role:material_company_admin|sales_rep')->prefix('accounts')->group(function () {
+    Route::get('/summary', [AccountController::class, 'summary']);
+    Route::get('/invoices', [AccountController::class, 'invoices']);
+    Route::get('/expenses', [AccountController::class, 'expenses']);
+    Route::post('/expenses', [AccountController::class, 'storeExpense']);
+    Route::get('/bank-transactions', [AccountController::class, 'bankTransactions']);
+    Route::post('/bank-transactions/sync', [AccountController::class, 'syncBankTransactions']);
+    Route::get('/profit-loss', [AccountController::class, 'profitLoss']);
+    Route::get('/profit-loss/download', [AccountController::class, 'profitLossDownload']);
+    Route::get('/profit-loss/whatsapp-link', [AccountController::class, 'profitLossWhatsAppLink']);
+});
 
         Route::get('/conversations', [CommunicationController::class, 'index']);
         Route::get('/conversations/{id}/messages', [CommunicationController::class, 'messages']);

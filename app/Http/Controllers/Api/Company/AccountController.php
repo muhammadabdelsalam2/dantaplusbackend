@@ -47,4 +47,21 @@ class AccountController extends Controller
 
         return ApiResponse::success($this->service->profitLoss($filters['period'] ?? null), 'Profit and loss report fetched successfully');
     }
+    public function profitLossDownload(Request $request)
+{
+    $filters = $request->validate(['period' => 'nullable|in:day,week,month,year']);
+    return $this->service->downloadPdf($filters['period'] ?? null);
+}
+
+public function profitLossWhatsAppLink(Request $request)
+{
+    $filters = $request->validate([
+        'period' => 'nullable|in:day,week,month,year',
+    ]);
+
+    return ApiResponse::success(
+        $this->service->generateWhatsAppLink($filters['period'] ?? null),
+        'WhatsApp link generated successfully'
+    );
+}
 }

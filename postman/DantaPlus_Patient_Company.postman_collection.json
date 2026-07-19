@@ -1,7 +1,7 @@
 {
   "info": {
-    "name": "DantaPlus - Endpoints from patient.pdf + supplier.pdf only",
-    "description": "Only the endpoints that were added or modified as a direct result of the feedback points in these two files. Each folder is labeled with the original feedback point number. Does not include unrelated general changes (e.g. PATCH->POST cleanup on shipping-zones or users) that aren't tied to this specific feedback.",
+    "name": "DantaPlus - Accounts & Settings - Updated Endpoints",
+    "description": "Only the endpoints that were added or modified as a direct result of the feedback points in patient.pdf and supplier.pdf. Each folder is labeled with the original feedback point number. Sections 6 (Accounts) and 7 (Settings) were updated to add day/week/month/year period filters, Profit & Loss PDF download + WhatsApp link, and corrected Settings profile fields (contact_email, phone instead of tax_number). All other sections are unchanged from the original collection.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -36,38 +36,19 @@
               "request": {
                 "method": "POST",
                 "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  }
+                  { "key": "Accept", "value": "application/json" }
                 ],
                 "url": {
                   "raw": "{{base_url}}/api/patient/login",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "patient",
-                    "login"
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "patient", "login"]
                 },
                 "description": "Patient portal login. Patients are created by the clinic and log in with name + phone only.",
                 "body": {
                   "mode": "formdata",
                   "formdata": [
-                    {
-                      "key": "name",
-                      "value": "Ahmed Patient",
-                      "type": "text",
-                      "description": ""
-                    },
-                    {
-                      "key": "phone",
-                      "value": "+201000000000",
-                      "type": "text",
-                      "description": ""
-                    }
+                    { "key": "name", "value": "Ahmed Patient", "type": "text", "description": "" },
+                    { "key": "phone", "value": "+201000000000", "type": "text", "description": "" }
                   ]
                 }
               },
@@ -83,25 +64,13 @@
               "request": {
                 "method": "GET",
                 "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{token}}"
-                  }
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
                 ],
                 "url": {
                   "raw": "{{base_url}}/api/patient/dashboard",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "patient",
-                    "dashboard"
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "patient", "dashboard"]
                 },
                 "description": ""
               },
@@ -112,25 +81,13 @@
               "request": {
                 "method": "GET",
                 "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{token}}"
-                  }
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
                 ],
                 "url": {
                   "raw": "{{base_url}}/api/patient/profile",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "patient",
-                    "profile"
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "patient", "profile"]
                 },
                 "description": ""
               },
@@ -141,60 +98,23 @@
               "request": {
                 "method": "POST",
                 "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{token}}"
-                  }
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
                 ],
                 "url": {
                   "raw": "{{base_url}}/api/patient/profile",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "patient",
-                    "profile"
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "patient", "profile"]
                 },
                 "description": "",
                 "body": {
                   "mode": "formdata",
                   "formdata": [
-                    {
-                      "key": "phone",
-                      "value": "+201000000000",
-                      "type": "text",
-                      "description": ""
-                    },
-                    {
-                      "key": "address",
-                      "value": "Cairo",
-                      "type": "text",
-                      "description": ""
-                    },
-                    {
-                      "key": "medical_history",
-                      "value": "",
-                      "type": "text",
-                      "description": ""
-                    },
-                    {
-                      "key": "allergies",
-                      "value": "",
-                      "type": "text",
-                      "description": ""
-                    },
-                    {
-                      "key": "current_medication",
-                      "value": "",
-                      "type": "text",
-                      "description": ""
-                    }
+                    { "key": "phone", "value": "+201000000000", "type": "text", "description": "" },
+                    { "key": "address", "value": "Cairo", "type": "text", "description": "" },
+                    { "key": "medical_history", "value": "", "type": "text", "description": "" },
+                    { "key": "allergies", "value": "", "type": "text", "description": "" },
+                    { "key": "current_medication", "value": "", "type": "text", "description": "" }
                   ]
                 }
               },
@@ -210,25 +130,13 @@
               "request": {
                 "method": "GET",
                 "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{token}}"
-                  }
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
                 ],
                 "url": {
                   "raw": "{{base_url}}/api/patient/branches",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "patient",
-                    "branches"
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "patient", "branches"]
                 },
                 "description": ""
               },
@@ -239,25 +147,13 @@
               "request": {
                 "method": "GET",
                 "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{token}}"
-                  }
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
                 ],
                 "url": {
                   "raw": "{{base_url}}/api/patient/services",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "patient",
-                    "services"
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "patient", "services"]
                 },
                 "description": "Returns id and name for base services plus services created by the patient's clinic."
               },
@@ -268,31 +164,14 @@
               "request": {
                 "method": "GET",
                 "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{token}}"
-                  }
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
                 ],
                 "url": {
                   "raw": "{{base_url}}/api/patient/doctors?branch_id={{branch_id}}",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "patient",
-                    "doctors"
-                  ],
-                  "query": [
-                    {
-                      "key": "branch_id",
-                      "value": "{{branch_id}}"
-                    }
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "patient", "doctors"],
+                  "query": [{ "key": "branch_id", "value": "{{branch_id}}" }]
                 },
                 "description": ""
               },
@@ -302,48 +181,23 @@
                   "originalRequest": {
                     "method": "GET",
                     "header": [
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      },
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{token}}"
-                      }
+                      { "key": "Accept", "value": "application/json" },
+                      { "key": "Authorization", "value": "Bearer {{token}}" }
                     ],
                     "url": {
                       "raw": "{{base_url}}/api/patient/doctors/{{doctor_id}}/slots?date=2026-07-20&branch_id={{branch_id}}",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "patient",
-                        "doctors",
-                        "{{doctor_id}}",
-                        "slots"
-                      ],
+                      "host": ["{{base_url}}"],
+                      "path": ["api", "patient", "doctors", "{{doctor_id}}", "slots"],
                       "query": [
-                        {
-                          "key": "date",
-                          "value": "2026-07-20"
-                        },
-                        {
-                          "key": "branch_id",
-                          "value": "{{branch_id}}"
-                        }
+                        { "key": "date", "value": "2026-07-20" },
+                        { "key": "branch_id", "value": "{{branch_id}}" }
                       ]
                     }
                   },
                   "status": "OK",
                   "code": 200,
                   "_postman_previewlanguage": "json",
-                  "header": [
-                    {
-                      "key": "Content-Type",
-                      "value": "application/json"
-                    }
-                  ],
+                  "header": [{ "key": "Content-Type", "value": "application/json" }],
                   "body": "{\n  \"status\": \"success\",\n  \"success\": true,\n  \"message\": \"Available slots retrieved successfully\",\n  \"data\": [\n    {\n      \"time\": \"09:00\",\n      \"available\": true\n    },\n    {\n      \"time\": \"09:30\",\n      \"available\": true\n    },\n    {\n      \"time\": \"10:00\",\n      \"available\": false\n    },\n    {\n      \"time\": \"10:30\",\n      \"available\": true\n    }\n  ]\n}"
                 }
               ]
@@ -353,36 +207,16 @@
               "request": {
                 "method": "GET",
                 "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{token}}"
-                  }
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
                 ],
                 "url": {
                   "raw": "{{base_url}}/api/patient/doctors/{{doctor_id}}/slots?date=2026-07-20&branch_id={{branch_id}}",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "patient",
-                    "doctors",
-                    "{{doctor_id}}",
-                    "slots"
-                  ],
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "patient", "doctors", "{{doctor_id}}", "slots"],
                   "query": [
-                    {
-                      "key": "date",
-                      "value": "2026-07-20"
-                    },
-                    {
-                      "key": "branch_id",
-                      "value": "{{branch_id}}"
-                    }
+                    { "key": "date", "value": "2026-07-20" },
+                    { "key": "branch_id", "value": "{{branch_id}}" }
                   ]
                 },
                 "description": ""
@@ -394,34 +228,16 @@
               "request": {
                 "method": "GET",
                 "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{token}}"
-                  }
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
                 ],
                 "url": {
                   "raw": "{{base_url}}/api/patient/appointments?upcoming=1&per_page=15",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "patient",
-                    "appointments"
-                  ],
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "patient", "appointments"],
                   "query": [
-                    {
-                      "key": "upcoming",
-                      "value": "1"
-                    },
-                    {
-                      "key": "per_page",
-                      "value": "15"
-                    }
+                    { "key": "upcoming", "value": "1" },
+                    { "key": "per_page", "value": "15" }
                   ]
                 },
                 "description": ""
@@ -433,66 +249,24 @@
               "request": {
                 "method": "POST",
                 "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{token}}"
-                  }
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
                 ],
                 "url": {
                   "raw": "{{base_url}}/api/patient/appointments",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "patient",
-                    "appointments"
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "patient", "appointments"]
                 },
                 "description": "",
                 "body": {
                   "mode": "formdata",
                   "formdata": [
-                    {
-                      "key": "doctor_user_id",
-                      "value": "{{doctor_id}}",
-                      "type": "text",
-                      "description": ""
-                    },
-                    {
-                      "key": "service_id",
-                      "value": "{{service_id}}",
-                      "type": "text",
-                      "description": "Required. Must be a base service or a service created by the patient's clinic."
-                    },
-                    {
-                      "key": "appointment_at",
-                      "value": "2026-07-20 10:00:00",
-                      "type": "text",
-                      "description": ""
-                    },
-                    {
-                      "key": "branch_id",
-                      "value": "{{branch_id}}",
-                      "type": "text",
-                      "description": "Required. Must be an Active branch in the patient clinic."
-                    },
-                    {
-                      "key": "duration_minutes",
-                      "value": "30",
-                      "type": "text",
-                      "description": ""
-                    },
-                    {
-                      "key": "notes",
-                      "value": "",
-                      "type": "text",
-                      "description": ""
-                    }
+                    { "key": "doctor_user_id", "value": "{{doctor_id}}", "type": "text", "description": "" },
+                    { "key": "service_id", "value": "{{service_id}}", "type": "text", "description": "Required. Must be a base service or a service created by the patient's clinic." },
+                    { "key": "appointment_at", "value": "2026-07-20 10:00:00", "type": "text", "description": "" },
+                    { "key": "branch_id", "value": "{{branch_id}}", "type": "text", "description": "Required. Must be an Active branch in the patient clinic." },
+                    { "key": "duration_minutes", "value": "30", "type": "text", "description": "" },
+                    { "key": "notes", "value": "", "type": "text", "description": "" }
                   ]
                 }
               },
@@ -503,26 +277,13 @@
               "request": {
                 "method": "GET",
                 "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{token}}"
-                  }
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
                 ],
                 "url": {
                   "raw": "{{base_url}}/api/patient/appointments/{{appointment_id}}",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "patient",
-                    "appointments",
-                    "{{appointment_id}}"
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "patient", "appointments", "{{appointment_id}}"]
                 },
                 "description": ""
               },
@@ -533,38 +294,19 @@
               "request": {
                 "method": "POST",
                 "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{token}}"
-                  }
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
                 ],
                 "url": {
                   "raw": "{{base_url}}/api/patient/appointments/{{appointment_id}}/cancel",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "patient",
-                    "appointments",
-                    "{{appointment_id}}",
-                    "cancel"
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "patient", "appointments", "{{appointment_id}}", "cancel"]
                 },
                 "description": "",
                 "body": {
                   "mode": "formdata",
                   "formdata": [
-                    {
-                      "key": "reason",
-                      "value": "Patient requested cancellation",
-                      "type": "text",
-                      "description": ""
-                    }
+                    { "key": "reason", "value": "Patient requested cancellation", "type": "text", "description": "" }
                   ]
                 }
               },
@@ -575,44 +317,20 @@
               "request": {
                 "method": "POST",
                 "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{token}}"
-                  }
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
                 ],
                 "url": {
                   "raw": "{{base_url}}/api/patient/appointments/{{appointment_id}}/rating",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "patient",
-                    "appointments",
-                    "{{appointment_id}}",
-                    "rating"
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "patient", "appointments", "{{appointment_id}}", "rating"]
                 },
                 "description": "",
                 "body": {
                   "mode": "formdata",
                   "formdata": [
-                    {
-                      "key": "rating",
-                      "value": "5",
-                      "type": "text",
-                      "description": ""
-                    },
-                    {
-                      "key": "comment",
-                      "value": "Great visit",
-                      "type": "text",
-                      "description": ""
-                    }
+                    { "key": "rating", "value": "5", "type": "text", "description": "" },
+                    { "key": "comment", "value": "Great visit", "type": "text", "description": "" }
                   ]
                 }
               },
@@ -628,31 +346,14 @@
               "request": {
                 "method": "GET",
                 "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{token}}"
-                  }
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
                 ],
                 "url": {
                   "raw": "{{base_url}}/api/patient/invoices?per_page=15",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "patient",
-                    "invoices"
-                  ],
-                  "query": [
-                    {
-                      "key": "per_page",
-                      "value": "15"
-                    }
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "patient", "invoices"],
+                  "query": [{ "key": "per_page", "value": "15" }]
                 },
                 "description": ""
               },
@@ -663,26 +364,13 @@
               "request": {
                 "method": "GET",
                 "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{token}}"
-                  }
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
                 ],
                 "url": {
                   "raw": "{{base_url}}/api/patient/invoices/{{invoice_id}}",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "patient",
-                    "invoices",
-                    "{{invoice_id}}"
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "patient", "invoices", "{{invoice_id}}"]
                 },
                 "description": ""
               },
@@ -693,27 +381,13 @@
               "request": {
                 "method": "GET",
                 "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{token}}"
-                  }
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
                 ],
                 "url": {
                   "raw": "{{base_url}}/api/patient/invoices/{{invoice_id}}/download",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "patient",
-                    "invoices",
-                    "{{invoice_id}}",
-                    "download"
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "patient", "invoices", "{{invoice_id}}", "download"]
                 },
                 "description": "Returns application/pdf."
               },
@@ -724,31 +398,14 @@
               "request": {
                 "method": "GET",
                 "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{token}}"
-                  }
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
                 ],
                 "url": {
                   "raw": "{{base_url}}/api/patient/payments?per_page=15",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "patient",
-                    "payments"
-                  ],
-                  "query": [
-                    {
-                      "key": "per_page",
-                      "value": "15"
-                    }
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "patient", "payments"],
+                  "query": [{ "key": "per_page", "value": "15" }]
                 },
                 "description": ""
               },
@@ -759,38 +416,19 @@
               "request": {
                 "method": "POST",
                 "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{token}}"
-                  }
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
                 ],
                 "url": {
                   "raw": "{{base_url}}/api/patient/payments/{{payment_id}}/refund-request",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "patient",
-                    "payments",
-                    "{{payment_id}}",
-                    "refund-request"
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "patient", "payments", "{{payment_id}}", "refund-request"]
                 },
                 "description": "",
                 "body": {
                   "mode": "formdata",
                   "formdata": [
-                    {
-                      "key": "reason",
-                      "value": "Duplicate payment",
-                      "type": "text",
-                      "description": ""
-                    }
+                    { "key": "reason", "value": "Duplicate payment", "type": "text", "description": "" }
                   ]
                 }
               },
@@ -806,31 +444,14 @@
               "request": {
                 "method": "GET",
                 "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{token}}"
-                  }
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
                 ],
                 "url": {
                   "raw": "{{base_url}}/api/patient/documents?per_page=15",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "patient",
-                    "documents"
-                  ],
-                  "query": [
-                    {
-                      "key": "per_page",
-                      "value": "15"
-                    }
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "patient", "documents"],
+                  "query": [{ "key": "per_page", "value": "15" }]
                 },
                 "description": ""
               },
@@ -841,26 +462,13 @@
               "request": {
                 "method": "GET",
                 "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{token}}"
-                  }
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
                 ],
                 "url": {
                   "raw": "{{base_url}}/api/patient/documents/{{document_id}}",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "patient",
-                    "documents",
-                    "{{document_id}}"
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "patient", "documents", "{{document_id}}"]
                 },
                 "description": ""
               },
@@ -871,27 +479,13 @@
               "request": {
                 "method": "GET",
                 "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{token}}"
-                  }
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
                 ],
                 "url": {
                   "raw": "{{base_url}}/api/patient/documents/{{document_id}}/download",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "patient",
-                    "documents",
-                    "{{document_id}}",
-                    "download"
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "patient", "documents", "{{document_id}}", "download"]
                 },
                 "description": ""
               },
@@ -902,31 +496,14 @@
               "request": {
                 "method": "GET",
                 "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{token}}"
-                  }
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
                 ],
                 "url": {
                   "raw": "{{base_url}}/api/patient/radiology?per_page=15",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "patient",
-                    "radiology"
-                  ],
-                  "query": [
-                    {
-                      "key": "per_page",
-                      "value": "15"
-                    }
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "patient", "radiology"],
+                  "query": [{ "key": "per_page", "value": "15" }]
                 },
                 "description": ""
               },
@@ -937,27 +514,13 @@
               "request": {
                 "method": "GET",
                 "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{token}}"
-                  }
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
                 ],
                 "url": {
                   "raw": "{{base_url}}/api/patient/radiology/{{radiology_id}}/download",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "patient",
-                    "radiology",
-                    "{{radiology_id}}",
-                    "download"
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "patient", "radiology", "{{radiology_id}}", "download"]
                 },
                 "description": ""
               },
@@ -968,31 +531,14 @@
               "request": {
                 "method": "GET",
                 "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{token}}"
-                  }
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
                 ],
                 "url": {
                   "raw": "{{base_url}}/api/patient/medical-notes?per_page=15",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "patient",
-                    "medical-notes"
-                  ],
-                  "query": [
-                    {
-                      "key": "per_page",
-                      "value": "15"
-                    }
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "patient", "medical-notes"],
+                  "query": [{ "key": "per_page", "value": "15" }]
                 },
                 "description": ""
               },
@@ -1008,31 +554,14 @@
               "request": {
                 "method": "GET",
                 "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{token}}"
-                  }
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
                 ],
                 "url": {
                   "raw": "{{base_url}}/api/patient/notifications?per_page=15",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "patient",
-                    "notifications"
-                  ],
-                  "query": [
-                    {
-                      "key": "per_page",
-                      "value": "15"
-                    }
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "patient", "notifications"],
+                  "query": [{ "key": "per_page", "value": "15" }]
                 },
                 "description": ""
               },
@@ -1043,32 +572,14 @@
               "request": {
                 "method": "GET",
                 "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{token}}"
-                  }
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
                 ],
                 "url": {
                   "raw": "{{base_url}}/api/patient/notifications/unread?per_page=15",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "patient",
-                    "notifications",
-                    "unread"
-                  ],
-                  "query": [
-                    {
-                      "key": "per_page",
-                      "value": "15"
-                    }
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "patient", "notifications", "unread"],
+                  "query": [{ "key": "per_page", "value": "15" }]
                 },
                 "description": ""
               },
@@ -1079,27 +590,13 @@
               "request": {
                 "method": "POST",
                 "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{token}}"
-                  }
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
                 ],
                 "url": {
                   "raw": "{{base_url}}/api/patient/notifications/{{notification_id}}/read",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "patient",
-                    "notifications",
-                    "{{notification_id}}",
-                    "read"
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "patient", "notifications", "{{notification_id}}", "read"]
                 },
                 "description": ""
               },
@@ -1110,26 +607,13 @@
               "request": {
                 "method": "POST",
                 "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{token}}"
-                  }
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
                 ],
                 "url": {
                   "raw": "{{base_url}}/api/patient/notifications/mark-all-read",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "patient",
-                    "notifications",
-                    "mark-all-read"
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "patient", "notifications", "mark-all-read"]
                 },
                 "description": ""
               },
@@ -1145,31 +629,14 @@
               "request": {
                 "method": "GET",
                 "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{token}}"
-                  }
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
                 ],
                 "url": {
                   "raw": "{{base_url}}/api/patient/treatments?per_page=15",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "patient",
-                    "treatments"
-                  ],
-                  "query": [
-                    {
-                      "key": "per_page",
-                      "value": "15"
-                    }
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "patient", "treatments"],
+                  "query": [{ "key": "per_page", "value": "15" }]
                 },
                 "description": ""
               },
@@ -1185,32 +652,14 @@
               "request": {
                 "method": "GET",
                 "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{token}}"
-                  }
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
                 ],
                 "url": {
                   "raw": "{{base_url}}/api/patient/insurance/claims?per_page=15",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "patient",
-                    "insurance",
-                    "claims"
-                  ],
-                  "query": [
-                    {
-                      "key": "per_page",
-                      "value": "15"
-                    }
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "patient", "insurance", "claims"],
+                  "query": [{ "key": "per_page", "value": "15" }]
                 },
                 "description": ""
               },
@@ -1221,27 +670,13 @@
               "request": {
                 "method": "GET",
                 "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{token}}"
-                  }
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
                 ],
                 "url": {
                   "raw": "{{base_url}}/api/patient/insurance/claims/{{claim_id}}",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "patient",
-                    "insurance",
-                    "claims",
-                    "{{claim_id}}"
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "patient", "insurance", "claims", "{{claim_id}}"]
                 },
                 "description": ""
               },
@@ -1252,26 +687,13 @@
               "request": {
                 "method": "GET",
                 "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{token}}"
-                  }
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
                 ],
                 "url": {
                   "raw": "{{base_url}}/api/patient/insurance/consents",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "patient",
-                    "insurance",
-                    "consents"
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "patient", "insurance", "consents"]
                 },
                 "description": ""
               },
@@ -1291,22 +713,11 @@
               "name": "Notifications - List (NEW)",
               "request": {
                 "method": "GET",
-                "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  }
-                ],
+                "header": [{ "key": "Accept", "value": "application/json" }],
                 "url": {
                   "raw": "{{base_url}}/api/company/notifications",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "company",
-                    "notifications"
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "company", "notifications"]
                 },
                 "description": "From feedback: notification icon is missing from the header"
               },
@@ -1316,23 +727,11 @@
               "name": "Notifications - Unread (NEW)",
               "request": {
                 "method": "GET",
-                "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  }
-                ],
+                "header": [{ "key": "Accept", "value": "application/json" }],
                 "url": {
                   "raw": "{{base_url}}/api/company/notifications/unread",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "company",
-                    "notifications",
-                    "unread"
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "company", "notifications", "unread"]
                 },
                 "description": ""
               },
@@ -1342,30 +741,14 @@
               "name": "Notifications - Mark One Read (NEW)",
               "request": {
                 "method": "POST",
-                "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  }
-                ],
+                "header": [{ "key": "Accept", "value": "application/json" }],
                 "url": {
                   "raw": "{{base_url}}/api/company/notifications/{id}/read",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "company",
-                    "notifications",
-                    "{id}",
-                    "read"
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "company", "notifications", "{id}", "read"]
                 },
                 "description": "",
-                "body": {
-                  "mode": "formdata",
-                  "formdata": []
-                }
+                "body": { "mode": "formdata", "formdata": [] }
               },
               "response": []
             },
@@ -1373,29 +756,14 @@
               "name": "Notifications - Mark All Read (NEW)",
               "request": {
                 "method": "POST",
-                "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  }
-                ],
+                "header": [{ "key": "Accept", "value": "application/json" }],
                 "url": {
                   "raw": "{{base_url}}/api/company/notifications/mark-all-read",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "company",
-                    "notifications",
-                    "mark-all-read"
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "company", "notifications", "mark-all-read"]
                 },
                 "description": "",
-                "body": {
-                  "mode": "formdata",
-                  "formdata": []
-                }
+                "body": { "mode": "formdata", "formdata": [] }
               },
               "response": []
             }
@@ -1408,23 +776,11 @@
               "name": "Products - Show",
               "request": {
                 "method": "GET",
-                "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  }
-                ],
+                "header": [{ "key": "Accept", "value": "application/json" }],
                 "url": {
                   "raw": "{{base_url}}/api/company/products/{id}",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "company",
-                    "products",
-                    "{id}"
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "company", "products", "{id}"]
                 },
                 "description": "From feedback: view button not working"
               },
@@ -1434,63 +790,22 @@
               "name": "Products - Store (images[] + duplicate protection)",
               "request": {
                 "method": "POST",
-                "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  }
-                ],
+                "header": [{ "key": "Accept", "value": "application/json" }],
                 "url": {
                   "raw": "{{base_url}}/api/company/products",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "company",
-                    "products"
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "company", "products"]
                 },
                 "description": "From two feedback points: (1) clicking Add twice creates the product twice (2) need more than one image",
                 "body": {
                   "mode": "formdata",
                   "formdata": [
-                    {
-                      "key": "name",
-                      "value": "",
-                      "type": "text",
-                      "description": ""
-                    },
-                    {
-                      "key": "category_id",
-                      "value": "",
-                      "type": "text",
-                      "description": ""
-                    },
-                    {
-                      "key": "price",
-                      "value": "",
-                      "type": "text",
-                      "description": ""
-                    },
-                    {
-                      "key": "description",
-                      "value": "",
-                      "type": "text",
-                      "description": ""
-                    },
-                    {
-                      "key": "stock",
-                      "value": "",
-                      "type": "text",
-                      "description": ""
-                    },
-                    {
-                      "key": "images[]",
-                      "value": "",
-                      "type": "text",
-                      "description": "new - multiple images"
-                    }
+                    { "key": "name", "value": "", "type": "text", "description": "" },
+                    { "key": "category_id", "value": "", "type": "text", "description": "" },
+                    { "key": "price", "value": "", "type": "text", "description": "" },
+                    { "key": "description", "value": "", "type": "text", "description": "" },
+                    { "key": "stock", "value": "", "type": "text", "description": "" },
+                    { "key": "images[]", "value": "", "type": "text", "description": "new - multiple images" }
                   ]
                 }
               },
@@ -1500,64 +815,22 @@
               "name": "Products - Update (images[])",
               "request": {
                 "method": "POST",
-                "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  }
-                ],
+                "header": [{ "key": "Accept", "value": "application/json" }],
                 "url": {
                   "raw": "{{base_url}}/api/company/products/{id}",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "company",
-                    "products",
-                    "{id}"
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "company", "products", "{id}"]
                 },
                 "description": "",
                 "body": {
                   "mode": "formdata",
                   "formdata": [
-                    {
-                      "key": "name",
-                      "value": "",
-                      "type": "text",
-                      "description": ""
-                    },
-                    {
-                      "key": "category_id",
-                      "value": "",
-                      "type": "text",
-                      "description": ""
-                    },
-                    {
-                      "key": "price",
-                      "value": "",
-                      "type": "text",
-                      "description": ""
-                    },
-                    {
-                      "key": "description",
-                      "value": "",
-                      "type": "text",
-                      "description": ""
-                    },
-                    {
-                      "key": "stock",
-                      "value": "",
-                      "type": "text",
-                      "description": ""
-                    },
-                    {
-                      "key": "images[]",
-                      "value": "",
-                      "type": "text",
-                      "description": ""
-                    }
+                    { "key": "name", "value": "", "type": "text", "description": "" },
+                    { "key": "category_id", "value": "", "type": "text", "description": "" },
+                    { "key": "price", "value": "", "type": "text", "description": "" },
+                    { "key": "description", "value": "", "type": "text", "description": "" },
+                    { "key": "stock", "value": "", "type": "text", "description": "" },
+                    { "key": "images[]", "value": "", "type": "text", "description": "" }
                   ]
                 }
               },
@@ -1567,25 +840,11 @@
               "name": "Products - Delete Single Image (NEW)",
               "request": {
                 "method": "DELETE",
-                "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  }
-                ],
+                "header": [{ "key": "Accept", "value": "application/json" }],
                 "url": {
                   "raw": "{{base_url}}/api/company/products/{id}/images/{imageId}",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "company",
-                    "products",
-                    "{id}",
-                    "images",
-                    "{imageId}"
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "company", "products", "{id}", "images", "{imageId}"]
                 },
                 "description": ""
               },
@@ -1600,23 +859,11 @@
               "name": "Inventory - Summary Cards (NEW)",
               "request": {
                 "method": "GET",
-                "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  }
-                ],
+                "header": [{ "key": "Accept", "value": "application/json" }],
                 "url": {
                   "raw": "{{base_url}}/api/company/inventory/summary",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "company",
-                    "inventory",
-                    "summary"
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "company", "inventory", "summary"]
                 },
                 "description": "From feedback: the cards at the top are not the ones that should be there"
               },
@@ -1626,22 +873,11 @@
               "name": "Inventory - List (expanded fields)",
               "request": {
                 "method": "GET",
-                "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  }
-                ],
+                "header": [{ "key": "Accept", "value": "application/json" }],
                 "url": {
                   "raw": "{{base_url}}/api/company/inventory",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "company",
-                    "inventory"
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "company", "inventory"]
                 },
                 "description": "From feedback: table is not correct, missing data"
               },
@@ -1651,23 +887,11 @@
               "name": "Inventory - Show (expanded fields for popup)",
               "request": {
                 "method": "GET",
-                "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  }
-                ],
+                "header": [{ "key": "Accept", "value": "application/json" }],
                 "url": {
                   "raw": "{{base_url}}/api/company/inventory/{id}",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "company",
-                    "inventory",
-                    "{id}"
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "company", "inventory", "{id}"]
                 },
                 "description": "From feedback: popup should match the design with the same data"
               },
@@ -1682,30 +906,14 @@
               "name": "Conversation - Mark As Read (NEW)",
               "request": {
                 "method": "POST",
-                "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  }
-                ],
+                "header": [{ "key": "Accept", "value": "application/json" }],
                 "url": {
                   "raw": "{{base_url}}/api/company/conversations/{id}/read",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "company",
-                    "conversations",
-                    "{id}",
-                    "read"
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "company", "conversations", "{id}", "read"]
                 },
                 "description": "",
-                "body": {
-                  "mode": "formdata",
-                  "formdata": []
-                }
+                "body": { "mode": "formdata", "formdata": [] }
               },
               "response": []
             },
@@ -1713,36 +921,16 @@
               "name": "Conversation - Update Status (NEW)",
               "request": {
                 "method": "POST",
-                "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  }
-                ],
+                "header": [{ "key": "Accept", "value": "application/json" }],
                 "url": {
                   "raw": "{{base_url}}/api/company/conversations/{id}/status",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "company",
-                    "conversations",
-                    "{id}",
-                    "status"
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "company", "conversations", "{id}", "status"]
                 },
                 "description": "From feedback: a part of the conversation/communication system is missing (compared to clinic.php)",
                 "body": {
                   "mode": "formdata",
-                  "formdata": [
-                    {
-                      "key": "status",
-                      "value": "",
-                      "type": "text",
-                      "description": ""
-                    }
-                  ]
+                  "formdata": [{ "key": "status", "value": "", "type": "text", "description": "" }]
                 }
               },
               "response": []
@@ -1756,23 +944,11 @@
               "name": "Invoices - Show",
               "request": {
                 "method": "GET",
-                "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  }
-                ],
+                "header": [{ "key": "Accept", "value": "application/json" }],
                 "url": {
                   "raw": "{{base_url}}/api/company/invoices/{id}",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "company",
-                    "invoices",
-                    "{id}"
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "company", "invoices", "{id}"]
                 },
                 "description": "From feedback: view button not working (table position is frontend-only)"
               },
@@ -1782,24 +958,11 @@
               "name": "Invoices - Download",
               "request": {
                 "method": "GET",
-                "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  }
-                ],
+                "header": [{ "key": "Accept", "value": "application/json" }],
                 "url": {
                   "raw": "{{base_url}}/api/company/invoices/{id}/download",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "company",
-                    "invoices",
-                    "{id}",
-                    "download"
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "company", "invoices", "{id}", "download"]
                 },
                 "description": "Actual invoice download endpoint (returns PDF, not JSON)"
               },
@@ -1811,54 +974,152 @@
           "name": "6) Accounts - missing period filter + incomplete Profit & Loss",
           "item": [
             {
-              "name": "Accounts Summary (period param)",
+              "name": "Accounts Summary - Daily",
               "request": {
                 "method": "GET",
-                "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  }
-                ],
+                "header": [{ "key": "Accept", "value": "application/json" }],
                 "url": {
-                  "raw": "{{base_url}}/api/company/accounts/summary?period=week",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "company",
-                    "accounts",
-                    "summary"
-                  ]
+                  "raw": "{{base_url}}/api/company/accounts/summary?period=day",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "company", "accounts", "summary"],
+                  "query": [{ "key": "period", "value": "day" }]
                 },
-                "description": "From feedback: day/week/year filter is missing on the dashboard page"
+                "description": "From feedback: day/week/month/year filter is missing on the dashboard page. Now returns revenue, expenses, net_profit, pending_invoices, paid_invoices, revenue vs expenses chart data, and top clients by revenue, all scoped to the authenticated company."
               },
               "response": []
             },
             {
-              "name": "Profit & Loss (period + breakdown)",
+              "name": "Accounts Summary - Weekly",
               "request": {
                 "method": "GET",
-                "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  }
-                ],
+                "header": [{ "key": "Accept", "value": "application/json" }],
+                "url": {
+                  "raw": "{{base_url}}/api/company/accounts/summary?period=week",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "company", "accounts", "summary"],
+                  "query": [{ "key": "period", "value": "week" }]
+                },
+                "description": ""
+              },
+              "response": []
+            },
+            {
+              "name": "Accounts Summary - Monthly",
+              "request": {
+                "method": "GET",
+                "header": [{ "key": "Accept", "value": "application/json" }],
+                "url": {
+                  "raw": "{{base_url}}/api/company/accounts/summary?period=month",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "company", "accounts", "summary"],
+                  "query": [{ "key": "period", "value": "month" }]
+                },
+                "description": ""
+              },
+              "response": []
+            },
+            {
+              "name": "Accounts Summary - Yearly",
+              "request": {
+                "method": "GET",
+                "header": [{ "key": "Accept", "value": "application/json" }],
+                "url": {
+                  "raw": "{{base_url}}/api/company/accounts/summary?period=year",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "company", "accounts", "summary"],
+                  "query": [{ "key": "period", "value": "year" }]
+                },
+                "description": ""
+              },
+              "response": []
+            },
+            {
+              "name": "Profit & Loss - Daily",
+              "request": {
+                "method": "GET",
+                "header": [{ "key": "Accept", "value": "application/json" }],
+                "url": {
+                  "raw": "{{base_url}}/api/company/accounts/profit-loss?period=day",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "company", "accounts", "profit-loss"],
+                  "query": [{ "key": "period", "value": "day" }]
+                },
+                "description": "From feedback: Profit & Loss page is not correct and is missing several things. Now returns income, expenses, profit, previous_period comparison, expense_breakdown by category, and monthly_trend for the chart."
+              },
+              "response": []
+            },
+            {
+              "name": "Profit & Loss - Weekly",
+              "request": {
+                "method": "GET",
+                "header": [{ "key": "Accept", "value": "application/json" }],
+                "url": {
+                  "raw": "{{base_url}}/api/company/accounts/profit-loss?period=week",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "company", "accounts", "profit-loss"],
+                  "query": [{ "key": "period", "value": "week" }]
+                },
+                "description": ""
+              },
+              "response": []
+            },
+            {
+              "name": "Profit & Loss - Monthly",
+              "request": {
+                "method": "GET",
+                "header": [{ "key": "Accept", "value": "application/json" }],
                 "url": {
                   "raw": "{{base_url}}/api/company/accounts/profit-loss?period=month",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "company",
-                    "accounts",
-                    "profit-loss"
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "company", "accounts", "profit-loss"],
+                  "query": [{ "key": "period", "value": "month" }]
                 },
-                "description": "From feedback: Profit & Loss page is not correct and is missing several things"
+                "description": ""
+              },
+              "response": []
+            },
+            {
+              "name": "Profit & Loss - Yearly",
+              "request": {
+                "method": "GET",
+                "header": [{ "key": "Accept", "value": "application/json" }],
+                "url": {
+                  "raw": "{{base_url}}/api/company/accounts/profit-loss?period=year",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "company", "accounts", "profit-loss"],
+                  "query": [{ "key": "period", "value": "year" }]
+                },
+                "description": ""
+              },
+              "response": []
+            },
+            {
+              "name": "Profit & Loss - Download PDF (NEW)",
+              "request": {
+                "method": "GET",
+                "header": [{ "key": "Accept", "value": "application/json" }],
+                "url": {
+                  "raw": "{{base_url}}/api/company/accounts/profit-loss/download?period=month",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "company", "accounts", "profit-loss", "download"],
+                  "query": [{ "key": "period", "value": "month" }]
+                },
+                "description": "From feedback: 'Download (PDF)' button on the Profit & Loss page. Returns application/pdf."
+              },
+              "response": []
+            },
+            {
+              "name": "Profit & Loss - WhatsApp Link (NEW)",
+              "request": {
+                "method": "GET",
+                "header": [{ "key": "Accept", "value": "application/json" }],
+                "url": {
+                  "raw": "{{base_url}}/api/company/accounts/profit-loss/whatsapp-link?period=month",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "company", "accounts", "profit-loss", "whatsapp-link"],
+                  "query": [{ "key": "period", "value": "month" }]
+                },
+                "description": "From feedback: 'Send via WhatsApp' button on the Profit & Loss page. Returns a wa.me link (data.whatsapp_link) built from the company's phone number and a summary message; the frontend opens it directly (window.open). No paid WhatsApp API is used."
               },
               "response": []
             }
@@ -1868,67 +1129,63 @@
           "name": "7) Settings - profile incomplete",
           "item": [
             {
+              "name": "Settings - Show",
+              "request": {
+                "method": "GET",
+                "header": [{ "key": "Accept", "value": "application/json" }],
+                "url": {
+                  "raw": "{{base_url}}/api/company/settings",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "company", "settings"]
+                },
+                "description": "From feedback: profile is incomplete, missing data. Now returns profile (company_name, contact_email, phone, website, address, description, logo_url) sourced directly from the company record, plus communication and automation sections (with automation defaults: auto_transfer_to_payments, auto_create_invoice_billing, whatsapp_notification_clinic, auto_pdf_generation)."
+              },
+              "response": []
+            },
+            {
               "name": "Settings - Update Profile (new fields)",
               "request": {
                 "method": "POST",
-                "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  }
-                ],
+                "header": [{ "key": "Accept", "value": "application/json" }],
                 "url": {
                   "raw": "{{base_url}}/api/company/settings/profile",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "company",
-                    "settings",
-                    "profile"
-                  ]
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "company", "settings", "profile"]
                 },
-                "description": "From feedback: profile is incomplete, missing data",
+                "description": "From feedback: profile is incomplete, missing data. tax_number removed (not part of the prototype); contact_email and phone added to match Company Profile card.",
                 "body": {
                   "mode": "formdata",
                   "formdata": [
-                    {
-                      "key": "company_name",
-                      "value": "",
-                      "type": "text",
-                      "description": ""
-                    },
-                    {
-                      "key": "tax_number",
-                      "value": "",
-                      "type": "text",
-                      "description": ""
-                    },
-                    {
-                      "key": "website",
-                      "value": "",
-                      "type": "text",
-                      "description": ""
-                    },
-                    {
-                      "key": "address",
-                      "value": "",
-                      "type": "text",
-                      "description": ""
-                    },
-                    {
-                      "key": "description",
-                      "value": "",
-                      "type": "text",
-                      "description": ""
-                    },
-                    {
-                      "key": "logo",
-                      "value": "",
-                      "type": "text",
-                      "description": "file"
-                    }
+                    { "key": "company_name", "value": "", "type": "text", "description": "" },
+                    { "key": "contact_email", "value": "", "type": "text", "description": "" },
+                    { "key": "phone", "value": "", "type": "text", "description": "" },
+                    { "key": "website", "value": "", "type": "text", "description": "" },
+                    { "key": "address", "value": "", "type": "text", "description": "" },
+                    { "key": "description", "value": "", "type": "text", "description": "" },
+                    { "key": "logo", "value": "", "type": "text", "description": "file" }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Settings - Update Automation (NEW)",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Accept", "value": "application/json" }],
+                "url": {
+                  "raw": "{{base_url}}/api/company/settings/automation",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "company", "settings", "automation"]
+                },
+                "description": "Maps to the 4 toggles on the Settings > Profile page: Enable Auto Transfer to Payments, Enable Auto Create Invoice in Clinic Billing, Enable WhatsApp Notification to Clinic, Enable Auto PDF Generation.",
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    { "key": "automation[auto_transfer_to_payments]", "value": "true", "type": "text", "description": "" },
+                    { "key": "automation[auto_create_invoice_billing]", "value": "true", "type": "text", "description": "" },
+                    { "key": "automation[whatsapp_notification_clinic]", "value": "true", "type": "text", "description": "" },
+                    { "key": "automation[auto_pdf_generation]", "value": "false", "type": "text", "description": "" }
                   ]
                 }
               },

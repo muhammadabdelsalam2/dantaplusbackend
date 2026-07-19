@@ -12,51 +12,110 @@ use Illuminate\Support\Str;
 
 class AccountService
 {
-    public function summary(?string $period = null): array
-    {
-        [$start, $end, $previousStart, $previousEnd] = $this->periodBounds($period);
+public function summary(?string $period = null): array
+{
+    $companyId = auth()->user()->company_id;
+    [$start, $end, $previousStart, $previousEnd] = $this->periodBounds($period);
 
-        $revenueQuery = Invoice::query()->where('status', 'paid');
-        $expenseQuery = CompanyExpense::query();
+    $revenueQuery = Invoice::query()->where('company_id', $companyId)->where('status', 'paid');
+    $expenseQuery = CompanyExpense::query()->where('company_id', $companyId);
+    $pendingQuery = Invoice::query()->where('company_id', $companyId)->where('status', 'unpaid');
 
-        if ($start && $end) {
-            $revenueQuery->whereBetween('issue_date', [$start, $end]);
-            $expenseQuery->whereBetween('expense_date', [$start, $end]);
-        }
-
-        $revenue = $revenueQuery->sum('total_amount');
-        $expenses = $expenseQuery->sum('amount');
-
-        $previousRevenue = 0;
-        $previousExpenses = 0;
-        if ($previousStart && $previousEnd) {
-            $previousRevenue = Invoice::query()
-                ->where('status', 'paid')
-                ->whereBetween('issue_date', [$previousStart, $previousEnd])
-                ->sum('total_amount');
-            $previousExpenses = CompanyExpense::query()
-                ->whereBetween('expense_date', [$previousStart, $previousEnd])
-                ->sum('amount');
-        }
-
-        return [
-            'period' => $period,
-            'revenue' => (float) $revenue,
-            'expenses' => (float) $expenses,
-            'net_profit' => (float) ($revenue - $expenses),
-            'previous_period' => [
-                'revenue' => (float) $previousRevenue,
-                'expenses' => (float) $previousExpenses,
-                'net_profit' => (float) ($previousRevenue - $previousExpenses),
-            ],
-        ];
+    if ($start && $end) {
+        $revenueQuery->whereBetween('issue_date', [$start, $end]);
+        $expenseQuery->whereBetween('expense_date', [$start, $end]);
+        $pendingQuery->whereBetween('issue_date', [$start, $end]);
     }
 
+    $revenue  = (clone $revenueQuery)->sum('total_amount');
+    $expenses = (clone $expenseQuery)->sum('amount');
+    $pending  = (clone $pendingQuery)->sum('total_amount');
+
+    $previousRevenue = 0;
+    $previousExpenses = 0;
+    if ($previousStart && $previousEnd) {
+        $previousRevenue = Invoice::query()->where('company_id', $companyId)->where('status', 'paid')
+            ->whereBetween('issue_date', [$previousStart, $previousEnd])->sum('total_amount');
+        $previousExpenses = CompanyExpense::query()->where('company_id', $companyId)
+            ->whereBetween('expense_date', [$previousStart, $previousEnd])->sum('amount');
+    }
+
+    return [
+        'period' => $period,
+        'revenue' => (float) $revenue,
+        'expenses' => (float) $expenses,
+        'net_profit' => (float) ($revenue - $expenses),
+        'pending_invoices' => (float) $pending,
+        'paid_invoices' => (float) $revenue, // فعليًا نفس الـ revenue لأن revenue = مجموع الفواتير المدفوعة
+        'previous_period' => [
+            'revenue' => (float) $previousRevenue,
+            'expenses' => (float) $previousExpenses,
+            'net_profit' => (float) ($previousRevenue - $previousExpenses),
+        ],
+        'chart' => $this->revenueExpenseTrend($companyId, $period, $start, $end),
+        'top_clients' => $this->topClientsByRevenue($companyId, $start, $end),
+    ];
+}
+
+private function revenueExpenseTrend(int $companyId, ?string $period, $start, $end): array
+{
+    // لو مفيش period محدد، هنعرض آخر 6 شهور كـ default trend
+    if (!$start || !$end) {
+        $start = now()->copy()->subMonths(5)->startOfMonth();
+        $end = now()->copy()->endOfMonth();
+    }
+
+    $groupFormat = match ($period) {
+        'day' => '%Y-%m-%d %H:00', // بالساعة
+        'week' => '%Y-%m-%d',      // بالليوم
+        'year' => '%Y-%m',         // بالشهر
+        default => '%Y-%m-%d',     // month -> بالليوم
+    };
+
+    $revenueRows = Invoice::query()
+        ->where('company_id', $companyId)->where('status', 'paid')
+        ->whereBetween('issue_date', [$start, $end])
+        ->selectRaw("DATE_FORMAT(issue_date, '{$groupFormat}') as bucket, SUM(total_amount) as total")
+        ->groupBy('bucket')->pluck('total', 'bucket');
+
+    $expenseRows = CompanyExpense::query()
+        ->where('company_id', $companyId)
+        ->whereBetween('expense_date', [$start, $end])
+        ->selectRaw("DATE_FORMAT(expense_date, '{$groupFormat}') as bucket, SUM(amount) as total")
+        ->groupBy('bucket')->pluck('total', 'bucket');
+
+    $buckets = $revenueRows->keys()->merge($expenseRows->keys())->unique()->sort()->values();
+
+    return $buckets->map(fn ($bucket) => [
+        'label' => $bucket,
+        'revenue' => (float) ($revenueRows[$bucket] ?? 0),
+        'expenses' => (float) ($expenseRows[$bucket] ?? 0),
+    ])->all();
+}
+
+private function topClientsByRevenue(int $companyId, $start, $end, int $limit = 5): array
+{
+    $query = Invoice::query()
+        ->where('company_id', $companyId)
+        ->where('status', 'paid')
+        ->when($start && $end, fn ($q) => $q->whereBetween('issue_date', [$start, $end]))
+        ->join('clinics', 'clinics.id', '=', 'invoices.clinic_id')
+        ->selectRaw('clinics.id as clinic_id, clinics.name as clinic_name, SUM(invoices.total_amount) as total_revenue')
+        ->groupBy('clinics.id', 'clinics.name')
+        ->orderByDesc('total_revenue')
+        ->limit($limit)
+        ->get();
+
+    return $query->map(fn ($row) => [
+        'clinic_id' => $row->clinic_id,
+        'clinic_name' => $row->clinic_name,
+        'total_revenue' => (float) $row->total_revenue,
+    ])->all();
+}
   public function invoices(array $filters = []): array
 {
-    $query = Invoice::query()->latest('id');
+    $query = Invoice::query()->where('company_id', auth()->user()->company_id)->latest('id');
 
-    // Search by invoice number or amount
     if (!empty($filters['search'])) {
         $search = $filters['search'];
         $query->where(function ($q) use ($search) {
@@ -65,12 +124,10 @@ class AccountService
         });
     }
 
-    // Filter by status
     if (!empty($filters['status']) && in_array($filters['status'], ['paid', 'unpaid'])) {
         $query->where('status', $filters['status']);
     }
 
-    // Filter by date range
     if (!empty($filters['date_from'])) {
         $query->whereDate('issue_date', '>=', $filters['date_from']);
     }
@@ -88,11 +145,33 @@ class AccountService
     ])->all();
 }
 
-    public function expenses(): array
-    {
-        return ExpenseResource::collection(CompanyExpense::query()->latest('expense_date')->get())->resolve();
-    }
+public function expenses(): array
+{
+    return ExpenseResource::collection(
+        CompanyExpense::query()
+            ->where('company_id', auth()->user()->company_id)
+            ->latest('expense_date')
+            ->get()
+    )->resolve();
+}
 
+public function bankTransactions(): array
+{
+    return BankTransaction::query()
+        ->where('company_id', auth()->user()->company_id)
+        ->latest('transaction_date')
+        ->get()
+        ->map(fn ($transaction) => [
+            'id' => $transaction->id,
+            'transaction_id' => $transaction->transaction_id,
+            'transaction_date' => optional($transaction->transaction_date)?->toDateString(),
+            'amount' => (float) $transaction->amount,
+            'source' => $transaction->source,
+            'status' => $transaction->status,
+            'type' => $transaction->type,
+            'matched_invoice_id' => $transaction->matched_invoice_id,
+        ])->all();
+}
     public function createExpense(array $data): array
     {
         if (($data['receipt'] ?? null) instanceof UploadedFile) {
@@ -103,19 +182,19 @@ class AccountService
         return (new ExpenseResource(CompanyExpense::create($data)))->resolve();
     }
 
-    public function bankTransactions(): array
-    {
-        return BankTransaction::query()->latest('transaction_date')->get()->map(fn ($transaction) => [
-            'id' => $transaction->id,
-            'transaction_id' => $transaction->transaction_id,
-            'transaction_date' => optional($transaction->transaction_date)?->toDateString(),
-            'amount' => (float) $transaction->amount,
-            'source' => $transaction->source,
-            'status' => $transaction->status,
-            'type' => $transaction->type,
-            'matched_invoice_id' => $transaction->matched_invoice_id,
-        ])->all();
-    }
+    // public function bankTransactions(): array
+    // {
+    //     return BankTransaction::query()->latest('transaction_date')->get()->map(fn ($transaction) => [
+    //         'id' => $transaction->id,
+    //         'transaction_id' => $transaction->transaction_id,
+    //         'transaction_date' => optional($transaction->transaction_date)?->toDateString(),
+    //         'amount' => (float) $transaction->amount,
+    //         'source' => $transaction->source,
+    //         'status' => $transaction->status,
+    //         'type' => $transaction->type,
+    //         'matched_invoice_id' => $transaction->matched_invoice_id,
+    //     ])->all();
+    // }
 
     public function syncBankTransactions(): array
     {
@@ -133,39 +212,83 @@ class AccountService
     }
 
     public function profitLoss(?string $period = null): array
-    {
-        $summary = $this->summary($period);
+{
+    $companyId = auth()->user()->company_id;
+    $summary = $this->summary($period);
 
-        [$start, $end] = $this->periodBounds($period);
-        $expenseBreakdown = CompanyExpense::query()
-            ->when($start && $end, fn ($query) => $query->whereBetween('expense_date', [$start, $end]))
-            ->selectRaw('category, SUM(amount) as total')
-            ->groupBy('category')
-            ->get()
-            ->map(fn ($row) => [
-                'category' => $row->category,
-                'total' => (float) $row->total,
-            ])
-            ->values();
+    [$start, $end] = $this->periodBounds($period);
+    $expenseBreakdown = CompanyExpense::query()
+        ->where('company_id', $companyId)
+        ->when($start && $end, fn ($query) => $query->whereBetween('expense_date', [$start, $end]))
+        ->selectRaw('category, SUM(amount) as total')
+        ->groupBy('category')
+        ->get()
+        ->map(fn ($row) => ['category' => $row->category, 'total' => (float) $row->total])
+        ->values();
 
-        $chart = [
-            ['label' => 'income', 'value' => $summary['revenue']],
-            ['label' => 'expenses', 'value' => $summary['expenses']],
-            ['label' => 'profit', 'value' => $summary['net_profit']],
-        ];
+    return [
+        'period' => $period,
+        'income' => $summary['revenue'],
+        'expenses' => $summary['expenses'],
+        'profit' => $summary['net_profit'],
+        'previous_period' => $summary['previous_period'],
+        'expense_breakdown' => $expenseBreakdown,
+        'monthly_trend' => $this->monthlyProfitTrend($companyId), // آخر 6 شهور زي البروتوتايب
+        'generated_at' => now()->toISOString(),
+    ];
+}
 
-        return [
-            'period' => $period,
-            'income' => $summary['revenue'],
-            'expenses' => $summary['expenses'],
-            'profit' => $summary['net_profit'],
-            'previous_period' => $summary['previous_period'],
-            'expense_breakdown' => $expenseBreakdown,
-            'chart' => $chart,
-            'generated_at' => now()->toISOString(),
+private function monthlyProfitTrend(int $companyId, int $months = 6): array
+{
+    $result = [];
+    for ($i = $months - 1; $i >= 0; $i--) {
+        $monthStart = now()->copy()->subMonths($i)->startOfMonth();
+        $monthEnd = now()->copy()->subMonths($i)->endOfMonth();
+
+        $revenue = Invoice::query()->where('company_id', $companyId)->where('status', 'paid')
+            ->whereBetween('issue_date', [$monthStart, $monthEnd])->sum('total_amount');
+        $expenses = CompanyExpense::query()->where('company_id', $companyId)
+            ->whereBetween('expense_date', [$monthStart, $monthEnd])->sum('amount');
+
+        $result[] = [
+            'month' => $monthStart->format('M'),
+            'profit' => (float) ($revenue - $expenses),
         ];
     }
+    return $result;
+}
 
+public function downloadPdf(?string $period = null): \Illuminate\Http\Response
+{
+    $data = $this->profitLoss($period);
+
+    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.profit-loss', ['report' => $data]);
+    return $pdf->download('profit-loss-report.pdf');
+}
+
+public function generateWhatsAppLink(?string $period = null): array
+{
+    $data = $this->profitLoss($period);
+    $company = auth()->user()->company;
+
+    $phone = $company->phone ?? null;
+
+    if (!$phone) {
+        throw new \Exception('Company phone number is not set.');
+    }
+
+    $message = "تقرير الأرباح والخسائر\n"
+        . "الفترة: " . ($period ?? 'كل الفترات') . "\n"
+        . "الإيرادات: {$data['income']}\n"
+        . "المصروفات: {$data['expenses']}\n"
+        . "صافي الربح: {$data['profit']}";
+
+    $cleanPhone = preg_replace('/[^0-9]/', '', $phone);
+
+    return [
+        'whatsapp_link' => "https://wa.me/{$cleanPhone}?text=" . urlencode($message),
+    ];
+}
     private function periodBounds(?string $period): array
     {
         if (! $period) {

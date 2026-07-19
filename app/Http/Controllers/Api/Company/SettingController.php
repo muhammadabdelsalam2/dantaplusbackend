@@ -14,20 +14,21 @@ class SettingController extends Controller
     public function __construct(private SettingService $service) {}
 
     public function show() { return ApiResponse::success($this->service->getSettings(), 'Settings fetched successfully'); }
-    public function updateProfile(UpdateSettingsRequest $request)
-    {
-        $data = $request->validated();
-        $profile = $data['profile'] ?? array_intersect_key($data, array_flip([
-            'company_name',
-            'tax_number',
-            'address',
-            'website',
-            'description',
-            'logo',
-        ]));
+  public function updateProfile(UpdateSettingsRequest $request)
+{
+    $data = $request->validated();
+    $profile = $data['profile'] ?? array_intersect_key($data, array_flip([
+        'company_name',
+        'contact_email',
+        'phone',
+        'address',
+        'website',
+        'description',
+        'logo',
+    ]));
 
-        return ApiResponse::success($this->service->updateProfile($profile), 'Profile settings updated successfully');
-    }
+    return ApiResponse::success($this->service->updateProfile($profile), 'Profile settings updated successfully');
+}
     public function updateCommunication(UpdateSettingsRequest $request) { return ApiResponse::success($this->service->updateSection('communication', $request->validated('communication', [])), 'Communication settings updated successfully'); }
     public function testCommunication() { return ApiResponse::success($this->service->testCommunication(), 'Communication test queued successfully'); }
     public function updateAutomation(UpdateSettingsRequest $request) { return ApiResponse::success($this->service->updateSection('automation', $request->validated('automation', [])), 'Automation settings updated successfully'); }
