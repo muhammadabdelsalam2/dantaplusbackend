@@ -18,6 +18,10 @@ use Illuminate\Validation\Rule;
 
 class PatientAppointmentController extends BasePatientController
 {
+    private const DEFAULT_WORKING_HOURS_FROM = '09:00';
+
+    private const DEFAULT_WORKING_HOURS_TO = '17:00';
+
     public function __construct(private ClinicAppointmentSettingsService $settingsService) {}
 
     public function index(Request $request)
@@ -271,8 +275,7 @@ class PatientAppointmentController extends BasePatientController
         $settings = $settingsResult['data'] ?? [];
 
         $slotDuration = (int) ($settings['slot_duration'] ?? $settings['default_duration'] ?? 30);
-        $startTime = $branch->working_hours_from ?? $settings['start_time'] ?? '09:00';
-        $endTime = $branch->working_hours_to ?? $settings['end_time'] ?? '17:00';
+        [$startTime, $endTime] = $this->branchWorkingHours($branch);
 
         $dayStart = Carbon::parse("{$date} {$startTime}");
         $dayEnd = Carbon::parse("{$date} {$endTime}");
@@ -313,8 +316,7 @@ class PatientAppointmentController extends BasePatientController
         $settingsResult = $this->settingsService->show();
         $settings = $settingsResult['data'] ?? [];
         $slotDuration = (int) ($settings['slot_duration'] ?? $settings['default_duration'] ?? 30);
-        $startTime = $branch->working_hours_from ?? $settings['start_time'] ?? '09:00';
-        $endTime = $branch->working_hours_to ?? $settings['end_time'] ?? '17:00';
+        [$startTime, $endTime] = $this->branchWorkingHours($branch);
         $dayStart = Carbon::parse($appointment->toDateString().' '.$startTime);
         $dayEnd = Carbon::parse($appointment->toDateString().' '.$endTime);
         $appointmentEnd = $appointment->copy()->addMinutes($slotDuration);
@@ -336,6 +338,14 @@ class PatientAppointmentController extends BasePatientController
 
                 return $appointment->lt($bookedEnd) && $appointmentEnd->gt($bookedStart);
             });
+    }
+
+    private function branchWorkingHours(Branch $branch): array
+    {
+        return [
+            filled($branch->working_hours_from) ? $branch->working_hours_from : self::DEFAULT_WORKING_HOURS_FROM,
+            filled($branch->working_hours_to) ? $branch->working_hours_to : self::DEFAULT_WORKING_HOURS_TO,
+        ];
     }
 
     private function availableServicesQuery(int $clinicId)
