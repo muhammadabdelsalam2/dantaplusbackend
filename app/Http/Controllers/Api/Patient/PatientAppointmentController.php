@@ -57,6 +57,7 @@ class PatientAppointmentController extends BasePatientController
         $data = $request->validated();
         $notes = $data['notes'] ?? $data['reason'] ?? $data['complaint'] ?? null;
         $doctorId = $data['doctor_user_id'] ?? $data['doctor_id'] ?? null;
+
         $service = $this->availableServicesQuery($patient->clinic_id)
             ->where('id', $data['service_id'])
             ->first();
@@ -65,17 +66,18 @@ class PatientAppointmentController extends BasePatientController
             return ApiResponse::error('Selected service not found for this clinic', 422);
         }
 
-        $doctor = User::query()
-            ->with('doctor')
+        // الشرط الوحيد: الدكتور تابع لنفس عيادة المريض. مفيش أي شرط ربط دكتور-فرع محدد.
+        $doctorExists = User::query()
             ->where('id', $doctorId)
             ->where('clinic_id', $patient->clinic_id)
             ->role('doctor')
-            ->first();
+            ->exists();
 
-        if (! $doctor) {
+        if (! $doctorExists) {
             return ApiResponse::error('Selected doctor not found in this clinic', 422);
         }
 
+        // الشرط الوحيد: الفرع تابع لنفس عيادة المريض ونشط. مفيش شرط تاني.
         $branch = Branch::query()
             ->where('id', $data['branch_id'])
             ->where('clinic_id', $patient->clinic_id)
@@ -86,7 +88,7 @@ class PatientAppointmentController extends BasePatientController
             return ApiResponse::error('Selected branch not found or inactive', 422);
         }
 
-        if (! $this->slotIsAvailable($patient->clinic_id, $doctor, $data['appointment_at'], $branch)) {
+        if (! $this->slotIsAvailable($patient->clinic_id, $doctorId, $data['appointment_at'], $branch)) {
             return ApiResponse::error('This time slot is no longer available, please choose another', 422);
         }
 
@@ -214,14 +216,24 @@ class PatientAppointmentController extends BasePatientController
             return $patient;
         }
 
+        // الفرع (لو اتبعت) لازم يكون تابع لنفس عيادة المريض بس - مفيش شرط ربط دكتور-فرع.
         $request->validate([
-            'branch_id' => ['nullable', 'integer', Rule::exists('branches', 'id')->where(fn ($query) => $query->where('clinic_id', $patient->clinic_id)->where('status', 'Active'))],
+            'branch_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('branches', 'id')->where(
+                    fn ($query) => $query->where('clinic_id', $patient->clinic_id)->where('status', 'Active')
+                ),
+            ],
         ]);
 
+        // كل دكاترة العيادة بيترجعوا بغض النظر عن الفرع، لأن مفيش جدول ربط دكتور-فرع فعليًا.
+        // الفرع بيتفلتر منطقيًا وقت الحجز/السلوتس بس (اتنين تابعين لنفس العيادة = مقبول).
         $doctors = User::query()
             ->where('clinic_id', $patient->clinic_id)
             ->role('doctor')
             ->select('id', 'name')
+            ->orderBy('name')
             ->get();
 
         return ApiResponse::success($doctors, 'Doctors retrieved successfully');
@@ -244,87 +256,99 @@ class PatientAppointmentController extends BasePatientController
         return ApiResponse::success($branches, 'Branches retrieved successfully');
     }
 
-  public function availableSlots(Request $request, int $doctorId)
-{
-    $patient = $this->currentPatient($request);
-    if ($this->isResponse($patient)) {
-        return $patient;
+    public function availableSlots(Request $request, int $doctorId)
+    {
+        $patient = $this->currentPatient($request);
+        if ($this->isResponse($patient)) {
+            return $patient;
+        }
+
+        // الشرط الوحيد: الدكتور تابع لنفس عيادة المريض.
+        $doctorExists = User::query()
+            ->where('id', $doctorId)
+            ->where('clinic_id', $patient->clinic_id)
+            ->role('doctor')
+            ->exists();
+
+        if (! $doctorExists) {
+            return ApiResponse::error('Doctor not found', 404);
+        }
+
+        $data = $request->validate([
+            'date' => ['required', 'date_format:Y-m-d'],
+            'branch_id' => [
+                'required',
+                'integer',
+                Rule::exists('branches', 'id')->where(
+                    fn ($query) => $query->where('clinic_id', $patient->clinic_id)->where('status', 'Active')
+                ),
+            ],
+        ]);
+
+        $date = $data['date'];
+
+        // الشرط الوحيد: الفرع تابع لنفس عيادة المريض ونشط.
+        $branch = Branch::query()
+            ->where('id', $data['branch_id'])
+            ->where('clinic_id', $patient->clinic_id)
+            ->where('status', 'Active')
+            ->first();
+
+        if (! $branch) {
+            return ApiResponse::error('Branch not found or inactive', 404);
+        }
+
+        $settingsResult = $this->settingsService->show();
+        $settings = $settingsResult['data'] ?? [];
+
+        $slotDuration = (int) ($settings['slot_duration'] ?? $settings['default_duration'] ?? 30);
+        [$startTime, $endTime] = $this->branchWorkingHours($branch);
+
+        $dayStart = Carbon::parse("{$date} {$startTime}");
+        $dayEnd = Carbon::parse("{$date} {$endTime}");
+
+        $booked = ClinicAppointment::query()
+            ->where('clinic_id', $patient->clinic_id)
+            ->where('doctor_user_id', $doctorId)
+            ->whereDate('appointment_at', $date)
+            ->where('branch_id', $branch->id)
+            ->whereNotIn('status', ['cancelled'])
+            ->get();
+
+        $slots = [];
+        $cursor = $dayStart->copy();
+
+        while ($cursor->copy()->addMinutes($slotDuration)->lte($dayEnd)) {
+            $time = $cursor->format('H:i');
+            $slotEnd = $cursor->copy()->addMinutes($slotDuration);
+
+            $hasConflict = $booked->contains(function ($appointment) use ($cursor, $slotEnd) {
+                $appointmentStart = Carbon::parse($appointment->appointment_at);
+                $appointmentEnd = $appointmentStart->copy()->addMinutes((int) ($appointment->duration_minutes ?? $appointment->duration ?? 30));
+
+                return $cursor->lt($appointmentEnd) && $slotEnd->gt($appointmentStart);
+            });
+
+            $isPast = $cursor->isToday() && $cursor->lessThanOrEqualTo(now());
+
+            $slots[] = [
+                'time' => $time,
+                'available' => ! $hasConflict && ! $isPast,
+            ];
+
+            $cursor->addMinutes($slotDuration);
+        }
+
+        return ApiResponse::success($slots, 'Available slots retrieved successfully');
     }
 
-    $doctor = User::query()
-        ->with('doctor')
-        ->where('id', $doctorId)
-        ->where('clinic_id', $patient->clinic_id)
-        ->role('doctor')
-        ->first();
-
-    if (! $doctor) {
-        return ApiResponse::error('Doctor not found', 404);
-    }
-
-    $data = $request->validate([
-        'date' => ['required', 'date_format:Y-m-d'],
-        'branch_id' => ['required', 'integer', Rule::exists('branches', 'id')->where(fn ($query) => $query->where('clinic_id', $patient->clinic_id)->where('status', 'Active'))],
-    ]);
-
-    $date = $data['date'];
-    $branch = Branch::query()
-        ->where('clinic_id', $patient->clinic_id)
-        ->where('status', 'Active')
-        ->find($data['branch_id']);
-
-    if (! $branch) {
-        return ApiResponse::error('Branch not found or inactive', 404);
-    }
-
-    $settingsResult = $this->settingsService->show();
-    $settings = $settingsResult['data'] ?? [];
-
-    $slotDuration = (int) ($settings['slot_duration'] ?? $settings['default_duration'] ?? 30);
-    [$startTime, $endTime] = $this->resolveWorkingHours($doctor, $branch);
-
-    $dayStart = Carbon::parse("{$date} {$startTime}");
-    $dayEnd = Carbon::parse("{$date} {$endTime}");
-
-    $booked = ClinicAppointment::query()
-        ->where('clinic_id', $patient->clinic_id)
-        ->where('doctor_user_id', $doctorId)
-        ->whereDate('appointment_at', $date)
-        ->where('branch_id', $branch->id)
-        ->whereNotIn('status', ['cancelled'])
-        ->get();
-
-    $slots = [];
-    $cursor = $dayStart->copy();
-
-    while ($cursor->copy()->addMinutes($slotDuration)->lte($dayEnd)) {
-        $time = $cursor->format('H:i');
-        $slotEnd = $cursor->copy()->addMinutes($slotDuration);
-        $hasConflict = $booked->contains(function ($appointment) use ($cursor, $slotEnd) {
-            $appointmentStart = Carbon::parse($appointment->appointment_at);
-            $appointmentEnd = $appointmentStart->copy()->addMinutes((int) ($appointment->duration_minutes ?? $appointment->duration ?? 30));
-
-            return $cursor->lt($appointmentEnd) && $slotEnd->gt($appointmentStart);
-        });
-
-        $slots[] = [
-            'time' => $time,
-            'available' => ! $hasConflict && (! $cursor->isToday() || $cursor->greaterThan(now())),
-        ];
-
-        $cursor->addMinutes($slotDuration);
-    }
-
-    return ApiResponse::success($slots, 'Available slots retrieved successfully');
-}
-
-    private function slotIsAvailable(int $clinicId, User $doctor, string $appointmentAt, Branch $branch): bool
+    private function slotIsAvailable(int $clinicId, int $doctorId, string $appointmentAt, Branch $branch): bool
     {
         $appointment = Carbon::parse($appointmentAt);
         $settingsResult = $this->settingsService->show();
         $settings = $settingsResult['data'] ?? [];
         $slotDuration = (int) ($settings['slot_duration'] ?? $settings['default_duration'] ?? 30);
-        [$startTime, $endTime] = $this->resolveWorkingHours($doctor, $branch);
+        [$startTime, $endTime] = $this->branchWorkingHours($branch);
         $dayStart = Carbon::parse($appointment->toDateString().' '.$startTime);
         $dayEnd = Carbon::parse($appointment->toDateString().' '.$endTime);
         $appointmentEnd = $appointment->copy()->addMinutes($slotDuration);
@@ -335,7 +359,7 @@ class PatientAppointmentController extends BasePatientController
 
         return ! ClinicAppointment::query()
             ->where('clinic_id', $clinicId)
-            ->where('doctor_user_id', $doctor->id)
+            ->where('doctor_user_id', $doctorId)
             ->where('branch_id', $branch->id)
             ->whereDate('appointment_at', $appointment->toDateString())
             ->whereNotIn('status', ['cancelled'])
@@ -348,18 +372,11 @@ class PatientAppointmentController extends BasePatientController
             });
     }
 
-    private function resolveWorkingHours(User $doctor, Branch $branch): array
-    {
-        if (filled($doctor->doctor?->working_hours_from) && filled($doctor->doctor?->working_hours_to)) {
-            return [
-                $doctor->doctor->working_hours_from,
-                $doctor->doctor->working_hours_to,
-            ];
-        }
-
-        return $this->branchWorkingHours($branch);
-    }
-
+    /**
+     * مصدر الحقيقة الوحيد لساعات العمل هو الفرع (branches.working_hours_from/to).
+     * لو القيمة فاضية/NULL بيرجع default عام (09:00 - 17:00). مفيش أي اعتماد على
+     * جدول الدكاترة، لأن الداتا هناك غير موثوقة وسبّبت باجات قبل كده.
+     */
     private function branchWorkingHours(Branch $branch): array
     {
         return [
