@@ -14,9 +14,9 @@ class StorePatientAppointmentRequest extends FormRequest
     public function rules(): array
     {
         return [
-        'doctor_user_id' => ['required_without:doctor_id', 'integer', 'exists:users,id'],
-        'doctor_id'=> ['required_without:doctor_user_id', 'integer', 'exists:users,id'],
-            'service_name' => ['required', 'string', 'max:255'],
+            'doctor_user_id' => ['required_without:doctor_id', 'integer', 'exists:users,id'],
+            'doctor_id' => ['required_without:doctor_user_id', 'integer', 'exists:users,id'],
+            'service_id' => ['required', 'integer', 'exists:services,id'],
             'appointment_at' => ['required', 'date', 'after:now'],
             'branch_id' => ['required', 'integer', 'exists:branches,id'],
             'duration' => ['nullable', 'integer', 'min:5', 'max:480'],

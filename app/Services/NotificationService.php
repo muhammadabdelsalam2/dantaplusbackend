@@ -25,8 +25,7 @@ class NotificationService
     public function __construct(
         private NotificationRepository $notificationRepository,
         private NotificationLogRepository $notificationLogRepository
-    ) {
-    }
+    ) {}
 
     public function listNotifications(array $filters = []): array
     {
@@ -139,26 +138,26 @@ class NotificationService
         ], 'Notifications marked as read successfully');
     }
 
-  public function getUserNotifications(User $actor, array $filters = [], bool $onlyUnread = false): array
-{
-    $perPage = (int) ($filters['per_page'] ?? 15);
+    public function getUserNotifications(User $actor, array $filters = [], bool $onlyUnread = false): array
+    {
+        $perPage = (int) ($filters['per_page'] ?? 15);
 
-    $baseQuery = $this->notificationRepository->queryForUser($actor, $this->resolveActorRole($actor));
+        $baseQuery = $this->notificationRepository->queryForUser($actor, $this->resolveActorRole($actor));
 
-    // الفلاتر تتطبق داخل نفس الـ query مش على query منفصل
-    $query = $this->filterNotifications($baseQuery, $filters);
+        // الفلاتر تتطبق داخل نفس الـ query مش على query منفصل
+        $query = $this->filterNotifications($baseQuery, $filters);
 
-    if ($onlyUnread) {
-        $query->where('is_read', false);
+        if ($onlyUnread) {
+            $query->where('is_read', false);
+        }
+
+        $notifications = $this->notificationRepository->paginateQuery($query, $perPage);
+
+        return ServiceResult::success(
+            $this->buildCollectionPayload($notifications, $actor),
+            $onlyUnread ? 'Unread notifications fetched successfully' : 'Notifications fetched successfully'
+        );
     }
-
-    $notifications = $this->notificationRepository->paginateQuery($query, $perPage);
-
-    return ServiceResult::success(
-        $this->buildCollectionPayload($notifications, $actor),
-        $onlyUnread ? 'Unread notifications fetched successfully' : 'Notifications fetched successfully'
-    );
-}
 
     public function filterNotifications(Builder $query, array $filters): Builder
     {
@@ -270,15 +269,15 @@ class NotificationService
 
     private function resolveActorRole(User $user): string
     {
-        if ($user->hasRole('super-admin') || $user->role === 'super-admin') {
+        if ($user->hasRole('super-admin')) {
             return 'super_admin';
         }
 
-        if (in_array($user->role, self::CLINIC_ROLES, true)) {
+        if ($user->hasAnyRole(self::CLINIC_ROLES)) {
             return 'clinic';
         }
 
-        if ($user->hasRole('patient') || $user->role === 'patient') {
+        if ($user->hasRole('patient')) {
             return 'patient';
         }
 
@@ -305,17 +304,16 @@ class NotificationService
     }
 
     private function normalizeStoredDeliveryMethods(Notification $notification): array
-{
-    $raw = $notification->delivery_method ?? $notification->delivery_methods ?? [];
+    {
+        $raw = $notification->delivery_method ?? $notification->delivery_methods ?? [];
 
+        if (is_string($raw)) {
+            $decoded = json_decode($raw, true);
+            $raw = is_array($decoded) ? $decoded : [$raw];
+        }
 
-    if (is_string($raw)) {
-        $decoded = json_decode($raw, true);
-        $raw = is_array($decoded) ? $decoded : [$raw];
+        return array_values(array_filter((array) $raw));
     }
-
-    return array_values(array_filter((array) $raw));
-}
 
     private function logNotificationDelivery(Notification $notification, User $recipient): void
     {

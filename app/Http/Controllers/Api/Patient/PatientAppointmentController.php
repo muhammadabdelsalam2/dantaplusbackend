@@ -8,16 +8,17 @@ use App\Http\Resources\Patient\PatientAppointmentResource;
 use App\Models\Branch;
 use App\Models\ClinicAppointment;
 use App\Models\Notification;
-use App\Support\ApiResponse;
-use Illuminate\Http\Request;
+use App\Models\Service;
 use App\Models\User;
 use App\Services\Clinic\Settings\ClinicAppointmentSettingsService;
+use App\Support\ApiResponse;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class PatientAppointmentController extends BasePatientController
 {
-      public function __construct(private ClinicAppointmentSettingsService $settingsService) {}
+    public function __construct(private ClinicAppointmentSettingsService $settingsService) {}
 
     public function index(Request $request)
     {
@@ -42,87 +43,113 @@ class PatientAppointmentController extends BasePatientController
         return ApiResponse::success(PatientAppointmentResource::collection($appointments), 'Patient appointments retrieved successfully');
     }
 
-   public function store(StorePatientAppointmentRequest $request)
-{
-    $patient = $this->currentPatient($request);
-    if ($this->isResponse($patient)) return $patient;
+    public function store(StorePatientAppointmentRequest $request)
+    {
+        $patient = $this->currentPatient($request);
+        if ($this->isResponse($patient)) {
+            return $patient;
+        }
 
-    $data = $request->validated();
-    $notes = $data['notes'] ?? $data['reason'] ?? $data['complaint'] ?? null;
-    $doctorId = $data['doctor_user_id'] ?? $data['doctor_id'] ?? null;
+        $data = $request->validated();
+        $notes = $data['notes'] ?? $data['reason'] ?? $data['complaint'] ?? null;
+        $doctorId = $data['doctor_user_id'] ?? $data['doctor_id'] ?? null;
+        $service = $this->availableServicesQuery($patient->clinic_id)
+            ->where('id', $data['service_id'])
+            ->first();
 
-    $doctorExists = User::query()
-        ->where('id', $doctorId)
-        ->where('clinic_id', $patient->clinic_id)
-        ->role('doctor')
-        ->exists();
+        if (! $service) {
+            return ApiResponse::error('Selected service not found for this clinic', 422);
+        }
 
-    if (! $doctorExists) {
-        return ApiResponse::error('Selected doctor not found in this clinic', 422);
+        $doctorExists = User::query()
+            ->where('id', $doctorId)
+            ->where('clinic_id', $patient->clinic_id)
+            ->role('doctor')
+            ->exists();
+
+        if (! $doctorExists) {
+            return ApiResponse::error('Selected doctor not found in this clinic', 422);
+        }
+
+        $branch = Branch::query()
+            ->where('id', $data['branch_id'])
+            ->where('clinic_id', $patient->clinic_id)
+            ->where('status', 'Active')
+            ->first();
+
+        if (! $branch) {
+            return ApiResponse::error('Selected branch not found or inactive', 422);
+        }
+
+        if (! $this->slotIsAvailable($patient->clinic_id, $doctorId, $data['appointment_at'], $branch)) {
+            return ApiResponse::error('This time slot is no longer available, please choose another', 422);
+        }
+
+        // تأكيد إن الميعاد ده مش محجوز بالفعل لنفس الدكتور (race condition)
+        $slotTaken = ClinicAppointment::query()
+            ->where('clinic_id', $patient->clinic_id)
+            ->where('doctor_user_id', $doctorId)
+            ->where('appointment_at', $data['appointment_at'])
+            ->where('branch_id', $data['branch_id'])
+            ->whereNotIn('status', ['cancelled'])
+            ->exists();
+
+        if ($slotTaken) {
+            return ApiResponse::error('This time slot is no longer available, please choose another', 422);
+        }
+
+        $appointment = ClinicAppointment::create([
+            'clinic_id' => $patient->clinic_id,
+            'patient_id' => $patient->id,
+            'doctor_user_id' => $doctorId,
+            'patient_name' => $patient->user?->name ?? 'Patient #'.$patient->id,
+            'patient_phone' => $patient->phone ?: $patient->user?->phone,
+            'service_id' => $service->id,
+            'service_name' => $service->name,
+            'appointment_at' => $data['appointment_at'],
+            'duration_minutes' => $data['duration_minutes'] ?? $data['duration'] ?? 30,
+            'branch_id' => $data['branch_id'],
+            'branch' => $branch->name,
+            'room' => $data['room'] ?? null,
+            'payment_type' => $data['payment_type'] ?? null,
+            'status' => 'pending',
+            'notes' => $notes,
+        ]);
+
+        Notification::query()->create([
+            'title' => 'Appointment request submitted',
+            'message' => 'تم طلب حجز ميعاد',
+            'type' => 'appointment',
+            'status' => 'sent',
+            'audience_type' => 'user',
+            'audience_id' => $request->user()->id,
+            'priority' => 'medium',
+            'delivery_method' => ['in_app'],
+            'delivery_methods' => ['in_app'],
+            'user_id' => $request->user()->id,
+            'role' => 'patient',
+            'is_read' => false,
+            'link' => '/patient/appointments/'.$appointment->id,
+        ]);
+
+        return ApiResponse::success(new PatientAppointmentResource($appointment->load('doctor')), 'Appointment requested successfully, awaiting clinic approval', 201);
     }
 
-    $branch = Branch::query()
-        ->where('id', $data['branch_id'])
-        ->where('clinic_id', $patient->clinic_id)
-        ->where('status', 'Active')
-        ->first();
+    public function services(Request $request)
+    {
+        $patient = $this->currentPatient($request);
+        if ($this->isResponse($patient)) {
+            return $patient;
+        }
 
-    if (! $branch) {
-        return ApiResponse::error('Selected branch not found or inactive', 422);
+        $services = $this->availableServicesQuery($patient->clinic_id)
+            ->select('id', 'name')
+            ->orderBy('name')
+            ->get();
+
+        return response()->json($services);
     }
 
-    if (! $this->slotIsAvailable($patient->clinic_id, $doctorId, $data['appointment_at'], $branch)) {
-        return ApiResponse::error('This time slot is no longer available, please choose another', 422);
-    }
-
-    // تأكيد إن الميعاد ده مش محجوز بالفعل لنفس الدكتور (race condition)
-    $slotTaken = ClinicAppointment::query()
-        ->where('clinic_id', $patient->clinic_id)
-        ->where('doctor_user_id', $doctorId)
-        ->where('appointment_at', $data['appointment_at'])
-        ->where('branch_id', $data['branch_id'])
-        ->whereNotIn('status', ['cancelled'])
-        ->exists();
-
-    if ($slotTaken) {
-        return ApiResponse::error('This time slot is no longer available, please choose another', 422);
-    }
-
-    $appointment = ClinicAppointment::create([
-        'clinic_id'        => $patient->clinic_id,
-        'patient_id'       => $patient->id,
-        'doctor_user_id'   => $doctorId,
-        'patient_name'     => $patient->user?->name ?? 'Patient #' . $patient->id,
-        'patient_phone'    => $patient->phone ?: $patient->user?->phone,
-        'service_name'     => $data['service_name'],
-        'appointment_at'   => $data['appointment_at'],
-        'duration_minutes' => $data['duration_minutes'] ?? $data['duration'] ?? 30,
-        'branch_id'        => $data['branch_id'],
-        'branch'           => $branch->name,
-        'room'             => $data['room'] ?? null,
-        'payment_type'     => $data['payment_type'] ?? null,
-        'status'           => 'pending', 
-        'notes'            => $notes,
-    ]);
-
-    Notification::query()->create([
-        'title' => 'Appointment request submitted',
-        'message' => 'تم طلب حجز ميعاد',
-        'type' => 'appointment',
-        'status' => 'sent',
-        'audience_type' => 'user',
-        'audience_id' => $request->user()->id,
-        'priority' => 'medium',
-        'delivery_method' => ['in_app'],
-        'delivery_methods' => ['in_app'],
-        'user_id' => $request->user()->id,
-        'role' => 'patient',
-        'is_read' => false,
-        'link' => '/patient/appointments/' . $appointment->id,
-    ]);
-
-    return ApiResponse::success(new PatientAppointmentResource($appointment->load('doctor')), 'Appointment requested successfully, awaiting clinic approval', 201);
-}
     public function show(Request $request, int $id)
     {
         $patient = $this->currentPatient($request);
@@ -161,7 +188,7 @@ class PatientAppointmentController extends BasePatientController
         $reason = $request->validated('reason');
         $appointment->update([
             'status' => 'cancelled',
-            'notes' => trim((string) $appointment->notes . ($reason ? "\nCancellation reason: {$reason}" : '')),
+            'notes' => trim((string) $appointment->notes.($reason ? "\nCancellation reason: {$reason}" : '')),
         ]);
 
         return ApiResponse::success(new PatientAppointmentResource($appointment->fresh('doctor')), 'Appointment cancelled successfully');
@@ -174,10 +201,13 @@ class PatientAppointmentController extends BasePatientController
             ->where('patient_id', $patient->id)
             ->where('clinic_id', $patient->clinic_id);
     }
+
     public function doctors(Request $request)
     {
         $patient = $this->currentPatient($request);
-        if ($this->isResponse($patient)) return $patient;
+        if ($this->isResponse($patient)) {
+            return $patient;
+        }
 
         $request->validate([
             'branch_id' => ['nullable', 'integer', Rule::exists('branches', 'id')->where(fn ($query) => $query->where('clinic_id', $patient->clinic_id)->where('status', 'Active'))],
@@ -195,7 +225,9 @@ class PatientAppointmentController extends BasePatientController
     public function branches(Request $request)
     {
         $patient = $this->currentPatient($request);
-        if ($this->isResponse($patient)) return $patient;
+        if ($this->isResponse($patient)) {
+            return $patient;
+        }
 
         $branches = Branch::query()
             ->where('clinic_id', $patient->clinic_id)
@@ -210,7 +242,9 @@ class PatientAppointmentController extends BasePatientController
     public function availableSlots(Request $request, int $doctorId)
     {
         $patient = $this->currentPatient($request);
-        if ($this->isResponse($patient)) return $patient;
+        if ($this->isResponse($patient)) {
+            return $patient;
+        }
 
         $doctorExists = User::query()
             ->where('id', $doctorId)
@@ -281,8 +315,8 @@ class PatientAppointmentController extends BasePatientController
         $slotDuration = (int) ($settings['slot_duration'] ?? $settings['default_duration'] ?? 30);
         $startTime = $branch->working_hours_from ?? $settings['start_time'] ?? '09:00';
         $endTime = $branch->working_hours_to ?? $settings['end_time'] ?? '17:00';
-        $dayStart = Carbon::parse($appointment->toDateString() . ' ' . $startTime);
-        $dayEnd = Carbon::parse($appointment->toDateString() . ' ' . $endTime);
+        $dayStart = Carbon::parse($appointment->toDateString().' '.$startTime);
+        $dayEnd = Carbon::parse($appointment->toDateString().' '.$endTime);
         $appointmentEnd = $appointment->copy()->addMinutes($slotDuration);
 
         if ($appointment->lt($dayStart) || $appointmentEnd->gt($dayEnd)) {
@@ -301,6 +335,16 @@ class PatientAppointmentController extends BasePatientController
                 $bookedEnd = $bookedStart->copy()->addMinutes((int) ($booked->duration_minutes ?? $booked->duration ?? 30));
 
                 return $appointment->lt($bookedEnd) && $appointmentEnd->gt($bookedStart);
+            });
+    }
+
+    private function availableServicesQuery(int $clinicId)
+    {
+        return Service::query()
+            ->where('is_active', true)
+            ->where(function ($query) use ($clinicId) {
+                $query->where('is_base', true)
+                    ->orWhere('created_by_clinic_id', $clinicId);
             });
     }
 }

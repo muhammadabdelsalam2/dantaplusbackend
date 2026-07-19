@@ -20,6 +20,7 @@ class PatientAppointmentResource extends JsonResource
             ] : null,
             'patient_name' => $this->patient_name,
             'patient_phone' => $this->patient_phone,
+            'service_id' => $this->service_id,
             'service_name' => $this->service_name,
             'appointment_at' => optional($this->appointment_at)?->toISOString(),
             'duration_minutes' => $this->duration_minutes ?? $this->duration,

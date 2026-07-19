@@ -235,6 +235,35 @@
               "response": []
             },
             {
+              "name": "Services - Available",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/patient/services",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "patient",
+                    "services"
+                  ]
+                },
+                "description": "Returns id and name for base services plus services created by the patient's clinic."
+              },
+              "response": []
+            },
+            {
               "name": "Doctors - List by branch",
               "request": {
                 "method": "GET",
@@ -385,10 +414,10 @@
                       "description": ""
                     },
                     {
-                      "key": "service_name",
-                      "value": "Consultation",
+                      "key": "service_id",
+                      "value": "{{service_id}}",
                       "type": "text",
-                      "description": ""
+                      "description": "Required. Must be a base service or a service created by the patient's clinic."
                     },
                     {
                       "key": "appointment_at",

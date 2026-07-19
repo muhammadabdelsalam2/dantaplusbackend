@@ -18,7 +18,7 @@ class PatientLoginController extends Controller
 
         $user = User::query()
             ->where('phone', $data['phone'])
-            ->where('role', 'patient')
+            ->whereHas('roles', fn ($q) => $q->where('name', 'patient'))
             ->first();
 
         if (! $user || Str::lower(trim($user->name)) !== Str::lower(trim($data['name']))) {

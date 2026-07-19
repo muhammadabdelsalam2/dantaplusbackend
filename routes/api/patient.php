@@ -5,11 +5,11 @@ use App\Http\Controllers\Api\Patient\PatientDashboardController;
 use App\Http\Controllers\Api\Patient\PatientDocumentController;
 use App\Http\Controllers\Api\Patient\PatientInsuranceController;
 use App\Http\Controllers\Api\Patient\PatientInvoiceController;
+use App\Http\Controllers\Api\Patient\PatientLoginController;
+use App\Http\Controllers\Api\Patient\PatientNotificationController;
 use App\Http\Controllers\Api\Patient\PatientPaymentController;
 use App\Http\Controllers\Api\Patient\PatientProfileController;
 use App\Http\Controllers\Api\Patient\PatientRatingController;
-use App\Http\Controllers\Api\Patient\PatientLoginController;
-use App\Http\Controllers\Api\Patient\PatientNotificationController;
 use App\Http\Controllers\Api\Patient\PatientTreatmentController;
 use Illuminate\Support\Facades\Route;
 
@@ -59,9 +59,9 @@ Route::middleware(['auth:sanctum', 'role:patient'])->group(function () {
         Route::get('/insurance/claims/{id}', [PatientInsuranceController::class, 'showClaim']);
         Route::get('/insurance/consents', [PatientInsuranceController::class, 'consents']);
         Route::get('/branches', [PatientAppointmentController::class, 'branches']);
+        Route::get('/services', [PatientAppointmentController::class, 'services']);
         Route::get('/doctors', [PatientAppointmentController::class, 'doctors']);
         Route::get('/doctors/{doctorId}/slots', [PatientAppointmentController::class, 'availableSlots']);
     });
-
 
 });

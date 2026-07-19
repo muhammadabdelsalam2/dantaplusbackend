@@ -16,23 +16,23 @@ class CompanyUserService
         'delivery_staff',
     ];
 
-  public function index(array $filters = []): array
-{
-    return CompanyUserResource::collection(
-        User::query()
-            ->where('company_id', auth()->user()->company_id)
-            ->when($filters['search'] ?? null, function ($q, $search) {
-                $q->where(function ($q) use ($search) {
-                    $q->where('name', 'like', "%{$search}%")
-                        ->orWhere('email', 'like', "%{$search}%")
-                        ->orWhere('username', 'like', "%{$search}%");
-                });
-            })
-            ->when($filters['role'] ?? null, fn ($q, $role) => $q->where('role', $role))
-            ->latest('id')
-            ->get()
-    )->resolve();
-}
+    public function index(array $filters = []): array
+    {
+        return CompanyUserResource::collection(
+            User::query()
+                ->where('company_id', auth()->user()->company_id)
+                ->when($filters['search'] ?? null, function ($q, $search) {
+                    $q->where(function ($q) use ($search) {
+                        $q->where('name', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%")
+                            ->orWhere('username', 'like', "%{$search}%");
+                    });
+                })
+                ->when($filters['role'] ?? null, fn ($q, $role) => $q->role($role))
+                ->latest('id')
+                ->get()
+        )->resolve();
+    }
 
     public function show(User $user): array
     {
@@ -57,6 +57,7 @@ class CompanyUserService
             'is_active' => ($data['status'] ?? 'Active') === 'Active',
         ]);
         $user->syncRoles([$data['role']]);
+
         return $this->show($user);
     }
 
@@ -83,6 +84,7 @@ class CompanyUserService
             UserRoleManager::ensureRoleExists($data['role']);
             $user->syncRoles([$data['role']]);
         }
+
         return $this->show($user->fresh());
     }
 
@@ -99,11 +101,12 @@ class CompanyUserService
             ]);
         }
     }
+
     public function manageableRoles(): array
-{
-    return collect(self::MANAGEABLE_ROLES)->map(fn ($role) => [
-        'name' => $role,
-        'label' => str($role)->replace('_', ' ')->title()->toString(),
-    ])->values()->all();
-}
+    {
+        return collect(self::MANAGEABLE_ROLES)->map(fn ($role) => [
+            'name' => $role,
+            'label' => str($role)->replace('_', ' ')->title()->toString(),
+        ])->values()->all();
+    }
 }

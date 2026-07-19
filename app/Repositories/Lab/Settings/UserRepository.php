@@ -6,8 +6,8 @@ use App\Enums\LabRole;
 use App\Enums\UserStatus;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Collection;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 
 class UserRepository implements UserRepositoryInterface
 {
@@ -52,7 +52,7 @@ class UserRepository implements UserRepositoryInterface
     {
         $query = User::query()
             ->where('lab_id', $labId)
-            ->where('role', LabRole::LabAdmin->value)
+            ->role(LabRole::LabAdmin->value)
             ->where(function (Builder $q) {
                 $q->where('status', UserStatus::Active->value)
                     ->orWhere(function (Builder $inner) {

@@ -17,6 +17,7 @@ class ClinicAppointment extends Model
         'doctor_user_id',
         'patient_name',
         'patient_phone',
+        'service_id',
         'service_name',
         'appointment_at',
         'duration_minutes',
@@ -52,10 +53,16 @@ class ClinicAppointment extends Model
         return $this->belongsTo(User::class, 'doctor_user_id');
     }
 
+    public function service(): BelongsTo
+    {
+        return $this->belongsTo(Service::class);
+    }
+
     public function roomModel(): BelongsTo
-{
-    return $this->belongsTo(Room::class, 'room_id');
-}
+    {
+        return $this->belongsTo(Room::class, 'room_id');
+    }
+
     public function invoices(): HasMany
     {
         return $this->hasMany(ClinicInvoice::class, 'appointment_id');
