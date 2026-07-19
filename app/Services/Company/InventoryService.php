@@ -32,18 +32,19 @@ class InventoryService
         return (new InventoryResource($item))->resolve();
     }
 
-    public function summary(): array
-    {
-        $query = InventoryItem::query();
+   public function summary(): array
+{
+    $companyId = auth()->user()->company_id;
 
-        return [
-            'total_items' => (clone $query)->count(),
-            'total_quantity' => (int) (clone $query)->sum('quantity'),
-            'total_value' => (float) (clone $query)->selectRaw('COALESCE(SUM(quantity * unit_price), 0) as total')->value('total'),
-            'low_stock_count' => (clone $query)->whereColumn('quantity', '<=', 'minimum_stock_level')->count(),
-            'auto_purchase_count' => (clone $query)->where('auto_purchase', true)->count(),
-        ];
-    }
+    $query = InventoryItem::query()->where('company_id', $companyId);
+
+    return [
+        'total_products'   => (clone $query)->count(),
+        'low_stock_count'  => (clone $query)->whereColumn('quantity', '<=', 'minimum_stock_level')->count(),
+        'total_categories' => (clone $query)->distinct('category_id')->count('category_id'),
+        'total_quantity'   => (int) (clone $query)->sum('quantity'),
+    ];
+}
 
     public function create(array $data): array
     {
