@@ -22,4 +22,5 @@ class OrderController extends Controller
     public function update(UpdateOrderRequest $request, Order $id) { return ApiResponse::success($this->service->update($id, $request->validated()), 'Order updated successfully'); }
     public function complete(Order $id) { return ApiResponse::success($this->service->complete($id), 'Order completed successfully'); }
     public function communicationLogs(Order $id) { return ApiResponse::success($this->service->communicationLogs($id), 'Communication logs fetched successfully'); }
+    public function clinics() { return ApiResponse::success($this->service->clinicsFilterOptions(), 'Clinics fetched successfully'); }
 }

@@ -96,9 +96,9 @@ private function revenueExpenseTrend(int $companyId, ?string $period, $start, $e
 private function topClientsByRevenue(int $companyId, $start, $end, int $limit = 5): array
 {
     $query = Invoice::query()
-        ->where('company_id', $companyId)
-        ->where('status', 'paid')
-        ->when($start && $end, fn ($q) => $q->whereBetween('issue_date', [$start, $end]))
+        ->where('invoices.company_id', $companyId)      // ⬅️ اتحددت
+        ->where('invoices.status', 'paid')                // ⬅️ اتحددت
+        ->when($start && $end, fn ($q) => $q->whereBetween('invoices.issue_date', [$start, $end])) // ⬅️ اتحددت
         ->join('clinics', 'clinics.id', '=', 'invoices.clinic_id')
         ->selectRaw('clinics.id as clinic_id, clinics.name as clinic_name, SUM(invoices.total_amount) as total_revenue')
         ->groupBy('clinics.id', 'clinics.name')
@@ -112,9 +112,12 @@ private function topClientsByRevenue(int $companyId, $start, $end, int $limit = 
         'total_revenue' => (float) $row->total_revenue,
     ])->all();
 }
-  public function invoices(array $filters = []): array
+ public function invoices(array $filters = []): array
 {
-    $query = Invoice::query()->where('company_id', auth()->user()->company_id)->latest('id');
+    $query = Invoice::query()
+        ->with(['clinic:id,name', 'order:id,order_code'])
+        ->where('company_id', auth()->user()->company_id)
+        ->latest('id');
 
     if (!empty($filters['search'])) {
         $search = $filters['search'];
@@ -123,18 +126,11 @@ private function topClientsByRevenue(int $companyId, $start, $end, int $limit = 
               ->orWhere('total_amount', 'like', "%{$search}%");
         });
     }
-
     if (!empty($filters['status']) && in_array($filters['status'], ['paid', 'unpaid'])) {
         $query->where('status', $filters['status']);
     }
-
-    if (!empty($filters['date_from'])) {
-        $query->whereDate('issue_date', '>=', $filters['date_from']);
-    }
-
-    if (!empty($filters['date_to'])) {
-        $query->whereDate('issue_date', '<=', $filters['date_to']);
-    }
+    if (!empty($filters['date_from'])) { $query->whereDate('issue_date', '>=', $filters['date_from']); }
+    if (!empty($filters['date_to'])) { $query->whereDate('issue_date', '<=', $filters['date_to']); }
 
     return $query->get()->map(fn ($invoice) => [
         'id'             => $invoice->id,
@@ -142,6 +138,10 @@ private function topClientsByRevenue(int $companyId, $start, $end, int $limit = 
         'status'         => $invoice->status,
         'total_amount'   => (float) $invoice->total_amount,
         'issue_date'     => optional($invoice->issue_date)?->toDateString(),
+        'due_date'       => optional($invoice->due_date)?->toDateString(),
+        'client_name'    => $invoice->clinic?->name,
+        'order_id'       => $invoice->order?->order_code,
+        'file_url'       => url("/api/company/invoices/{$invoice->id}/download"),
     ])->all();
 }
 
@@ -258,12 +258,16 @@ private function monthlyProfitTrend(int $companyId, int $months = 6): array
     return $result;
 }
 
-public function downloadPdf(?string $period = null): \Illuminate\Http\Response
+public function downloadPdf(?string $period = null): array
 {
     $data = $this->profitLoss($period);
-
     $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.profit-loss', ['report' => $data]);
-    return $pdf->download('profit-loss-report.pdf');
+
+    $filename = 'profit-loss-' . ($period ?? 'all') . '-' . now()->format('YmdHis') . '.pdf';
+    $path = 'company/reports/' . $filename;
+    Storage::disk('public')->put($path, $pdf->output());
+
+    return ['file_url' => asset('storage/' . $path)];
 }
 
 public function generateWhatsAppLink(?string $period = null): array

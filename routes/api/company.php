@@ -73,6 +73,7 @@ Route::prefix('company')
 
         // ─── Orders (مفتوحة للكل حاليًا، سبتها زي ما هي) ───
         Route::middleware('role:material_company_admin|sales_rep|delivery_staff')->group(function () {
+                Route::get('/orders/clinics', [OrderController::class, 'clinics']); 
             Route::get('/orders', [OrderController::class, 'index']);
             Route::get('/orders/{id}', [OrderController::class, 'show']);
             Route::get('/orders/{id}/communication-logs', [OrderController::class, 'communicationLogs']);

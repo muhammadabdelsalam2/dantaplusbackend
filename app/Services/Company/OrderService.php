@@ -19,6 +19,7 @@ class OrderService
             ->with(['clinic:id,name,email,phone', 'invoice:id,order_id', 'items'])
             ->when($source, fn ($q) => $q->where('source', $source))
             ->when($filters['status'] ?? null, fn ($q, $status) => $q->where('status', $status))
+             ->when($filters['clinic_id'] ?? null, fn ($q, $clinicId) => $q->where('clinic_id', $clinicId))
             ->when($filters['search'] ?? null, function ($q, $search) {
                 $q->where(function ($inner) use ($search) {
                     $inner->where('order_code', 'like', "%{$search}%")
@@ -74,6 +75,20 @@ class OrderService
         $order->update(['status' => $status]);
         return $this->show($order->fresh());
     }
+    public function clinicsFilterOptions(): array
+{
+    return Order::query()
+        ->where('company_id', auth()->user()->company_id)
+        ->whereNotNull('clinic_id')
+        ->with('clinic:id,name')
+        ->get()
+        ->pluck('clinic')
+        ->filter()
+        ->unique('id')
+        ->values()
+        ->map(fn ($clinic) => ['id' => $clinic->id, 'name' => $clinic->name])
+        ->all();
+}
 
     public function complete(Order $order): array
     {
@@ -94,7 +109,7 @@ class OrderService
                     'subtotal' => $order->items()->sum('line_total'),
                     'tax' => 0,
                     'total_amount' => $order->items()->sum('line_total'),
-                    'status' => 'issued',
+                    'status' => 'unpaid',
                     'payment_method' => $order->payment_method,
                     'completion_date' => now(),
                     'order_type' => $order->source,

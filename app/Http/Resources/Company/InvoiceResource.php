@@ -17,6 +17,7 @@ class InvoiceResource extends JsonResource
             'due_date' => optional($this->due_date)?->toDateString(),
             'subtotal' => (float) $this->subtotal,
             'tax' => (float) $this->tax,
+            'file_url' => url("/api/company/invoices/{$this->id}/download"),
             'total_amount' => (float) $this->total_amount,
             'payment_method' => $this->payment_method,
             'completion_date' => optional($this->completion_date)?->toISOString(),
