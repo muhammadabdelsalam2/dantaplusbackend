@@ -7,24 +7,25 @@ use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
-class RadiologyResource extends JsonResource
+class PatientDocumentResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        return [
+        return array_filter([
             'id' => $this->id,
             'clinic_id' => $this->clinic_id,
             'patient_id' => $this->patient_id,
-            'modality' => $this->modality,
-            'notes' => $this->notes,
-            'status' => $this->status,
+            'document_type' => $this->document_type,
+            'title' => $this->title,
             'file_path' => $this->file_path,
-            'image_url' => $this->fileUrl($this->file_path),
-            'before_image_url' => $this->fileUrl($this->before_image_path),
-            'after_image_url' => $this->fileUrl($this->after_image_path),
+            'file_url' => $this->fileUrl($this->file_path),
+            'original_name' => $this->original_name,
+            'mime_type' => $this->mime_type,
+            'size' => $this->size,
+            'notes' => $this->notes,
+            'uploaded_by' => $this->uploaded_by,
             'created_at' => optional($this->created_at)?->toISOString(),
-            'updated_at' => optional($this->updated_at)?->toISOString(),
-        ];
+        ], static fn ($value) => $value !== null);
     }
 
     private function fileUrl(?string $path): ?string

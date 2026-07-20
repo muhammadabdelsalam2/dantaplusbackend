@@ -7,15 +7,18 @@ use App\Http\Resources\Clinic\PatientLabCaseResource;
 use App\Http\Resources\Clinic\PatientNoteResource;
 use App\Http\Resources\Clinic\PatientResource;
 use App\Http\Resources\Clinic\RadiologyResource;
+use App\Http\Resources\Clinic\PatientDocumentResource;
+use App\Models\PatientDocument;
 use App\Models\CaseModel;
 use App\Models\ClinicAppointment;
 use App\Models\ClinicInvoice;
 use App\Models\ClinicTreatment;
 use App\Models\DentalLab;
 use App\Models\Doctor;
-use App\Models\Patient;
-use App\Models\PatientNote;
 use App\Models\InsuranceCompany;
+use App\Models\Patient;
+use App\Models\PatientDocument;
+use App\Models\PatientNote;
 use App\Models\PatientRadiology;
 use App\Models\PatientTooth;
 use App\Models\User;
@@ -65,7 +68,7 @@ class PatientService
             ],
         ], 'Patients fetched successfully');
     }
- 
+
     public function show(int $patientId): array
     {
         $patient = $this->findClinicPatient($patientId);
@@ -252,26 +255,28 @@ class PatientService
         return ServiceResult::success(RadiologyResource::collection($rows)->resolve(), 'Radiology archive fetched successfully');
     }
 
-    public function uploadRadiology(int $patientId, array $data, $file = null): array
-    {
-        $patient = $this->findClinicPatient($patientId);
-        if (! $patient) {
-            return ServiceResult::error('Patient not found.', null, null, 404);
-        }
-
-        $path = $file ? $file->store('clinic/radiology', 'public') : null;
-
-        $entry = PatientRadiology::query()->create([
-            'patient_id' => $patient->id,
-            'clinic_id' => $this->currentClinicId(),
-            'modality' => $data['modality'],
-            'notes' => $data['notes'] ?? null,
-            'file_path' => $path,
-            'status' => $data['status'] ?? null,
-        ]);
-
-        return ServiceResult::success((new RadiologyResource($entry))->resolve(), 'Radiology uploaded successfully', 201);
+   public function uploadRadiology(int $patientId, array $data, $file = null, $beforeImage = null, $afterImage = null): array
+{
+    $patient = $this->findClinicPatient($patientId);
+    if (! $patient) {
+        return ServiceResult::error('Patient not found.', null, null, 404);
     }
+
+    $folder = 'clinic/radiology';
+
+    $entry = PatientRadiology::query()->create([
+        'patient_id' => $patient->id,
+        'clinic_id' => $this->currentClinicId(),
+        'modality' => $data['modality'],
+        'notes' => $data['notes'] ?? null,
+        'file_path' => $file ? $file->store($folder, 'public') : null,
+        'before_image_path' => $beforeImage ? $beforeImage->store($folder, 'public') : null,
+        'after_image_path' => $afterImage ? $afterImage->store($folder, 'public') : null,
+        'status' => $data['status'] ?? null,
+    ]);
+
+    return ServiceResult::success((new RadiologyResource($entry))->resolve(), 'Radiology uploaded successfully', 201);
+}
 
     public function labCases(int $patientId): array
     {
@@ -469,4 +474,44 @@ class PatientService
             ->where('clinic_id', $clinicId)
             ->find($companyId);
     }
+    public function documents(int $patientId): array
+{
+    $patient = $this->findClinicPatient($patientId);
+    if (! $patient) {
+        return ServiceResult::error('Patient not found.', null, null, 404);
+    }
+
+    $rows = PatientDocument::query()
+        ->where('clinic_id', $this->currentClinicId())
+        ->where('patient_id', $patient->id)
+        ->latest('id')
+        ->get();
+
+    return ServiceResult::success(PatientDocumentResource::collection($rows)->resolve(), 'Documents fetched successfully');
+}
+
+public function uploadDocument(int $patientId, array $data, $file): array
+{
+    $patient = $this->findClinicPatient($patientId);
+    if (! $patient) {
+        return ServiceResult::error('Patient not found.', null, null, 404);
+    }
+
+    $path = $file->store('clinic/patient-documents', 'public');
+
+    $document = PatientDocument::query()->create([
+        'patient_id' => $patient->id,
+        'clinic_id' => $this->currentClinicId(),
+        'uploaded_by' => auth()->id(),
+        'document_type' => $data['document_type'] ?? 'general',
+        'title' => $data['title'],
+        'file_path' => $path,
+        'original_name' => $file->getClientOriginalName(),
+        'mime_type' => $file->getClientMimeType(),
+        'size' => $file->getSize(),
+        'notes' => $data['notes'] ?? null,
+    ]);
+
+    return ServiceResult::success((new PatientDocumentResource($document))->resolve(), 'Document uploaded successfully', 201);
+}
 }

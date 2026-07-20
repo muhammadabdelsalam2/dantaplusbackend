@@ -21,6 +21,7 @@ class PatientInvoiceResource extends JsonResource
             'payment_method' => $this->payment_method,
             'issued_at' => optional($this->issued_at)?->toDateString(),
             'due_date' => optional($this->due_date)?->toDateString(),
+            'file_url' => url('/api/patient/invoices/' . $this->id . '/download'),
             'appointment' => $this->appointment ? [
                 'id' => $this->appointment->id,
                 'service_name' => $this->appointment->service_name,

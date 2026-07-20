@@ -32,7 +32,7 @@ class PatientController extends Controller
         return ApiResponse::success($result['data'], $result['message'], $result['code']);
     }
 
-    // 
+    //
 
     public function store(StorePatientRequest $request)
     {
@@ -100,16 +100,22 @@ class PatientController extends Controller
         return ApiResponse::success($result['data'], $result['message'], $result['code']);
     }
 
-    public function uploadRadiology(UploadPatientRadiologyRequest $request, int $id)
-    {
-        $result = $this->service->uploadRadiology($id, $request->validated(), $request->file('file'));
+   public function uploadRadiology(UploadPatientRadiologyRequest $request, int $id)
+{
+    $result = $this->service->uploadRadiology(
+        $id,
+        $request->validated(),
+        $request->file('file'),
+        $request->file('before_image'),
+        $request->file('after_image'),
+    );
 
-        if (! $result['success']) {
-            return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
-        }
-
-        return ApiResponse::success($result['data'], $result['message'], $result['code']);
+    if (! $result['success']) {
+        return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
     }
+
+    return ApiResponse::success($result['data'], $result['message'], $result['code']);
+}
 
     public function labCases(int $id)
     {
@@ -165,4 +171,25 @@ class PatientController extends Controller
 
         return ApiResponse::success($result['data'], $result['message'], $result['code']);
     }
+    public function documents(int $id)
+{
+    $result = $this->service->documents($id);
+
+    if (! $result['success']) {
+        return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+    }
+
+    return ApiResponse::success($result['data'], $result['message'], $result['code']);
+}
+
+public function uploadDocument(UploadPatientDocumentRequest $request, int $id)
+{
+    $result = $this->service->uploadDocument($id, $request->validated(), $request->file('file'));
+
+    if (! $result['success']) {
+        return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+    }
+
+    return ApiResponse::success($result['data'], $result['message'], $result['code']);
+}
 }

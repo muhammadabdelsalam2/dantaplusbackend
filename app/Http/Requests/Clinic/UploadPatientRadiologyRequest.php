@@ -18,6 +18,8 @@ class UploadPatientRadiologyRequest extends FormRequest
             'notes' => ['nullable', 'string'],
             'status' => ['nullable', 'string', 'max:50'],
             'file' => ['nullable', 'file', 'max:10240'],
+            'before_image' => ['nullable', 'file', 'image', 'max:10240'],
+            'after_image' => ['nullable', 'file', 'image', 'max:10240'],
         ];
     }
 }

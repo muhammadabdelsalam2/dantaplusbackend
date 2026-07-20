@@ -19,6 +19,8 @@ class PatientRadiology extends Model
         'notes',
         'file_path',
         'status',
+          'before_image_path',
+    'after_image_path',
     ];
 
     public function patient(): BelongsTo

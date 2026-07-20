@@ -216,6 +216,8 @@ Route::middleware('permission:dental_labs.manage')->prefix('dental-lab-orders/{i
         Route::middleware('permission:patients.view')->get('/patients/{id}/discussion',           [PatientController::class, 'discussion']);
         Route::middleware('permission:communication.send')->post('/patients/{id}/discussion',     [PatientController::class, 'storeDiscussion']);
         Route::middleware('permission:patients.view')->get('/patients/{id}/analytics',            [PatientController::class, 'analytics']);
+        Route::middleware('permission:patients.view')->get('/patients/{id}/documents', [PatientController::class, 'documents']);
+Route::middleware('permission:patients.update')->post('/patients/{id}/documents/upload', [PatientController::class, 'uploadDocument']);
         Route::middleware('permission:appointments.view')->get('/appointments',       [AppointmentController::class, 'index']);
         Route::middleware('permission:appointments.create')->post('/appointments',    [AppointmentController::class, 'store']);
         Route::middleware('permission:appointments.update')->post('/appointments/{id}', [AppointmentController::class, 'update']);
