@@ -14,7 +14,7 @@ class Invoice extends Model
 
     protected $fillable = [
         'order_id', 'company_id', 'clinic_id', 'invoice_number', 'issue_date', 'due_date', 'subtotal', 'tax',
-        'total_amount', 'status', 'payment_method', 'completion_date', 'order_type','lab_id'
+        'total_amount', 'status', 'payment_method', 'completion_date', 'order_type','lab_id','file_path'
     ];
 
     protected function casts(): array

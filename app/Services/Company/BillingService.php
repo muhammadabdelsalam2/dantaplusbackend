@@ -12,6 +12,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 
 class BillingService
 {
@@ -43,27 +44,61 @@ class BillingService
         return (new InvoiceResource($invoice))->resolve();
     }
 
-    public function create(array $data): array
-    {
-        return DB::transaction(function () use ($data) {
-            $data['company_id'] = auth()->user()->company_id;
-            $data['invoice_number'] = $data['invoice_number'] ?? ('INV-' . now()->format('Ymd') . '-' . Str::upper(Str::random(6)));
-            $invoice = Invoice::create($data);
-            return $this->show($invoice);
-        });
+   
+private function generateAndStoreInvoicePdf(Invoice $invoice): string
+{
+    $invoice->loadMissing('clinic', 'order');
+    $pdf = Pdf::loadHTML(view('emails.invoice', ['invoice' => $invoice])->render());
+
+    $filename = 'invoice-' . $invoice->invoice_number . '-' . $invoice->id . '.pdf';
+    $path = 'company/invoices/' . $filename;
+
+    Storage::disk('public')->put($path, $pdf->output());
+
+    return $path;
+}
+
+public function create(array $data): array
+{
+    return DB::transaction(function () use ($data) {
+        $data['company_id'] = auth()->user()->company_id;
+        $data['invoice_number'] = $data['invoice_number'] ?? ('INV-' . now()->format('Ymd') . '-' . Str::upper(Str::random(6)));
+        $invoice = Invoice::create($data);
+        $invoice->update(['file_path' => $this->generateAndStoreInvoicePdf($invoice)]);
+        return $this->show($invoice->fresh());
+    });
+}
+
+public function update(Invoice $invoice, array $data): array
+{
+    $invoice->update($data);
+    $invoice->refresh();
+    $invoice->update(['file_path' => $this->generateAndStoreInvoicePdf($invoice)]);
+    return $this->show($invoice->fresh());
+}
+
+public function markPaid(Invoice $invoice): array
+{
+    $invoice->update(['status' => 'paid', 'completion_date' => now()]);
+    $invoice->refresh();
+    $invoice->update(['file_path' => $this->generateAndStoreInvoicePdf($invoice)]);
+    return $this->show($invoice->fresh());
+}
+
+// خليه fallback لو فيه فواتير قديمة لسه ملهاش ملف مخزن
+public function download(Invoice $invoice): array
+{
+    if (!$invoice->file_path || !Storage::disk('public')->exists($invoice->file_path)) {
+        $invoice->update(['file_path' => $this->generateAndStoreInvoicePdf($invoice)]);
+        $invoice->refresh();
     }
 
-    public function update(Invoice $invoice, array $data): array
-    {
-        $invoice->update($data);
-        return $this->show($invoice->fresh());
-    }
+    return [
+        'filename' => basename($invoice->file_path),
+        'content'  => base64_encode(Storage::disk('public')->get($invoice->file_path)),
+    ];
+}
 
-    public function markPaid(Invoice $invoice): array
-    {
-        $invoice->update(['status' => 'paid', 'completion_date' => now()]);
-        return $this->show($invoice->fresh());
-    }
 
     public function send(Invoice $invoice): array
     {
@@ -75,17 +110,7 @@ class BillingService
         return ['invoice_id' => $invoice->id, 'queued' => true];
     }
 
-    public function download(Invoice $invoice): array
-    {
-        $payload = $this->show($invoice);
-
-        if (class_exists(Pdf::class)) {
-            $pdf = Pdf::loadHTML(view('emails.invoice', ['invoice' => $invoice->loadMissing('clinic', 'order')])->render());
-            return ['filename' => $invoice->invoice_number . '.pdf', 'content' => base64_encode($pdf->output())];
-        }
-
-        return ['filename' => $invoice->invoice_number . '.json', 'content' => base64_encode(json_encode($payload))];
-    }
+  
 
     public function payment(array $data): array
     {
@@ -98,4 +123,6 @@ class BillingService
             return (new PaymentResource($payment))->resolve();
         });
     }
+    
+
 }

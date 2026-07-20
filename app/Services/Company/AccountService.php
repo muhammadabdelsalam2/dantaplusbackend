@@ -141,7 +141,9 @@ private function topClientsByRevenue(int $companyId, $start, $end, int $limit = 
         'due_date'       => optional($invoice->due_date)?->toDateString(),
         'client_name'    => $invoice->clinic?->name,
         'order_id'       => $invoice->order?->order_code,
-        'file_url'       => url("/api/company/invoices/{$invoice->id}/download"),
+        'file_url' => $invoice->file_path
+    ? asset('storage/' . $invoice->file_path)
+    : url("/api/company/invoices/{$invoice->id}/download"),
     ])->all();
 }
 
@@ -251,8 +253,10 @@ private function monthlyProfitTrend(int $companyId, int $months = 6): array
             ->whereBetween('expense_date', [$monthStart, $monthEnd])->sum('amount');
 
         $result[] = [
-            'month' => $monthStart->format('M'),
-            'profit' => (float) ($revenue - $expenses),
+            'month'    => $monthStart->format('M'),
+            'revenue'  => (float) $revenue,
+            'expenses' => (float) $expenses,
+            'profit'   => (float) ($revenue - $expenses),
         ];
     }
     return $result;
@@ -262,12 +266,27 @@ public function downloadPdf(?string $period = null): array
 {
     $data = $this->profitLoss($period);
     [$start, $end] = $this->periodBounds($period);
+    $company = auth()->user()->company;
 
-    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.profit-loss', array_merge($data, [
-        'report' => $data,
-        'from'   => $start?->toDateString(),
-        'to'     => $end?->toDateString(),
-    ]));
+    $series = collect($data['monthly_trend'])->map(fn ($row) => [
+        'period'   => $row['month'],
+        'revenue'  => $row['profit'] + 0, // مؤقت لحد ما نضيف revenue/expenses الفعليين لكل شهر
+        'expenses' => 0,
+        'profit'   => $row['profit'],
+    ])->all();
+
+    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.profit-loss', [
+        'clinic' => $company, // أو null لو مفيش عندك كيان clinic هنا
+        'from'   => $start?->toDateString() ?? '—',
+        'to'     => $end?->toDateString() ?? '—',
+        'groupBy' => $period ?? 'month',
+        'summary' => [
+            'revenue'  => $data['income'],
+            'expenses' => $data['expenses'],
+            'profit'   => $data['profit'],
+        ],
+        'series' => $series,
+    ]);
 
     $filename = 'profit-loss-' . ($period ?? 'all') . '-' . now()->format('YmdHis') . '.pdf';
     $path = 'company/reports/' . $filename;
