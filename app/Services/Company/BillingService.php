@@ -45,7 +45,7 @@ class BillingService
     }
 
    
-private function generateAndStoreInvoicePdf(Invoice $invoice): string
+public  function generateAndStoreInvoicePdf(Invoice $invoice): string
 {
     $invoice->loadMissing('clinic', 'order');
     $pdf = Pdf::loadHTML(view('emails.invoice', ['invoice' => $invoice])->render());

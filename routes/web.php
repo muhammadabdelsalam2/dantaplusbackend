@@ -1,7 +1,8 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-
+use App\Models\Invoice;
+use App\Services\Company\BillingService;
 Route::get('/', function () {
     return view('welcome');
 
@@ -22,4 +23,19 @@ Route::get('/debug-auth', function () {
         'clinic_id' => $user?->clinic_id,
         'guard' => auth()->getDefaultDriver(),
     ];
+});
+Route::get('/run-invoice-backfill-temp-xyz123', function (BillingService $service) {
+    $results = [];
+
+    Invoice::whereNull('file_path')->get()->each(function ($invoice) use ($service, &$results) {
+        try {
+            $path = $service->generateAndStoreInvoicePdf($invoice);
+            $invoice->update(['file_path' => $path]);
+            $results[] = "OK: invoice #{$invoice->id} -> {$path}";
+        } catch (\Throwable $e) {
+            $results[] = "FAILED: invoice #{$invoice->id} -> " . $e->getMessage();
+        }
+    });
+
+    return response()->json($results);
 });
