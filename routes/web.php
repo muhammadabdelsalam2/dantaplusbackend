@@ -3,9 +3,9 @@
 use Illuminate\Support\Facades\Route;
 use App\Models\Invoice;
 use App\Services\Company\BillingService;
+
 Route::get('/', function () {
     return view('welcome');
-
 });
 
 Route::get('/debug-orders', function () {
@@ -16,6 +16,7 @@ Route::get('/debug-orders', function () {
         'with_relation' => App\Models\Order::with('supplierCompany')->where('clinic_id', 26)->first(),
     ];
 });
+
 Route::get('/debug-auth', function () {
     $user = auth()->user();
     return [
@@ -24,10 +25,13 @@ Route::get('/debug-auth', function () {
         'guard' => auth()->getDefaultDriver(),
     ];
 });
+
 Route::get('/run-invoice-backfill-temp-xyz123', function (BillingService $service) {
     $results = [];
 
-    Invoice::whereNull('file_path')->get()->each(function ($invoice) use ($service, &$results) {
+    Invoice::where(function ($q) {
+        $q->whereNull('file_path')->orWhere('file_path', '');
+    })->get()->each(function ($invoice) use ($service, &$results) {
         try {
             $path = $service->generateAndStoreInvoicePdf($invoice);
             $invoice->update(['file_path' => $path]);
