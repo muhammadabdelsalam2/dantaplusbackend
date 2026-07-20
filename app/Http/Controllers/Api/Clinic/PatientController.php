@@ -3,12 +3,13 @@
 namespace App\Http\Controllers\Api\Clinic;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Clinic\IndexClinicPatientsRequest;
 use App\Http\Requests\Clinic\StoreDentalChartEntryRequest;
 use App\Http\Requests\Clinic\StorePatientLabCaseRequest;
 use App\Http\Requests\Clinic\StorePatientNoteRequest;
 use App\Http\Requests\Clinic\StorePatientRequest;
-use App\Http\Requests\Clinic\IndexClinicPatientsRequest;
 use App\Http\Requests\Clinic\UpdatePatientRequest;
+use App\Http\Requests\Clinic\UploadPatientDocumentRequest;
 use App\Http\Requests\Clinic\UploadPatientRadiologyRequest;
 use App\Services\Clinic\PatientService;
 use App\Support\ApiResponse;

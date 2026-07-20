@@ -17,7 +17,7 @@ use App\Models\DentalLab;
 use App\Models\Doctor;
 use App\Models\InsuranceCompany;
 use App\Models\Patient;
-use App\Models\PatientDocument;
+
 use App\Models\PatientNote;
 use App\Models\PatientRadiology;
 use App\Models\PatientTooth;
