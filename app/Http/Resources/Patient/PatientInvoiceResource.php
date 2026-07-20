@@ -4,7 +4,7 @@ namespace App\Http\Resources\Patient;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-
+use Illuminate\Support\Facades\URL;
 class PatientInvoiceResource extends JsonResource
 {
     public function toArray(Request $request): array
@@ -21,7 +21,11 @@ class PatientInvoiceResource extends JsonResource
             'payment_method' => $this->payment_method,
             'issued_at' => optional($this->issued_at)?->toDateString(),
             'due_date' => optional($this->due_date)?->toDateString(),
-            'file_url' => url('/api/patient/invoices/' . $this->id . '/download'),
+            'file_url' => URL::temporarySignedRoute(
+    'patient.invoices.download.signed',
+    now()->addDays(7),
+    ['id' => $this->id]
+),
             'appointment' => $this->appointment ? [
                 'id' => $this->appointment->id,
                 'service_name' => $this->appointment->service_name,

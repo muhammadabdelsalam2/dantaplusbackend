@@ -11,9 +11,6 @@ class PatientRadiologyResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        $imageUrl = $this->fileUrl($this->file_path);
-        $status = Str::lower((string) $this->status);
-
         return [
             'id' => $this->id,
             'clinic_id' => $this->clinic_id,
@@ -22,9 +19,9 @@ class PatientRadiologyResource extends JsonResource
             'notes' => $this->notes,
             'status' => $this->status,
             'file_path' => $this->file_path,
-            'image_url' => $imageUrl,
-            'before_image_url' => in_array($status, ['before', 'pre', 'pre-treatment'], true) ? $imageUrl : null,
-            'after_image_url' => in_array($status, ['after', 'post', 'post-treatment'], true) ? $imageUrl : null,
+            'image_url' => $this->fileUrl($this->file_path),
+            'before_image_url' => $this->fileUrl($this->before_image_path),
+            'after_image_url' => $this->fileUrl($this->after_image_path),
             'created_at' => optional($this->created_at)?->toISOString(),
             'updated_at' => optional($this->updated_at)?->toISOString(),
         ];

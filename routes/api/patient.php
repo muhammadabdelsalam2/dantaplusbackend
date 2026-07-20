@@ -14,6 +14,9 @@ use App\Http\Controllers\Api\Patient\PatientTreatmentController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/patient/login', PatientLoginController::class)->middleware('guest');
+Route::get('/patient/invoices/{id}/download-file', [PatientInvoiceController::class, 'downloadSigned'])
+    ->name('patient.invoices.download.signed')
+    ->middleware('signed');
 
 /*
 | ====================================

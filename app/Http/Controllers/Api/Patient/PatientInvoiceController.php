@@ -83,4 +83,35 @@ class PatientInvoiceController extends BasePatientController
             ->where('patient_id', $patient->id)
             ->where('clinic_id', $patient->clinic_id);
     }
+    public function downloadSigned(Request $request, int $id)
+{
+    if (! $request->hasValidSignature()) {
+        abort(403, 'Invalid or expired link.');
+    }
+
+    $invoice = ClinicInvoice::query()
+        ->with(['appointment', 'doctor', 'payments', 'items', 'clinic', 'patient.user'])
+        ->find($id);
+
+    if (! $invoice) {
+        return ApiResponse::error('Invoice not found', 404);
+    }
+
+    return $this->renderInvoicePdf($invoice);
+}
+
+private function renderInvoicePdf(ClinicInvoice $invoice)
+{
+    $html = view()->exists('pdf.clinic-invoice')
+        ? view('pdf.clinic-invoice', ['invoice' => $invoice])->render()
+        : view('emails.invoice', ['invoice' => $invoice])->render();
+
+    $pdf = Pdf::loadHTML($html)->output();
+    $filename = ($invoice->invoice_number ?: 'patient-invoice-' . $invoice->id) . '.pdf';
+
+    return response($pdf, 200, [
+        'Content-Type' => 'application/pdf',
+        'Content-Disposition' => 'inline; filename="' . $filename . '"',
+    ]);
+}
 }
