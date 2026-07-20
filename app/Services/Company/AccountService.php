@@ -261,7 +261,13 @@ private function monthlyProfitTrend(int $companyId, int $months = 6): array
 public function downloadPdf(?string $period = null): array
 {
     $data = $this->profitLoss($period);
-    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.profit-loss', ['report' => $data]);
+    [$start, $end] = $this->periodBounds($period);
+
+    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.profit-loss', array_merge($data, [
+        'report' => $data,
+        'from'   => $start?->toDateString(),
+        'to'     => $end?->toDateString(),
+    ]));
 
     $filename = 'profit-loss-' . ($period ?? 'all') . '-' . now()->format('YmdHis') . '.pdf';
     $path = 'company/reports/' . $filename;
@@ -269,7 +275,6 @@ public function downloadPdf(?string $period = null): array
 
     return ['file_url' => asset('storage/' . $path)];
 }
-
 public function generateWhatsAppLink(?string $period = null): array
 {
     $data = $this->profitLoss($period);

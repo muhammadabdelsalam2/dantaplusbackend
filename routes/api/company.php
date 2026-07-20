@@ -25,7 +25,7 @@ Route::prefix('auth')->group(function () {
 });
 
 Route::prefix('company')
-    ->middleware(['auth:sanctum', 'api.error', 'role:material_company_admin|sales_rep|delivery_staff'])
+    ->middleware([ 'api.error','auth:sanctum', 'role:material_company_admin|sales_rep|delivery_staff'])
     ->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index']);
         Route::get('/dashboard/order-trends', [DashboardController::class, 'orderTrends']);
@@ -73,7 +73,7 @@ Route::prefix('company')
 
         // ─── Orders (مفتوحة للكل حاليًا، سبتها زي ما هي) ───
         Route::middleware('role:material_company_admin|sales_rep|delivery_staff')->group(function () {
-                Route::get('/orders/clinics', [OrderController::class, 'clinics']); 
+                Route::get('/orders/clinics', [OrderController::class, 'clinics']);
             Route::get('/orders', [OrderController::class, 'index']);
             Route::get('/orders/{id}', [OrderController::class, 'show']);
             Route::get('/orders/{id}/communication-logs', [OrderController::class, 'communicationLogs']);
