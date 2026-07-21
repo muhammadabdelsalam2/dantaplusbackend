@@ -44,7 +44,7 @@ class BillingService
         return (new InvoiceResource($invoice))->resolve();
     }
 
-   
+
 public  function generateAndStoreInvoicePdf(Invoice $invoice): string
 {
     $invoice->loadMissing('clinic', 'order');
@@ -84,8 +84,18 @@ public function markPaid(Invoice $invoice): array
     $invoice->update(['file_path' => $this->generateAndStoreInvoicePdf($invoice)]);
     return $this->show($invoice->fresh());
 }
+public function downloadForInvoice(Invoice $invoice): array
+{
+    if (!$invoice->file_path || !Storage::disk('public')->exists($invoice->file_path)) {
+        $invoice->update(['file_path' => $this->generateAndStoreInvoicePdf($invoice)]);
+        $invoice->refresh();
+    }
 
-// خليه fallback لو فيه فواتير قديمة لسه ملهاش ملف مخزن
+    return [
+        'filename' => basename($invoice->file_path),
+        'content'  => base64_encode(Storage::disk('public')->get($invoice->file_path)),
+    ];
+}
 public function download(Invoice $invoice): array
 {
     if (!$invoice->file_path || !Storage::disk('public')->exists($invoice->file_path)) {
@@ -110,7 +120,7 @@ public function download(Invoice $invoice): array
         return ['invoice_id' => $invoice->id, 'queued' => true];
     }
 
-  
+
 
     public function payment(array $data): array
     {
@@ -123,6 +133,6 @@ public function download(Invoice $invoice): array
             return (new PaymentResource($payment))->resolve();
         });
     }
-    
+
 
 }

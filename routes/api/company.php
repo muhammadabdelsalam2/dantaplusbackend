@@ -23,6 +23,18 @@ Route::prefix('auth')->group(function () {
         Route::get('/me', fn() => \App\Support\ApiResponse::success(auth()->user(), 'User fetched successfully'));
     });
 });
+/*
+| ====================================
+|  Public Signed Download Links (no auth token needed)
+| ====================================
+*/
+Route::get('/company/invoices/{id}/download-file', [BillingController::class, 'downloadSigned'])
+    ->name('company.invoices.download.signed')
+    ->middleware('signed');
+
+Route::get('/company/profit-loss/download-file', [AccountController::class, 'profitLossDownloadSigned'])
+    ->name('company.profit-loss.download.signed')
+    ->middleware('signed');
 
 Route::prefix('company')
     ->middleware([ 'api.error','auth:sanctum', 'role:material_company_admin|sales_rep|delivery_staff'])

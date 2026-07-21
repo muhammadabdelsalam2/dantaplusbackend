@@ -39,14 +39,42 @@ class AccountController extends Controller
     public function storeExpense(StoreExpenseRequest $request) { return ApiResponse::success($this->service->createExpense($request->validated()), 'Expense created successfully', 201); }
     public function bankTransactions() { return ApiResponse::success($this->service->bankTransactions(), 'Bank transactions fetched successfully'); }
     public function syncBankTransactions() { return ApiResponse::success($this->service->syncBankTransactions(), 'Bank transactions synced successfully'); }
-    public function profitLoss(Request $request)
-    {
-        $filters = $request->validate([
-            'period' => 'nullable|in:day,week,month,year',
-        ]);
+  public function profitLoss(Request $request)
+{
+    $filters = $request->validate([
+        'period' => 'nullable|in:day,week,month,year',
+    ]);
 
-        return ApiResponse::success($this->service->profitLoss($filters['period'] ?? null), 'Profit and loss report fetched successfully');
+    $data = $this->service->profitLoss($filters['period'] ?? null);
+
+    $data['download_url'] = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+        'company.profit-loss.download.signed',
+        now()->addDays(7),
+        [
+            'company_id' => auth()->user()->company_id,
+            'period' => $filters['period'] ?? null,
+        ]
+    );
+
+    return ApiResponse::success($data, 'Profit and loss report fetched successfully');
+}
+
+public function profitLossDownloadSigned(Request $request)
+{
+    if (! $request->hasValidSignature()) {
+        abort(403, 'Invalid or expired link.');
     }
+
+    $companyId = (int) $request->query('company_id');
+    $period = $request->query('period') ?: null;
+
+    $payload = $this->service->generateProfitLossPdfBinaryForCompany($companyId, $period);
+
+    return response($payload['content'], 200, [
+        'Content-Type' => 'application/pdf',
+        'Content-Disposition' => 'attachment; filename="' . $payload['filename'] . '"',
+    ]);
+}
  public function profitLossDownload(Request $request)
 {
     $filters = $request->validate(['period' => 'nullable|in:day,week,month,year']);

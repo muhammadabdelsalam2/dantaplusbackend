@@ -46,5 +46,27 @@ class BillingController extends Controller
             'Content-Disposition' => 'attachment; filename="' . $filename . '"',
         ]);
     }
+    public function downloadSigned(Request $request, int $id)
+{
+    if (! $request->hasValidSignature()) {
+        abort(403, 'Invalid or expired link.');
+    }
+
+    $invoice = \App\Models\Invoice::query()->find($id);
+
+    if (! $invoice) {
+        return ApiResponse::error('Invoice not found', 404);
+    }
+
+    $payload = $this->service->downloadForInvoice($invoice);
+    $filename = $payload['filename'];
+    $content = base64_decode($payload['content']);
+    $contentType = str_ends_with($filename, '.pdf') ? 'application/pdf' : 'application/json';
+
+    return response($content, 200, [
+        'Content-Type' => $contentType,
+        'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+    ]);
+}
     public function payments(StorePaymentRequest $request) { return ApiResponse::success($this->service->payment($request->validated()), 'Payment created successfully', 201); }
 }

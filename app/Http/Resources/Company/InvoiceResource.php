@@ -4,6 +4,7 @@ namespace App\Http\Resources\Company;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\URL;
 
 class InvoiceResource extends JsonResource
 {
@@ -17,9 +18,11 @@ class InvoiceResource extends JsonResource
             'due_date' => optional($this->due_date)?->toDateString(),
             'subtotal' => (float) $this->subtotal,
             'tax' => (float) $this->tax,
-            'file_url' => $this->file_path
-    ? asset('storage/' . $this->file_path)
-    : url("/api/company/invoices/{$this->id}/download"),
+            'file_url' => URL::temporarySignedRoute(
+                'company.invoices.download.signed',
+                now()->addDays(7),
+                ['id' => $this->id]
+            ),
             'total_amount' => (float) $this->total_amount,
             'payment_method' => $this->payment_method,
             'completion_date' => optional($this->completion_date)?->toISOString(),
