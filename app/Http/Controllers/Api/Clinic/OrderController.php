@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Clinic;
 
+use App\Enums\OrderStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Clinic\IndexClinicOrderRequest;
 use App\Http\Requests\Clinic\PayClinicOrderRequest;
@@ -103,7 +104,7 @@ class OrderController extends Controller
             $order->update([
                 'amount_total' => $total,
                 'total_amount' => $total,
-                'status' => 'processing',
+                'status' => OrderStatus::PROCESSING,
                 'modified_by_supplier' => false,
             ]);
         });
@@ -119,7 +120,7 @@ class OrderController extends Controller
         }
 
         $order->update([
-            'status' => 'cancelled',
+            'status' => OrderStatus::CANCELLED,
             'modified_by_supplier' => false,
         ]);
 

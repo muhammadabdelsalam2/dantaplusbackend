@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Clinic;
 
+use App\Enums\OrderStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Cart;
 use App\Models\CartItem;
@@ -107,7 +108,7 @@ class CartController extends Controller
                         'order_date' => now(),
                         'amount_total' => $total,
                         'total_amount' => $total,
-                        'status' => 'pending',
+                        'status' => OrderStatus::PENDING_SUPPLIER_CONFIRMATION,
                         'notes' => $validated['notes'] ?? 'Checkout from clinic cart',
                         'payment_method' => 'cash',
                         'payment_status' => 'pending_cash',

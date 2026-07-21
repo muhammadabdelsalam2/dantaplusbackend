@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\OrderStatus;
 use App\Models\Clinic;
 use App\Models\Equipment;
 use App\Models\InventoryItem;
@@ -109,19 +110,19 @@ class ClinicOperationsSeeder extends Seeder
             $this->seedProcurementOrder($clinic->id, $endoFiles->id, $supplier->id, 'Dental Supply Hub', 8, 320, 'ordered');
             $this->seedProcurementOrder($clinic->id, $putty->id, $supplier->id, 'Dental Supply Hub', 5, 185, 'pending');
 
-            $this->seedOrder($clinic->id, $supplier->id, 'ORD-124', 'awaiting_clinic_confirmation', 'visa', 'pending_payment', true, [
+            $this->seedOrder($clinic->id, $supplier->id, 'ORD-124', OrderStatus::PENDING_SUPPLIER_CONFIRMATION, 'visa', 'pending_payment', true, [
                 ['product' => $endoFiles, 'qty_original' => 6, 'qty_modified' => 8, 'unit_price' => 320, 'unit' => 'box'],
             ], 'Supplier increased quantity based on available stock.');
 
-            $this->seedOrder($clinic->id, $supplier->id, 'ORD-130', 'processing', 'cash', 'pending_cash', false, [
+            $this->seedOrder($clinic->id, $supplier->id, 'ORD-130', OrderStatus::PROCESSING, 'cash', 'pending_cash', false, [
                 ['product' => $putty, 'qty_original' => 4, 'qty_modified' => null, 'unit_price' => 185, 'unit' => 'kit'],
             ]);
 
-            $this->seedOrder($clinic->id, $supplier->id, 'ORD-138', 'shipped', 'pay_later', 'pending_invoice', false, [
+            $this->seedOrder($clinic->id, $supplier->id, 'ORD-138', OrderStatus::SHIPPED, 'pay_later', 'pending_invoice', false, [
                 ['product' => $gloves, 'qty_original' => 10, 'qty_modified' => null, 'unit_price' => 95, 'unit' => 'box'],
             ]);
 
-            $this->seedOrder($clinic->id, $supplier->id, 'ORD-144', 'completed', 'visa', 'paid', false, [
+            $this->seedOrder($clinic->id, $supplier->id, 'ORD-144', OrderStatus::COMPLETED, 'visa', 'paid', false, [
                 ['product' => $endoFiles, 'qty_original' => 3, 'qty_modified' => null, 'unit_price' => 320, 'unit' => 'box'],
                 ['product' => $putty, 'qty_original' => 2, 'qty_modified' => null, 'unit_price' => 185, 'unit' => 'kit'],
             ]);

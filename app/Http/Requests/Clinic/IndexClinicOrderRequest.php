@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Clinic;
 
+use App\Enums\OrderStatus;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -17,7 +18,7 @@ class IndexClinicOrderRequest extends FormRequest
     {
         return [
             'search'         => ['nullable', 'string', 'max:255'],
-            'status'         => ['nullable', Rule::in(['processing', 'pending', 'shipped', 'completed', 'awaiting_clinic_confirmation', 'cancelled'])],
+            'status'         => ['nullable', Rule::in(OrderStatus::ALL)],
             'payment_method' => ['nullable', Rule::in(['cash'])],
             'payment_status' => ['nullable', Rule::in(['paid', 'pending_cash', 'pending_payment', 'pending_invoice'])],
 
