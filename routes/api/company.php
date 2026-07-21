@@ -32,7 +32,7 @@ Route::get('/company/invoices/{id}/download-file', [BillingController::class, 'd
     ->name('company.invoices.download.signed')
     ->middleware('signed');
 
-Route::get('/company/profit-loss/download-file', [AccountController::class, 'profitLossDownloadSigned'])
+Route::get('/company/accounts/profit-loss/download', [AccountController::class, 'profitLossDownloadSigned'])
     ->name('company.profit-loss.download.signed')
     ->middleware('signed');
 

@@ -75,11 +75,7 @@ public function profitLossDownloadSigned(Request $request)
         'Content-Disposition' => 'attachment; filename="' . $payload['filename'] . '"',
     ]);
 }
- public function profitLossDownload(Request $request)
-{
-    $filters = $request->validate(['period' => 'nullable|in:day,week,month,year']);
-    return ApiResponse::success($this->service->downloadPdf($filters['period'] ?? null), 'Profit and loss report file generated successfully');
-}
+
 
 public function profitLossWhatsAppLink(Request $request)
 {
