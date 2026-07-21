@@ -58,11 +58,6 @@
       "type": "string"
     },
     {
-      "key": "company_id",
-      "value": "1",
-      "type": "string"
-    },
-    {
       "key": "invoice_id",
       "value": "1",
       "type": "string"
@@ -499,9 +494,9 @@
                 "type": "text"
               }
             ],
-            "description": "Returns inventory materials for the selected supplier company. Each material item contains exactly: id, name, category, price. Use id as materials[x][material_product_id], category as materials[x][category], and price as read-only materials[x][price].",
+            "description": "Returns inventory materials for the authenticated user's supplier company. Any company_id query param is ignored for safety. Each material item contains exactly: id, name, category, price. Use id as materials[x][material_product_id], category as materials[x][category], and price as read-only materials[x][price].",
             "url": {
-              "raw": "{{base_url}}/api/company/materials/by-company?company_id={{company_id}}",
+              "raw": "{{base_url}}/api/company/materials/by-company",
               "host": [
                 "{{base_url}}"
               ],
@@ -510,12 +505,6 @@
                 "company",
                 "materials",
                 "by-company"
-              ],
-              "query": [
-                {
-                  "key": "company_id",
-                  "value": "{{company_id}}"
-                }
               ]
             }
           },

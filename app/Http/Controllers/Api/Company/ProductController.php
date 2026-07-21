@@ -25,14 +25,12 @@ class ProductController extends Controller
     public function destroy(Product $id) { $this->service->delete($id); return ApiResponse::success(null, 'Product deleted successfully'); }
     public function destroyImage(Product $id, int $imageId) { $this->service->deleteImage($id, $imageId); return ApiResponse::success(null, 'Product image deleted successfully'); }
     public function categories() { return ApiResponse::success(Category::query()->where('status', 'active')->get(), 'Categories fetched successfully'); }
-    public function materialsByCompany(Request $request)
+    public function materialsByCompany()
     {
-        $validated = $request->validate([
-            'company_id' => ['required', 'integer', 'exists:material_companies,id'],
-        ]);
+        $companyId = auth()->user()->company_id;
 
         $materials = MaterialProduct::query()
-            ->where('company_id', $validated['company_id'])
+            ->where('company_id', $companyId)
             ->orderBy('name')
             ->get(['id', 'name', 'category', 'price'])
             ->map(fn (MaterialProduct $product) => [
