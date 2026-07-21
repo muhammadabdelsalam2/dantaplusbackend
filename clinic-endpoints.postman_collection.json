@@ -1,364 +1,125 @@
 {
   "info": {
-    "_postman_id": "4b49f3b1-5ab9-45fc-8292-541491f4a12b",
-    "name": "Clinic Dynamic Endpoints",
-    "description": "Calendar, insurance claim status, inventory material registration, claim creation, and patient search endpoints for the clinic API.",
+    "name": "Denta - Orders & Invoices Fixes",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
-  "variable": [
-    {
-      "key": "base_url",
-      "value": "https://danta.matgary.io"
-    },
-    {
-      "key": "token",
-      "value": ""
-    }
-  ],
   "auth": {
     "type": "bearer",
-    "bearer": [
-      {
-        "key": "token",
-        "value": "{{token}}",
-        "type": "string"
-      }
-    ]
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
   },
+  "variable": [
+    { "key": "base_url", "value": "http://127.0.0.1:8000/api" },
+    { "key": "token", "value": "" }
+  ],
   "item": [
     {
-      "name": "Calendar - Day",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Accept",
-            "value": "application/json"
-          }
-        ],
-        "description": "Fetch appointments for one day, with optional branch and room filters.",
-        "url": {
-          "raw": "{{base_url}}/api/clinic/appointments?view=day&date=2026-07-13&branch=Moamen Main Branch&room=Moamen Room 1",
-          "host": [
-            "{{base_url}}"
-          ],
-          "path": [
-            "api",
-            "clinic",
-            "appointments"
-          ],
-          "query": [
-            {
-              "key": "view",
-              "value": "day"
-            },
-            {
-              "key": "date",
-              "value": "2026-07-13"
-            },
-            {
-              "key": "branch",
-              "value": "Moamen Main Branch"
-            },
-            {
-              "key": "room",
-              "value": "Moamen Room 1"
-            }
-          ]
-        }
-      }
-    },
-    {
-      "name": "Calendar - Week",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Accept",
-            "value": "application/json"
-          }
-        ],
-        "description": "Fetch appointments between start_date and end_date.",
-        "url": {
-          "raw": "{{base_url}}/api/clinic/appointments?view=week&start_date=2026-07-13&end_date=2026-07-19",
-          "host": [
-            "{{base_url}}"
-          ],
-          "path": [
-            "api",
-            "clinic",
-            "appointments"
-          ],
-          "query": [
-            {
-              "key": "view",
-              "value": "week"
-            },
-            {
-              "key": "start_date",
-              "value": "2026-07-13"
-            },
-            {
-              "key": "end_date",
-              "value": "2026-07-19"
-            }
-          ]
-        }
-      }
-    },
-    {
-      "name": "Calendar - Month",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Accept",
-            "value": "application/json"
-          }
-        ],
-        "description": "Fetch appointments for a specific month and year.",
-        "url": {
-          "raw": "{{base_url}}/api/clinic/appointments?view=month&year=2026&month=7",
-          "host": [
-            "{{base_url}}"
-          ],
-          "path": [
-            "api",
-            "clinic",
-            "appointments"
-          ],
-          "query": [
-            {
-              "key": "view",
-              "value": "month"
-            },
-            {
-              "key": "year",
-              "value": "2026"
-            },
-            {
-              "key": "month",
-              "value": "7"
-            }
-          ]
-        }
-      }
-    },
-    {
-      "name": "Change Claim Status",
-      "request": {
-        "method": "PATCH",
-        "header": [
-          {
-            "key": "Accept",
-            "value": "application/json"
-          }
-        ],
-        "description": "Update only the insurance claim status. Allowed values are submitted, approved, rejected.",
-        "body": {
-          "mode": "formdata",
-          "formdata": [
-            {
-              "key": "status",
-              "value": "approved",
-              "type": "text"
-            }
-          ]
-        },
-        "url": {
-          "raw": "{{base_url}}/api/clinic/insurance/claims/1/status",
-          "host": [
-            "{{base_url}}"
-          ],
-          "path": [
-            "api",
-            "clinic",
-            "insurance",
-            "claims",
-            "1",
-            "status"
-          ]
-        }
-      }
-    },
-    {
-      "name": "Create Material Inventory",
+      "name": "Auth - Login (Company)",
       "request": {
         "method": "POST",
-        "header": [
-          {
-            "key": "Accept",
-            "value": "application/json"
-          }
-        ],
-        "description": "Register a new material inventory item using the clinic form fields.",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
         "body": {
-          "mode": "formdata",
-          "formdata": [
-            {
-              "key": "material_name",
-              "value": "Composite Resin A2",
-              "type": "text"
-            },
-            {
-              "key": "category",
-              "value": "restorative",
-              "type": "text"
-            },
-            {
-              "key": "initial_qty",
-              "value": "20",
-              "type": "text"
-            },
-            {
-              "key": "unit_type",
-              "value": "box",
-              "type": "text"
-            },
-            {
-              "key": "consumption_per_case",
-              "value": "1",
-              "type": "text"
-            },
-            {
-              "key": "min_threshold",
-              "value": "5",
-              "type": "text"
-            },
-            {
-              "key": "reorder_qty",
-              "value": "10",
-              "type": "text"
-            },
-            {
-              "key": "auto_purchase",
-              "value": "1",
-              "type": "text"
-            },
-            {
-              "key": "unit_price",
-              "value": "45.50",
-              "type": "text"
-            },
-            {
-              "key": "supplier",
-              "value": "Demo Supplier",
-              "type": "text"
-            }
-          ]
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"admin@dentsplysirona.com\",\n  \"password\": \"password\"\n}"
         },
-        "url": {
-          "raw": "{{base_url}}/api/clinic/inventory",
-          "host": [
-            "{{base_url}}"
-          ],
-          "path": [
-            "api",
-            "clinic",
-            "inventory"
-          ]
-        }
+        "url": { "raw": "{{base_url}}/auth/login", "host": ["{{base_url}}"], "path": ["auth", "login"] }
       }
     },
     {
-      "name": "Create Claim",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Accept",
-            "value": "application/json"
-          }
-        ],
-        "description": "Create an insurance claim using the fields from the clinic claim form.",
-        "body": {
-          "mode": "formdata",
-          "formdata": [
-            {
-              "key": "patient_id",
-              "value": "1",
-              "type": "text"
-            },
-            {
-              "key": "insurance_company_id",
-              "value": "1",
-              "type": "text"
-            },
-            {
-              "key": "invoice_id",
-              "value": "1",
-              "type": "text"
-            },
-            {
-              "key": "dentist_id",
-              "value": "1",
-              "type": "text"
-            },
-            {
-              "key": "branch_id",
-              "value": "1",
-              "type": "text"
-            },
-            {
-              "key": "service",
-              "value": "Root Canal",
-              "type": "text"
-            },
-            {
-              "key": "claim_amount",
-              "value": "350",
-              "type": "text"
-            },
-            {
-              "key": "submission_date",
-              "value": "2026-07-13",
-              "type": "text"
-            }
-          ]
-        },
-        "url": {
-          "raw": "{{base_url}}/api/clinic/insurance/claims",
-          "host": [
-            "{{base_url}}"
-          ],
-          "path": [
-            "api",
-            "clinic",
-            "insurance",
-            "claims"
-          ]
-        }
-      }
-    },
-    {
-      "name": "Patient Search",
+      "name": "Orders - Clinics Dropdown (with phone)",
       "request": {
         "method": "GET",
-        "header": [
-          {
-            "key": "Accept",
-            "value": "application/json"
-          }
-        ],
-        "description": "Search clinic patients by name or phone for select inputs.",
-        "url": {
-          "raw": "{{base_url}}/api/clinic/select/patients?search=010",
-          "host": [
-            "{{base_url}}"
-          ],
-          "path": [
-            "api",
-            "clinic",
-            "select",
-            "patients"
-          ],
-          "query": [
-            {
-              "key": "search",
-              "value": "010"
-            }
-          ]
-        }
+        "url": { "raw": "{{base_url}}/company/orders/clinics", "host": ["{{base_url}}"], "path": ["company", "orders", "clinics"] }
+      }
+    },
+    {
+      "name": "External Orders - List",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{base_url}}/company/external-orders", "host": ["{{base_url}}"], "path": ["company", "external-orders"] }
+      }
+    },
+    {
+      "name": "External Orders - Create (Existing Clinic via clinic_id)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"clinic_id\": 1,\n  \"external_clinic_name\": null,\n  \"external_clinic_phone\": null,\n  \"notes\": \"WhatsApp order\",\n  \"payment_method\": \"Cash\",\n  \"delivery_address\": \"Nasr City, Cairo\",\n  \"delivery_at\": \"2026-07-25 10:00:00\",\n  \"shipping_cost\": 50,\n  \"items\": [\n    {\n      \"product_id\": 1,\n      \"item_name\": \"Aquasil Ultra+ Smart Wetting\",\n      \"unit\": \"box\",\n      \"quantity\": 2,\n      \"unit_price\": 850\n    },\n    {\n      \"product_id\": null,\n      \"item_name\": \"Custom Item Not In Inventory\",\n      \"unit\": \"piece\",\n      \"quantity\": 1,\n      \"unit_price\": 120\n    }\n  ]\n}"
+        },
+        "url": { "raw": "{{base_url}}/company/external-orders", "host": ["{{base_url}}"], "path": ["company", "external-orders"] }
+      }
+    },
+    {
+      "name": "External Orders - Create (Manual/New Clinic, no clinic_id)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"clinic_id\": null,\n  \"external_clinic_name\": \"Smile Hub Clinic\",\n  \"external_clinic_phone\": \"+20 122 333 4444\",\n  \"notes\": \"WhatsApp order\",\n  \"payment_method\": \"Cash\",\n  \"delivery_address\": \"Nasr City, Cairo\",\n  \"delivery_at\": \"2026-07-25 10:00:00\",\n  \"shipping_cost\": 50,\n  \"items\": [\n    {\n      \"product_id\": 1,\n      \"item_name\": \"Aquasil Ultra+ Smart Wetting\",\n      \"unit\": \"box\",\n      \"quantity\": 2,\n      \"unit_price\": 850\n    }\n  ]\n}"
+        },
+        "url": { "raw": "{{base_url}}/company/external-orders", "host": ["{{base_url}}"], "path": ["company", "external-orders"] }
+      }
+    },
+    {
+      "name": "External Orders - Update",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"clinic_id\": null,\n  \"external_clinic_name\": \"Smile Hub Clinic\",\n  \"external_clinic_phone\": \"+20 122 333 4444\",\n  \"notes\": \"Updated notes\",\n  \"payment_method\": \"Visa\",\n  \"delivery_address\": \"Nasr City, Cairo\",\n  \"delivery_at\": \"2026-07-26 12:00:00\",\n  \"shipping_cost\": 60,\n  \"items\": [\n    {\n      \"product_id\": 1,\n      \"item_name\": \"Aquasil Ultra+ Smart Wetting\",\n      \"unit\": \"box\",\n      \"quantity\": 3,\n      \"unit_price\": 850\n    }\n  ]\n}"
+        },
+        "url": { "raw": "{{base_url}}/company/external-orders/1", "host": ["{{base_url}}"], "path": ["company", "external-orders", "1"] }
+      }
+    },
+    {
+      "name": "External Orders - Update Status",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"Processing\"\n}"
+        },
+        "url": { "raw": "{{base_url}}/company/external-orders/1/status", "host": ["{{base_url}}"], "path": ["company", "external-orders", "1", "status"] },
+        "description": "Allowed values: Pending Supplier Confirmation, Accepted, Processing, Shipped, Delivered, Completed, Cancelled, Rejected"
+      }
+    },
+    {
+      "name": "External Orders - Send WhatsApp",
+      "request": {
+        "method": "POST",
+        "url": { "raw": "{{base_url}}/company/external-orders/1/send-whatsapp", "host": ["{{base_url}}"], "path": ["company", "external-orders", "1", "send-whatsapp"] }
+      }
+    },
+    {
+      "name": "Orders - Update Status (regular order)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"Shipped\"\n}"
+        },
+        "url": { "raw": "{{base_url}}/company/orders/1/status", "host": ["{{base_url}}"], "path": ["company", "orders", "1", "status"] },
+        "description": "Allowed values: Pending Supplier Confirmation, Accepted, Processing, Shipped, Delivered, Completed, Cancelled, Rejected"
+      }
+    },
+    {
+      "name": "Orders - Complete (generate invoice)",
+      "request": {
+        "method": "POST",
+        "url": { "raw": "{{base_url}}/company/orders/1/complete", "host": ["{{base_url}}"], "path": ["company", "orders", "1", "complete"] }
+      }
+    },
+    {
+      "name": "Billing - Print Invoice",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{base_url}}/company/invoices/1/print", "host": ["{{base_url}}"], "path": ["company", "invoices", "1", "print"] },
+        "description": "Returns invoice data plus a signed download_url for the PDF file."
       }
     }
   ]

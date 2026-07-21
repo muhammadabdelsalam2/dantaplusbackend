@@ -12,8 +12,8 @@ class StoreExternalOrderRequest extends FormRequest
     {
         return [
             'clinic_id' => 'required|exists:clinics,id',
-            'external_clinic_name' => 'required_without:clinic_id|required|string|max:255',
-            'external_clinic_phone' => 'required_without:clinic_id|required|string|max:50',
+            'external_clinic_name' => 'required_without:clinic_id|nullable|string|max:255',
+            'external_clinic_phone' => 'required_without:clinic_id|nullable|string|max:50',
             'notes' => 'nullable|string',
             'payment_method' => 'required|in:Cash,Visa',
             'delivery_address' => 'required|string|max:1000',
