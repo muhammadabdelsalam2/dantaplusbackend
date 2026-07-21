@@ -122,7 +122,7 @@ Route::prefix('company')
     Route::get('/bank-transactions', [AccountController::class, 'bankTransactions']);
     Route::post('/bank-transactions/sync', [AccountController::class, 'syncBankTransactions']);
     Route::get('/profit-loss', [AccountController::class, 'profitLoss']);
-    Route::get('/profit-loss/download', [AccountController::class, 'profitLossDownload']);
+  //  Route::get('/profit-loss/download', [AccountController::class, 'profitLossDownload']);
     Route::get('/profit-loss/whatsapp-link', [AccountController::class, 'profitLossWhatsAppLink']);
 });
 
