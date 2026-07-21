@@ -160,4 +160,31 @@ class PatientDocumentController extends BasePatientController
 
         return $path ?: null;
     }
+    public function downloadRadiologyImage(Request $request, int $id, string $type)
+{
+    $patient = $this->currentPatient($request);
+
+    if ($this->isResponse($patient)) {
+        return $patient;
+    }
+
+    if (! in_array($type, ['before', 'after'], true)) {
+        return ApiResponse::error('Invalid image type', 422);
+    }
+
+    $radiology = PatientRadiology::query()
+        ->where('id', $id)
+        ->where('patient_id', $patient->id)
+        ->where('clinic_id', $patient->clinic_id)
+        ->first();
+
+    $column = $type === 'before' ? 'before_image_path' : 'after_image_path';
+    $path = $radiology ? $this->publicStoragePath($radiology->{$column}) : null;
+
+    if (! $radiology || ! $path || ! Storage::disk('public')->exists($path)) {
+        return ApiResponse::error('Image not found', 404);
+    }
+
+    return Storage::disk('public')->download($path, basename($path));
+}
 }

@@ -19,9 +19,13 @@ class PatientRadiologyResource extends JsonResource
             'notes' => $this->notes,
             'status' => $this->status,
             'file_path' => $this->file_path,
-            'image_url' => $this->fileUrl($this->file_path),
-            'before_image_url' => $this->fileUrl($this->before_image_path),
-            'after_image_url' => $this->fileUrl($this->after_image_path),
+            'image_url' => route('patient.radiology.download', $this->id),
+'before_image_url' => $this->before_image_path
+    ? route('patient.radiology.download.image', ['id' => $this->id, 'type' => 'before'])
+    : null,
+'after_image_url' => $this->after_image_path
+    ? route('patient.radiology.download.image', ['id' => $this->id, 'type' => 'after'])
+    : null,
             'created_at' => optional($this->created_at)?->toISOString(),
             'updated_at' => optional($this->updated_at)?->toISOString(),
         ];

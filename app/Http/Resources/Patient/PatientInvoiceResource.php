@@ -2,9 +2,12 @@
 
 namespace App\Http\Resources\Patient;
 
+use App\Models\ClinicInvoice;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\URL;
+
 class PatientInvoiceResource extends JsonResource
 {
     public function toArray(Request $request): array
@@ -39,4 +42,6 @@ class PatientInvoiceResource extends JsonResource
             'payments' => PatientPaymentResource::collection($this->whenLoaded('payments')),
         ], static fn ($value) => $value !== null);
     }
+
+   
 }

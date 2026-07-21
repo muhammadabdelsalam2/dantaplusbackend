@@ -45,9 +45,16 @@ Route::middleware(['auth:sanctum', 'role:patient'])->group(function () {
 
         Route::get('/documents', [PatientDocumentController::class, 'index']);
         Route::get('/documents/{id}', [PatientDocumentController::class, 'show']);
-        Route::get('/documents/{id}/download', [PatientDocumentController::class, 'download']);
+        Route::get('/documents/{id}/download', [PatientDocumentController::class, 'download'])
+            ->name('patient.documents.download');
+
         Route::get('/radiology', [PatientDocumentController::class, 'radiology']);
-        Route::get('/radiology/{id}/download', [PatientDocumentController::class, 'downloadRadiology']);
+        Route::get('/radiology/{id}/download', [PatientDocumentController::class, 'downloadRadiology'])
+            ->name('patient.radiology.download');
+        Route::get('/radiology/{id}/download/{type}', [PatientDocumentController::class, 'downloadRadiologyImage'])
+            ->name('patient.radiology.download.image')
+            ->where('type', 'before|after');
+
         Route::get('/notes', [PatientDocumentController::class, 'notes']);
         Route::get('/medical-notes', [PatientDocumentController::class, 'notes']);
 

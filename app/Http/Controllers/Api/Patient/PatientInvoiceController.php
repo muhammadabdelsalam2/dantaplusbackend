@@ -83,7 +83,7 @@ class PatientInvoiceController extends BasePatientController
             ->where('patient_id', $patient->id)
             ->where('clinic_id', $patient->clinic_id);
     }
-    public function downloadSigned(Request $request, int $id)
+ public function downloadSigned(Request $request, int $id)
 {
     if (! $request->hasValidSignature()) {
         abort(403, 'Invalid or expired link.');
@@ -97,10 +97,12 @@ class PatientInvoiceController extends BasePatientController
         return ApiResponse::error('Invoice not found', 404);
     }
 
-    return $this->renderInvoicePdf($invoice);
+    $disposition = $request->query('mode') === 'view' ? 'inline' : 'attachment';
+
+    return $this->renderInvoicePdf($invoice, $disposition);
 }
 
-private function renderInvoicePdf(ClinicInvoice $invoice)
+private function renderInvoicePdf(ClinicInvoice $invoice, string $disposition = 'attachment')
 {
     $html = view()->exists('pdf.clinic-invoice')
         ? view('pdf.clinic-invoice', ['invoice' => $invoice])->render()
@@ -111,7 +113,9 @@ private function renderInvoicePdf(ClinicInvoice $invoice)
 
     return response($pdf, 200, [
         'Content-Type' => 'application/pdf',
-        'Content-Disposition' => 'inline; filename="' . $filename . '"',
+        'Content-Disposition' => $disposition . '; filename="' . $filename . '"',
     ]);
 }
+
+
 }
