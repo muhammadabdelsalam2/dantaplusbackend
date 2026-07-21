@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Company;
 
+use App\Enums\OrderStatus;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateOrderStatusRequest extends FormRequest
 {
@@ -10,6 +12,8 @@ class UpdateOrderStatusRequest extends FormRequest
 
     public function rules(): array
     {
-        return ['status' => 'required|string|max:50'];
+        return [
+            'status' => ['required', 'string', Rule::in(OrderStatus::ALL)],
+        ];
     }
 }

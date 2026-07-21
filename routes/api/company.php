@@ -89,6 +89,7 @@ Route::prefix('company')
             Route::get('/orders', [OrderController::class, 'index']);
             Route::get('/orders/{id}', [OrderController::class, 'show']);
             Route::get('/orders/{id}/communication-logs', [OrderController::class, 'communicationLogs']);
+                Route::get('/orders/{id}/print', [OrderController::class, 'print']);
         });
         Route::middleware('role:material_company_admin|sales_rep')->group(function () {
             Route::post('/orders/{id}/status', [OrderController::class, 'updateStatus']);

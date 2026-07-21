@@ -75,18 +75,18 @@ class OrderService
         $order->update(['status' => $status]);
         return $this->show($order->fresh());
     }
-    public function clinicsFilterOptions(): array
+public function clinicsFilterOptions(): array
 {
     return Order::query()
         ->where('company_id', auth()->user()->company_id)
         ->whereNotNull('clinic_id')
-        ->with('clinic:id,name')
+        ->with('clinic:id,name,phone')
         ->get()
         ->pluck('clinic')
         ->filter()
         ->unique('id')
         ->values()
-        ->map(fn ($clinic) => ['id' => $clinic->id, 'name' => $clinic->name])
+        ->map(fn ($clinic) => ['id' => $clinic->id, 'name' => $clinic->name, 'phone' => $clinic->phone])
         ->all();
 }
 
@@ -139,42 +139,91 @@ class OrderService
             ->all();
     }
 
-    public function createExternal(array $data): array
-    {
-        return DB::transaction(function () use ($data) {
-            $order = Order::create([
-                'company_id' => auth()->user()->company_id,
-                'supplier_company_id' => auth()->user()->company_id,
-                'order_code' => 'EXT-' . now()->format('YmdHis'),
-                'external_clinic_name' => $data['external_clinic_name'],
-                'external_clinic_phone' => $data['external_clinic_phone'],
-                'status' => 'Pending',
-                'notes' => $data['notes'] ?? null,
-                'payment_method' => $data['payment_method'] ?? null,
-                'payment_status' => $data['payment_status'] ?? 'Pending',
-                'source' => 'external',
-                'delivery_address' => $data['delivery_address'] ?? null,
-                'delivery_at' => $data['delivery_at'] ?? null,
-                'created_by' => auth()->id(),
-                'order_date' => now(),
-                'total_amount' => 0,
-                'amount_total' => 0,
+   public function createExternal(array $data): array
+{
+    return DB::transaction(function () use ($data) {
+        $clinic = !empty($data['clinic_id']) ? \App\Models\Clinic::find($data['clinic_id']) : null;
+
+        $order = Order::create([
+            'company_id' => auth()->user()->company_id,
+            'supplier_company_id' => auth()->user()->company_id,
+            'order_code' => 'EXT-' . now()->format('YmdHis'),
+            'clinic_id' => $clinic?->id,
+            'external_clinic_name' => $clinic->name ?? $data['external_clinic_name'],
+            'external_clinic_phone' => $clinic->phone ?? $data['external_clinic_phone'],
+            'status' => \App\Enums\OrderStatus::PENDING_SUPPLIER_CONFIRMATION,
+            'notes' => $data['notes'] ?? null,
+            'payment_method' => $data['payment_method'],
+            'payment_status' => 'Pending',
+            'source' => 'external',
+            'delivery_address' => $data['delivery_address'],
+            'delivery_at' => $data['delivery_at'],
+            'shipping_cost' => $data['shipping_cost'] ?? 0,
+            'created_by' => auth()->id(),
+            'order_date' => now(),
+            'total_amount' => 0,
+            'amount_total' => 0,
+        ]);
+
+        foreach ($data['items'] as $item) {
+            OrderItem::create([
+                'order_id' => $order->id,
+                'product_id' => $item['product_id'] ?? null,
+                'item_name' => $item['item_name'],
+                'unit' => $item['unit'] ?? null,
+                'quantity' => $item['quantity'],
+                'unit_price' => $item['unit_price'],
+                'line_total' => $item['quantity'] * $item['unit_price'],
             ]);
+        }
 
-            foreach ($data['items'] as $item) {
-                OrderItem::create([
-                    'order_id' => $order->id,
-                    'product_id' => $item['product_id'] ?? null,
-                    'item_name' => $item['item_name'],
-                    'unit' => $item['unit'] ?? null,
-                    'quantity' => $item['quantity'],
-                    'unit_price' => $item['unit_price'],
-                    'line_total' => $item['quantity'] * $item['unit_price'],
-                ]);
-            }
+        $order->update(['total_amount' => $order->items()->sum('line_total'), 'amount_total' => $order->items()->sum('line_total')]);
+        return $this->show($order->fresh());
+    });
+}
+public function printData(Invoice $invoice): array
+{
+    $invoice->loadMissing(['company', 'clinic', 'order.items']);
 
-            $order->update(['total_amount' => $order->items()->sum('line_total'), 'amount_total' => $order->items()->sum('line_total')]);
-            return $this->show($order->fresh());
-        });
-    }
+    return [
+        'invoice_id'     => $invoice->id,
+        'invoice_number' => $invoice->invoice_number,
+        'order_id'       => $invoice->order_id,
+        'order_code'     => $invoice->order?->order_code,
+        'issue_date'     => optional($invoice->issue_date)->format('d/m/Y'),
+        'due_date'       => optional($invoice->due_date)->format('d/m/Y'),
+
+        'company' => [
+            'name'    => $invoice->company?->name,
+            'address' => $invoice->company?->address,
+            'phone'   => $invoice->company?->phone,
+            'email'   => $invoice->company?->email,
+        ],
+
+        'bill_to' => [
+            'name'    => $invoice->clinic?->name,
+            'address' => $invoice->clinic?->address,
+            'phone'   => $invoice->clinic?->phone,
+        ],
+
+        'items' => $invoice->order?->items->map(fn ($item) => [
+            'item_name'  => $item->item_name,
+            'quantity'   => $item->quantity,
+            'unit_price' => $item->unit_price,
+            'total'      => $item->line_total,
+        ])->values(),
+
+        'subtotal'     => $invoice->subtotal,
+        'tax'          => $invoice->tax,
+        'shipping'     => $invoice->order?->shipping_cost ?? 0,
+        'total_amount' => $invoice->total_amount,
+        'status'       => $invoice->status,
+
+        
+        'download_url' => \Illuminate\Support\Facades\URL::signedRoute(
+            'company.invoices.download.signed',
+            ['id' => $invoice->id]
+        ),
+    ];
+}
 }

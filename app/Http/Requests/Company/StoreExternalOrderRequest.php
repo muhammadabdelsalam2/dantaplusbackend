@@ -11,13 +11,14 @@ class StoreExternalOrderRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'external_clinic_name' => 'required|string|max:255',
-            'external_clinic_phone' => 'required|string|max:50',
+            'clinic_id' => 'required|exists:clinics,id',
+            'external_clinic_name' => 'required_without:clinic_id|required|string|max:255',
+            'external_clinic_phone' => 'required_without:clinic_id|required|string|max:50',
             'notes' => 'nullable|string',
-            'payment_method' => 'nullable|string|max:100',
-            'payment_status' => 'nullable|string|max:50',
-            'delivery_address' => 'nullable|string|max:1000',
-            'delivery_at' => 'nullable|date',
+            'payment_method' => 'required|in:Cash,Visa',
+            'delivery_address' => 'required|string|max:1000',
+            'delivery_at' => 'required|date',
+            'shipping_cost' => 'required|numeric|min:0',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'nullable|exists:material_products,id',
             'items.*.item_name' => 'required|string|max:255',
