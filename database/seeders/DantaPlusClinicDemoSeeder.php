@@ -525,7 +525,15 @@ class DantaPlusClinicDemoSeeder extends Seeder
         for ($i = $companies->count() + 1; $companies->count() < 3; $i++) {
             $companies->push(MaterialCompany::query()->updateOrCreate(
                 ['email' => "clinic26.material{$i}.demo@dentaplus.local"],
-                ['name' => 'Clinic 26 Demo Material Company ' . $i, 'commission_percentage' => 5 + $i, 'phone' => '0109262000' . $i, 'status' => 'Active']
+                [
+                    'name' => 'Clinic 26 Demo Material Company ' . $i,
+                    'commission_percentage' => 5 + $i,
+                    'phone' => '0109262000' . $i,
+                    'country' => 'Egypt',
+                    'city' => 'Cairo',
+                    'address' => 'Clinic 26 demo material supplier address ' . $i,
+                    'status' => 'Active',
+                ]
             ));
         }
 

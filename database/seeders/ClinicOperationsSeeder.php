@@ -34,6 +34,9 @@ class ClinicOperationsSeeder extends Seeder
                     'email' => 'supplier26@example.com',
                     'commission_percentage' => 8,
                     'phone' => '01000000026',
+                    'country' => 'Egypt',
+                    'city' => 'Cairo',
+                    'address' => 'Clinic 26 demo supplier address, Cairo',
                     'status' => 'Active',
                 ]
             );

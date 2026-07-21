@@ -15,7 +15,8 @@ class MaterialCompanySeeder extends Seeder
                 'email' => 'supplier' . $i . '@example.com',
                 'phone' => '0111111' . str_pad((string) $i, 4, '0', STR_PAD_LEFT),
                 'commission_percentage' => '4',
-                'country' => 'Alexandria',
+                'country' => 'Egypt',
+                'city' => 'Alexandria',
             ]);
         }
     }
