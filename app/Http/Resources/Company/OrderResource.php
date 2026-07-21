@@ -20,6 +20,9 @@ class OrderResource extends JsonResource
             'delivery_address' => $this->delivery_address,
             'delivery_at' => optional($this->delivery_at)?->toISOString(),
             'total_amount' => (float) ($this->total_amount ?: $this->amount_total),
+            'clinic_id' => $this->clinic?->id,
+            'clinic_name' => $this->clinic?->name ?? $this->external_clinic_name,
+            'clinic_phone' => $this->clinic?->phone ?? $this->external_clinic_phone,
             'clinic' => $this->clinic ? [
                 'id' => $this->clinic->id,
                 'name' => $this->clinic->name,

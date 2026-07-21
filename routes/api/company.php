@@ -65,6 +65,7 @@ Route::prefix('company')
             Route::get('/products', [ProductController::class, 'index']);
             Route::post('/products', [ProductController::class, 'store']);
             Route::get('/categories', [ProductController::class, 'categories']);
+            Route::get('/materials/by-company', [ProductController::class, 'materialsByCompany']);
             Route::get('/products/{id}', [ProductController::class, 'show']);
             Route::post('/products/{id}', [ProductController::class, 'update']);
             Route::delete('/products/{id}', [ProductController::class, 'destroy']);

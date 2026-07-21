@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class OrderService
 {
@@ -59,14 +60,28 @@ class OrderService
             if (is_array($items)) {
                 $order->items()->delete();
                 foreach ($items as $item) {
+                    $product = ! empty($item['product_id'])
+                        ? $this->resolveExternalOrderProduct($item, $order->company_id)
+                        : null;
+
+                    if (! empty($item['product_id']) && ! $product) {
+                        throw ValidationException::withMessages([
+                            'items' => ['Selected material product was not found for this company.'],
+                        ]);
+                    }
+
+                    $unitPrice = $product ? (float) $product->price : (float) ($item['unit_price'] ?? 0);
+                    $quantity = (int) $item['quantity'];
+
                     OrderItem::create([
                         'order_id' => $order->id,
-                        'product_id' => $item['product_id'] ?? null,
-                        'item_name' => $item['item_name'],
+                        'product_id' => $product?->id ?? ($item['product_id'] ?? null),
+                        'item_name' => $product?->name ?? $item['item_name'],
+                        'category' => $product?->category ?? ($item['category'] ?? null),
                         'unit' => $item['unit'] ?? null,
-                        'quantity' => $item['quantity'],
-                        'unit_price' => $item['unit_price'] ?? 0,
-                        'line_total' => $item['quantity'] * ($item['unit_price'] ?? 0),
+                        'quantity' => $quantity,
+                        'unit_price' => $unitPrice,
+                        'line_total' => $quantity * $unitPrice,
                     ]);
                 }
 
@@ -188,13 +203,21 @@ public function clinicsFilterOptions(): array
 
         foreach ($data['items'] as $item) {
             $product = $this->resolveExternalOrderProduct($item, $order->company_id);
-            $unitPrice = (float) ($item['unit_price'] ?? $product?->price ?? 0);
+
+            if (! $product) {
+                throw ValidationException::withMessages([
+                    'items' => ['Selected material product was not found for this company.'],
+                ]);
+            }
+
+            $unitPrice = (float) $product->price;
             $quantity = (int) $item['quantity'];
 
             OrderItem::create([
                 'order_id' => $order->id,
-                'product_id' => $product?->id ?? ($item['product_id'] ?? null),
-                'item_name' => $product?->name ?? $item['item_name'],
+                'product_id' => $product->id,
+                'item_name' => $product->name,
+                'category' => $product->category,
                 'unit' => $item['unit'] ?? null,
                 'quantity' => $quantity,
                 'unit_price' => $unitPrice,
@@ -304,10 +327,7 @@ private function resolveExternalOrderProduct(array $item, int $companyId): ?Mate
             ->find($item['product_id']);
     }
 
-    return MaterialProduct::query()
-        ->where('company_id', $companyId)
-        ->where('name', $item['item_name'])
-        ->first();
+    return null;
 }
 
 private function orderInvoiceData(Order $order): array

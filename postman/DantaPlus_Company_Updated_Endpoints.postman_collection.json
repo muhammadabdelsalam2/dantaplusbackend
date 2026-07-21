@@ -58,6 +58,11 @@
       "type": "string"
     },
     {
+      "key": "company_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
       "key": "invoice_id",
       "value": "1",
       "type": "string"
@@ -484,6 +489,39 @@
       "name": "External Orders",
       "item": [
         {
+          "name": "Get Materials By Company",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "description": "Returns inventory materials for the selected supplier company. Each material item contains exactly: id, name, category, price. Use id as materials[x][material_product_id], category as materials[x][category], and price as read-only materials[x][price].",
+            "url": {
+              "raw": "{{base_url}}/api/company/materials/by-company?company_id={{company_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "company",
+                "materials",
+                "by-company"
+              ],
+              "query": [
+                {
+                  "key": "company_id",
+                  "value": "{{company_id}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
           "name": "Create External Order - Existing Clinic",
           "request": {
             "method": "POST",
@@ -504,8 +542,14 @@
                   "description": "Existing clinic ID. Backend auto-fills clinic name/phone from the clinic record."
                 },
                 {
-                  "key": "materials[0][item_name]",
-                  "value": "Aquasil Ultra+ Smart Wetting Impression Material",
+                  "key": "materials[0][material_product_id]",
+                  "value": "1",
+                  "type": "text",
+                  "description": "Selected inventory product id."
+                },
+                {
+                  "key": "materials[0][category]",
+                  "value": "Impression Material",
                   "type": "text"
                 },
                 {
@@ -521,11 +565,18 @@
                 {
                   "key": "materials[0][price]",
                   "value": "85.50",
-                  "type": "text"
+                  "type": "text",
+                  "description": "Read-only value from inventory. Backend verifies and uses the product price from the database."
                 },
                 {
-                  "key": "materials[1][item_name]",
-                  "value": "ProTaper Gold Files",
+                  "key": "materials[1][material_product_id]",
+                  "value": "2",
+                  "type": "text",
+                  "description": "Selected inventory product id."
+                },
+                {
+                  "key": "materials[1][category]",
+                  "value": "Endodontics",
                   "type": "text"
                 },
                 {
@@ -541,7 +592,8 @@
                 {
                   "key": "materials[1][price]",
                   "value": "112.00",
-                  "type": "text"
+                  "type": "text",
+                  "description": "Read-only value from inventory. Backend verifies and uses the product price from the database."
                 },
                 {
                   "key": "shipping_cost",
@@ -570,7 +622,7 @@
                 }
               ]
             },
-            "description": "Creates an external order for an existing clinic. Form-data array format is materials[0][item_name], materials[0][quantity], materials[0][unit], materials[0][price]. The backend maps materials to items, price to unit_price, and expected_delivery to delivery_at.",
+            "description": "Creates an external order for an existing clinic. Form-data array format is materials[0][material_product_id], materials[0][category], materials[0][quantity], materials[0][unit], materials[0][price]. The backend maps material_product_id to product_id, price to unit_price for validation only, expected_delivery to delivery_at, then verifies and uses the actual product price/category from inventory.",
             "url": {
               "raw": "{{base_url}}/api/company/external-orders",
               "host": [
@@ -610,8 +662,14 @@
                   "type": "text"
                 },
                 {
-                  "key": "materials[0][item_name]",
-                  "value": "Aquasil Ultra+ Smart Wetting Impression Material",
+                  "key": "materials[0][material_product_id]",
+                  "value": "1",
+                  "type": "text",
+                  "description": "Selected inventory product id."
+                },
+                {
+                  "key": "materials[0][category]",
+                  "value": "Impression Material",
                   "type": "text"
                 },
                 {
@@ -627,11 +685,18 @@
                 {
                   "key": "materials[0][price]",
                   "value": "85.50",
-                  "type": "text"
+                  "type": "text",
+                  "description": "Read-only value from inventory. Backend verifies and uses the product price from the database."
                 },
                 {
-                  "key": "materials[1][item_name]",
-                  "value": "Calibra Universal Cement",
+                  "key": "materials[1][material_product_id]",
+                  "value": "3",
+                  "type": "text",
+                  "description": "Selected inventory product id."
+                },
+                {
+                  "key": "materials[1][category]",
+                  "value": "Cement",
                   "type": "text"
                 },
                 {
@@ -647,7 +712,8 @@
                 {
                   "key": "materials[1][price]",
                   "value": "49.75",
-                  "type": "text"
+                  "type": "text",
+                  "description": "Read-only value from inventory. Backend verifies and uses the product price from the database."
                 },
                 {
                   "key": "shipping_cost",

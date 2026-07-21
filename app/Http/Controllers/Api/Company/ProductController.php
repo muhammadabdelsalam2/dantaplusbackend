@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Company\StoreProductRequest;
 use App\Http\Requests\Company\UpdateProductRequest;
 use App\Models\Category;
+use App\Models\MaterialProduct;
 use App\Models\Product;
 use App\Services\Company\ProductService;
 use App\Support\ApiResponse;
@@ -24,4 +25,24 @@ class ProductController extends Controller
     public function destroy(Product $id) { $this->service->delete($id); return ApiResponse::success(null, 'Product deleted successfully'); }
     public function destroyImage(Product $id, int $imageId) { $this->service->deleteImage($id, $imageId); return ApiResponse::success(null, 'Product image deleted successfully'); }
     public function categories() { return ApiResponse::success(Category::query()->where('status', 'active')->get(), 'Categories fetched successfully'); }
+    public function materialsByCompany(Request $request)
+    {
+        $validated = $request->validate([
+            'company_id' => ['required', 'integer', 'exists:material_companies,id'],
+        ]);
+
+        $materials = MaterialProduct::query()
+            ->where('company_id', $validated['company_id'])
+            ->orderBy('name')
+            ->get(['id', 'name', 'category', 'price'])
+            ->map(fn (MaterialProduct $product) => [
+                'id' => $product->id,
+                'name' => $product->name,
+                'category' => $product->category,
+                'price' => (float) $product->price,
+            ])
+            ->values();
+
+        return ApiResponse::success($materials, 'Materials fetched successfully');
+    }
 }

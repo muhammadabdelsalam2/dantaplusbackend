@@ -14,6 +14,7 @@ class MaterialOrderItem extends Model
         'order_id',
         'product_id',
         'item_name',
+        'category',
         'unit',
         'quantity',
         'qty_original',
