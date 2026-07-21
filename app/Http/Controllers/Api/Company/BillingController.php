@@ -48,10 +48,6 @@ class BillingController extends Controller
     }
     public function downloadSigned(Request $request, int $id)
 {
-    if (! $request->hasValidSignature()) {
-        abort(403, 'Invalid or expired link.');
-    }
-
     $invoice = \App\Models\Invoice::query()->find($id);
 
     if (! $invoice) {

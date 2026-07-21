@@ -21,6 +21,14 @@ class UpdateSettingsRequest extends FormRequest
             'logo' => 'sometimes|nullable|image|max:2048',
             'communication' => 'sometimes|array',
             'automation' => 'sometimes|array',
+            'automation.auto_transfer_to_payments' => 'sometimes|boolean',
+            'automation.auto_create_invoice_billing' => 'sometimes|boolean',
+            'automation.whatsapp_notification_clinic' => 'sometimes|boolean',
+            'automation.auto_pdf_generation' => 'sometimes|boolean',
+            'auto_transfer_to_payments' => 'sometimes|boolean',
+            'auto_create_invoice_billing' => 'sometimes|boolean',
+            'whatsapp_notification_clinic' => 'sometimes|boolean',
+            'auto_pdf_generation' => 'sometimes|boolean',
         ];
     }
 }

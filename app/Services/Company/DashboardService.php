@@ -3,6 +3,7 @@
 namespace App\Services\Company;
 
 use App\Http\Resources\Company\DashboardResource;
+use App\Enums\OrderStatus;
 use App\Models\Conversation;
 use App\Models\InventoryItem;
 use App\Models\Order;
@@ -16,8 +17,8 @@ class DashboardService
 
         $kpis = [
             'total_orders' => Order::query()->count(),
-            'processing_orders' => Order::query()->whereIn('status', ['Processing', 'Confirmed', 'Shipped'])->count(),
-            'completed_orders' => Order::query()->where('status', 'Delivered')->count(),
+            'processing_orders' => Order::query()->whereIn('status', [OrderStatus::PROCESSING, OrderStatus::SHIPPED])->count(),
+            'completed_orders' => Order::query()->whereIn('status', [OrderStatus::DELIVERED, OrderStatus::COMPLETED])->count(),
             'pending_payments' => Order::query()->where('payment_status', 'Pending')->count(),
         ];
 

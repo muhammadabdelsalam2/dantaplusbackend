@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\OrderStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,21 +12,18 @@ class MaterialOrder extends Model
 {
     use HasFactory;
 
-    public const STATUS_PENDING = 'Pending';
-    public const STATUS_CONFIRMED = 'Confirmed';
-    public const STATUS_PROCESSING = 'Processing';
-    public const STATUS_SHIPPED = 'Shipped';
-    public const STATUS_DELIVERED = 'Delivered';
-    public const STATUS_CANCELLED = 'Cancelled';
+    public const STATUS_PENDING_SUPPLIER_CONFIRMATION = OrderStatus::PENDING_SUPPLIER_CONFIRMATION;
+    public const STATUS_PENDING = OrderStatus::PENDING_SUPPLIER_CONFIRMATION;
+    public const STATUS_ACCEPTED = OrderStatus::ACCEPTED;
+    public const STATUS_CONFIRMED = OrderStatus::ACCEPTED;
+    public const STATUS_PROCESSING = OrderStatus::PROCESSING;
+    public const STATUS_SHIPPED = OrderStatus::SHIPPED;
+    public const STATUS_DELIVERED = OrderStatus::DELIVERED;
+    public const STATUS_COMPLETED = OrderStatus::COMPLETED;
+    public const STATUS_CANCELLED = OrderStatus::CANCELLED;
+    public const STATUS_REJECTED = OrderStatus::REJECTED;
 
-    public const STATUSES = [
-        self::STATUS_PENDING,
-        self::STATUS_CONFIRMED,
-        self::STATUS_PROCESSING,
-        self::STATUS_SHIPPED,
-        self::STATUS_DELIVERED,
-        self::STATUS_CANCELLED,
-    ];
+    public const STATUSES = OrderStatus::ALL;
 
     protected $fillable = [
         'order_code',
@@ -44,6 +42,12 @@ class MaterialOrder extends Model
         'payment_status',
         'payment_reference',
         'created_by',
+        'delivery_address',
+        'delivery_at',
+        'external_clinic_name',
+        'external_clinic_phone',
+        'shipping_cost',
+        'source',
     ];
 
     protected function casts(): array
@@ -54,6 +58,8 @@ class MaterialOrder extends Model
             'total_amount' => 'decimal:2',
             'commission_amount' => 'decimal:2',
             'modified_by_supplier' => 'boolean',
+            'delivery_at' => 'datetime',
+            'shipping_cost' => 'decimal:2',
         ];
     }
 

@@ -20,6 +20,7 @@ use App\Models\Product;
 use App\Models\SharedFile;
 use App\Models\ShippingZone;
 use App\Models\User;
+use App\Enums\OrderStatus;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -173,7 +174,7 @@ class SupplierPortalSeeder extends Seeder
                         'company_id' => $company->id,
                         'supplier_company_id' => $company->id,
                         'clinic_id' => $clinic->id,
-                        'status' => $index === 0 ? 'Processing' : ($index === 1 ? 'Delivered' : 'Pending'),
+                        'status' => $index === 0 ? OrderStatus::PROCESSING : ($index === 1 ? OrderStatus::DELIVERED : OrderStatus::PENDING_SUPPLIER_CONFIRMATION),
                         'notes' => 'Seeded supplier portal order',
                         'total_amount' => 0,
                         'amount_total' => 0,
@@ -295,7 +296,12 @@ class SupplierPortalSeeder extends Seeder
                 [
                     'profile' => ['display_name' => $company->name, 'support_email' => $company->email],
                     'communication' => ['whatsapp_enabled' => true, 'provider' => 'meta_cloud_api', 'logs' => [['message' => 'WhatsApp connection verified', 'at' => now()->toISOString()]]],
-                    'automation' => ['auto_invoice_on_complete' => true, 'auto_payment_reconciliation' => false],
+                    'automation' => [
+                        'auto_transfer_to_payments' => false,
+                        'auto_create_invoice_billing' => true,
+                        'whatsapp_notification_clinic' => false,
+                        'auto_pdf_generation' => false,
+                    ],
                 ]
             );
         });

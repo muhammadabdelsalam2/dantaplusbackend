@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api\Company;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Company\UpdateOrderRequest;
 use App\Http\Requests\Company\UpdateOrderStatusRequest;
-use App\Models\Invoice;
 use App\Models\Order;
 use App\Services\Company\OrderService;
 use App\Support\ApiResponse;
@@ -24,8 +23,7 @@ class OrderController extends Controller
     public function complete(Order $id) { return ApiResponse::success($this->service->complete($id), 'Order completed successfully'); }
     public function communicationLogs(Order $id) { return ApiResponse::success($this->service->communicationLogs($id), 'Communication logs fetched successfully'); }
     public function clinics() { return ApiResponse::success($this->service->clinicsFilterOptions(), 'Clinics fetched successfully'); }
-    public function print(Invoice $id)
-{
-    return ApiResponse::success($this->service->printData($id), 'Invoice fetched successfully');
-}
+    public function print(Order $id) { return ApiResponse::success($this->service->printData($id), 'Order invoice fetched successfully'); }
+    public function history(Order $id) { return ApiResponse::success($this->service->history($id), 'Order history fetched successfully'); }
+    public function downloadInvoice(Order $id) { return $this->service->downloadInvoicePdf($id); }
 }

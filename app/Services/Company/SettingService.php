@@ -27,7 +27,7 @@ class SettingService
                 'logo_url'      => $company->logo_url,
             ],
             'communication' => $settings->communication ?? [],
-            'automation'    => array_merge($this->defaultAutomation(), $settings->automation ?? []),
+            'automation'    => $this->sanitizeAutomation($settings->automation ?? []),
         ];
     }
 
@@ -64,7 +64,7 @@ class SettingService
         $settings = CompanySetting::firstOrCreate(['company_id' => auth()->user()->company_id]);
 
         if ($section === 'automation') {
-            $payload = array_merge($this->defaultAutomation(), $settings->automation ?? [], $payload);
+            $payload = array_merge($this->sanitizeAutomation($settings->automation ?? []), $this->sanitizeAutomation($payload));
         }
 
         $settings->update([$section => $payload]);
@@ -91,5 +91,16 @@ class SettingService
             'whatsapp_notification_clinic' => false,
             'auto_pdf_generation'          => false,
         ];
+    }
+
+    private function sanitizeAutomation(array $payload): array
+    {
+        $allowed = array_keys($this->defaultAutomation());
+        $filtered = array_intersect_key($payload, array_flip($allowed));
+
+        return array_merge(
+            $this->defaultAutomation(),
+            array_map(static fn ($value) => filter_var($value, FILTER_VALIDATE_BOOLEAN), $filtered)
+        );
     }
 }

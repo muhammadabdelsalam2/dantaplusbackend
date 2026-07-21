@@ -29,8 +29,10 @@ Route::prefix('auth')->group(function () {
 | ====================================
 */
 Route::get('/company/invoices/{id}/download-file', [BillingController::class, 'downloadSigned'])
-    ->name('company.invoices.download.signed')
-    ->middleware('signed');
+    ->name('company.invoices.download.signed');
+
+Route::get('/company/orders/{id}/invoice-file', [OrderController::class, 'downloadInvoice'])
+    ->name('company.orders.invoice.download');
 
 Route::get('/company/profit-loss/download-file', [AccountController::class, 'profitLossDownloadSigned'])
     ->name('company.profit-loss.download.signed')
@@ -89,7 +91,8 @@ Route::prefix('company')
             Route::get('/orders', [OrderController::class, 'index']);
             Route::get('/orders/{id}', [OrderController::class, 'show']);
             Route::get('/orders/{id}/communication-logs', [OrderController::class, 'communicationLogs']);
-                Route::get('/orders/{id}/print', [OrderController::class, 'print']);
+            Route::get('/orders/{id}/history', [OrderController::class, 'history']);
+            Route::get('/orders/{id}/print', [OrderController::class, 'print']);
         });
         Route::middleware('role:material_company_admin|sales_rep')->group(function () {
             Route::post('/orders/{id}/status', [OrderController::class, 'updateStatus']);
@@ -151,6 +154,7 @@ Route::prefix('company')
             Route::post('/communication', [SettingController::class, 'updateCommunication']);
             Route::post('/communication/test', [SettingController::class, 'testCommunication']);
             Route::post('/automation', [SettingController::class, 'updateAutomation']);
+            Route::patch('/automation', [SettingController::class, 'updateAutomation']);
             Route::get('/whatsapp-logs', [SettingController::class, 'whatsappLogs']);
         });
 

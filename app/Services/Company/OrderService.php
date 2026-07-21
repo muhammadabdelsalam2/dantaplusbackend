@@ -3,12 +3,16 @@
 namespace App\Services\Company;
 
 use App\Http\Resources\Company\OrderResource;
+use App\Models\Clinic;
 use App\Models\Conversation;
 use App\Models\Invoice;
 use App\Models\Message;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\OrderStatusHistory;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 
 class OrderService
@@ -58,12 +62,14 @@ class OrderService
                         'item_name' => $item['item_name'],
                         'unit' => $item['unit'] ?? null,
                         'quantity' => $item['quantity'],
-                        'unit_price' => $item['unit_price'],
-                        'line_total' => $item['quantity'] * $item['unit_price'],
+                        'unit_price' => $item['unit_price'] ?? 0,
+                        'line_total' => $item['quantity'] * ($item['unit_price'] ?? 0),
                     ]);
                 }
 
-                $order->update(['total_amount' => $order->items()->sum('line_total'), 'amount_total' => $order->items()->sum('line_total')]);
+                $subtotal = $order->items()->sum('line_total');
+                $total = $subtotal + (float) ($order->shipping_cost ?? 0);
+                $order->update(['total_amount' => $total, 'amount_total' => $total]);
             }
 
             return $this->show($order->fresh());
@@ -72,8 +78,16 @@ class OrderService
 
     public function updateStatus(Order $order, string $status): array
     {
-        $order->update(['status' => $status]);
-        return $this->show($order->fresh());
+        return DB::transaction(function () use ($order, $status) {
+            $fromStatus = $order->status;
+
+            if ($fromStatus !== $status) {
+                $order->update(['status' => $status]);
+                $this->recordStatusHistory($order, $fromStatus, $status);
+            }
+
+            return $this->show($order->fresh());
+        });
     }
 public function clinicsFilterOptions(): array
 {
@@ -93,10 +107,12 @@ public function clinicsFilterOptions(): array
     public function complete(Order $order): array
     {
         return DB::transaction(function () use ($order) {
+            $fromStatus = $order->status;
             $order->update([
-                'status' => 'Delivered',
+                'status' => \App\Enums\OrderStatus::COMPLETED,
                 'payment_status' => $order->payment_status ?: 'Pending',
             ]);
+            $this->recordStatusHistory($order, $fromStatus, \App\Enums\OrderStatus::COMPLETED);
 
             $invoice = Invoice::firstOrCreate(
                 ['order_id' => $order->id],
@@ -142,15 +158,17 @@ public function clinicsFilterOptions(): array
    public function createExternal(array $data): array
 {
     return DB::transaction(function () use ($data) {
-        $clinic = !empty($data['clinic_id']) ? \App\Models\Clinic::find($data['clinic_id']) : null;
+        $clinic = !empty($data['clinic_id']) ? Clinic::find($data['clinic_id']) : null;
+        $externalClinicName = $clinic?->name ?? $data['external_clinic_name'];
+        $externalClinicPhone = $clinic?->phone ?? $data['external_clinic_phone'];
 
         $order = Order::create([
             'company_id' => auth()->user()->company_id,
             'supplier_company_id' => auth()->user()->company_id,
             'order_code' => 'EXT-' . now()->format('YmdHis'),
             'clinic_id' => $clinic?->id,
-            'external_clinic_name' => $clinic->name ?? $data['external_clinic_name'],
-            'external_clinic_phone' => $clinic->phone ?? $data['external_clinic_phone'],
+            'external_clinic_name' => $externalClinicName,
+            'external_clinic_phone' => $externalClinicPhone,
             'status' => \App\Enums\OrderStatus::PENDING_SUPPLIER_CONFIRMATION,
             'notes' => $data['notes'] ?? null,
             'payment_method' => $data['payment_method'],
@@ -172,58 +190,70 @@ public function clinicsFilterOptions(): array
                 'item_name' => $item['item_name'],
                 'unit' => $item['unit'] ?? null,
                 'quantity' => $item['quantity'],
-                'unit_price' => $item['unit_price'],
-                'line_total' => $item['quantity'] * $item['unit_price'],
+                'unit_price' => $item['unit_price'] ?? 0,
+                'line_total' => $item['quantity'] * ($item['unit_price'] ?? 0),
             ]);
         }
 
-        $order->update(['total_amount' => $order->items()->sum('line_total'), 'amount_total' => $order->items()->sum('line_total')]);
+        $subtotal = $order->items()->sum('line_total');
+        $order->update([
+            'total_amount' => $subtotal + (float) ($order->shipping_cost ?? 0),
+            'amount_total' => $subtotal + (float) ($order->shipping_cost ?? 0),
+        ]);
         return $this->show($order->fresh());
     });
 }
-public function printData(Invoice $invoice): array
+
+public function printData(Order $order): array
 {
-    $invoice->loadMissing(['company', 'clinic', 'order.items']);
+    $data = $this->show($order);
+    $data['file_url'] = URL::route('company.orders.invoice.download', ['id' => $order->id]);
 
-    return [
-        'invoice_id'     => $invoice->id,
-        'invoice_number' => $invoice->invoice_number,
-        'order_id'       => $invoice->order_id,
-        'order_code'     => $invoice->order?->order_code,
-        'issue_date'     => optional($invoice->issue_date)->format('d/m/Y'),
-        'due_date'       => optional($invoice->due_date)->format('d/m/Y'),
+    return $data;
+}
 
-        'company' => [
-            'name'    => $invoice->company?->name,
-            'address' => $invoice->company?->address,
-            'phone'   => $invoice->company?->phone,
-            'email'   => $invoice->company?->email,
-        ],
+public function history(Order $order): array
+{
+    return $order->statusHistories()
+        ->with('changedBy:id,name,email')
+        ->oldest('id')
+        ->get()
+        ->map(fn (OrderStatusHistory $history) => [
+            'id' => $history->id,
+            'changed_by' => $history->changedBy ? [
+                'id' => $history->changedBy->id,
+                'name' => $history->changedBy->name,
+                'email' => $history->changedBy->email,
+            ] : null,
+            'from_status' => $history->from_status,
+            'to_status' => $history->to_status,
+            'changed_at' => optional($history->created_at)?->toISOString(),
+        ])
+        ->all();
+}
 
-        'bill_to' => [
-            'name'    => $invoice->clinic?->name,
-            'address' => $invoice->clinic?->address,
-            'phone'   => $invoice->clinic?->phone,
-        ],
+public function downloadInvoicePdf(Order $order)
+{
+    $order->loadMissing(['company', 'clinic', 'items.product', 'invoice']);
+    $pdf = Pdf::loadView('pdf.company-order-invoice', [
+        'order' => $order,
+        'invoiceNumber' => 'INV-' . $order->order_code,
+    ]);
 
-        'items' => $invoice->order?->items->map(fn ($item) => [
-            'item_name'  => $item->item_name,
-            'quantity'   => $item->quantity,
-            'unit_price' => $item->unit_price,
-            'total'      => $item->line_total,
-        ])->values(),
+    return $pdf->download('invoice-' . $order->order_code . '.pdf');
+}
 
-        'subtotal'     => $invoice->subtotal,
-        'tax'          => $invoice->tax,
-        'shipping'     => $invoice->order?->shipping_cost ?? 0,
-        'total_amount' => $invoice->total_amount,
-        'status'       => $invoice->status,
+private function recordStatusHistory(Order $order, ?string $fromStatus, string $toStatus): void
+{
+    if ($fromStatus === $toStatus) {
+        return;
+    }
 
-        
-        'download_url' => \Illuminate\Support\Facades\URL::signedRoute(
-            'company.invoices.download.signed',
-            ['id' => $invoice->id]
-        ),
-    ];
+    OrderStatusHistory::create([
+        'order_id' => $order->id,
+        'changed_by' => auth()->id(),
+        'from_status' => $fromStatus,
+        'to_status' => $toStatus,
+    ]);
 }
 }

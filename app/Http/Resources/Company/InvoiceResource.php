@@ -18,9 +18,8 @@ class InvoiceResource extends JsonResource
             'due_date' => optional($this->due_date)?->toDateString(),
             'subtotal' => (float) $this->subtotal,
             'tax' => (float) $this->tax,
-            'file_url' => URL::temporarySignedRoute(
+            'file_url' => URL::route(
                 'company.invoices.download.signed',
-                now()->addDays(7),
                 ['id' => $this->id]
             ),
             'total_amount' => (float) $this->total_amount,

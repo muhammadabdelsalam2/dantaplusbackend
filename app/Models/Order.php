@@ -25,4 +25,5 @@ class Order extends MaterialOrder
     public function items(): HasMany { return $this->hasMany(OrderItem::class, 'order_id'); }
     public function invoice() { return $this->hasOne(Invoice::class, 'order_id'); }
     public function creator(): BelongsTo { return $this->belongsTo(User::class, 'created_by'); }
+    public function statusHistories(): HasMany { return $this->hasMany(OrderStatusHistory::class, 'order_id'); }
 }

@@ -31,6 +31,17 @@ class SettingController extends Controller
 }
     public function updateCommunication(UpdateSettingsRequest $request) { return ApiResponse::success($this->service->updateSection('communication', $request->validated('communication', [])), 'Communication settings updated successfully'); }
     public function testCommunication() { return ApiResponse::success($this->service->testCommunication(), 'Communication test queued successfully'); }
-    public function updateAutomation(UpdateSettingsRequest $request) { return ApiResponse::success($this->service->updateSection('automation', $request->validated('automation', [])), 'Automation settings updated successfully'); }
+    public function updateAutomation(UpdateSettingsRequest $request)
+    {
+        $validated = $request->validated();
+        $payload = $validated['automation'] ?? array_intersect_key($validated, array_flip([
+            'auto_transfer_to_payments',
+            'auto_create_invoice_billing',
+            'whatsapp_notification_clinic',
+            'auto_pdf_generation',
+        ]));
+
+        return ApiResponse::success($this->service->updateSection('automation', $payload), 'Automation settings updated successfully');
+    }
     public function whatsappLogs() { return ApiResponse::success($this->service->whatsappLogs(), 'WhatsApp logs fetched successfully'); }
 }

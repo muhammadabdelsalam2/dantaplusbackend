@@ -1,0 +1,847 @@
+{
+  "info": {
+    "_postman_id": "8af9d3b1-4b0f-4b2d-a318-875aaabf9c40",
+    "name": "DantaPlus Company - Updated Endpoints",
+    "description": "Postman Collection for the Company endpoints updated/created for Orders invoice printing/history/statuses, External Orders, Settings Automation, and public invoice PDF downloads.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": []
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": []
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://danta.matgary.io",
+      "type": "string"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "order_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "external_order_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "existing_clinic_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "invoice_id",
+      "value": "1",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "Print Invoice Data",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "description": "Returns the order data and adds file_url. The file_url points to the public PDF download route.",
+            "url": {
+              "raw": "{{base_url}}/api/company/orders/{{order_id}}/print",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "company",
+                "orders",
+                "{{order_id}}",
+                "print"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Download Order Invoice PDF (Public)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "description": "Public direct PDF download route returned in Print Invoice Data as file_url. It responds with Content-Disposition: attachment.",
+            "url": {
+              "raw": "{{base_url}}/api/company/orders/{{order_id}}/invoice-file",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "company",
+                "orders",
+                "{{order_id}}",
+                "invoice-file"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "View Order Status History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "description": "Returns status history rows with changed_by, from_status, to_status, and changed_at.",
+            "url": {
+              "raw": "{{base_url}}/api/company/orders/{{order_id}}/history",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "company",
+                "orders",
+                "{{order_id}}",
+                "history"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Order Status",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Processing\"\n}"
+            },
+            "description": "Allowed statuses: Pending Supplier Confirmation, Accepted, Processing, Shipped, Delivered, Completed, Cancelled, Rejected.",
+            "url": {
+              "raw": "{{base_url}}/api/company/orders/{{order_id}}/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "company",
+                "orders",
+                "{{order_id}}",
+                "status"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Status Examples",
+          "item": [
+            {
+              "name": "Set Status - Pending Supplier Confirmation",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"Pending Supplier Confirmation\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/company/orders/{{order_id}}/status",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "company",
+                    "orders",
+                    "{{order_id}}",
+                    "status"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Set Status - Accepted",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"Accepted\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/company/orders/{{order_id}}/status",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "company",
+                    "orders",
+                    "{{order_id}}",
+                    "status"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Set Status - Processing",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"Processing\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/company/orders/{{order_id}}/status",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "company",
+                    "orders",
+                    "{{order_id}}",
+                    "status"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Set Status - Shipped",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"Shipped\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/company/orders/{{order_id}}/status",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "company",
+                    "orders",
+                    "{{order_id}}",
+                    "status"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Set Status - Delivered",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"Delivered\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/company/orders/{{order_id}}/status",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "company",
+                    "orders",
+                    "{{order_id}}",
+                    "status"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Set Status - Completed",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"Completed\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/company/orders/{{order_id}}/status",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "company",
+                    "orders",
+                    "{{order_id}}",
+                    "status"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Set Status - Cancelled",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"Cancelled\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/company/orders/{{order_id}}/status",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "company",
+                    "orders",
+                    "{{order_id}}",
+                    "status"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Set Status - Rejected",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"Rejected\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/company/orders/{{order_id}}/status",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "company",
+                    "orders",
+                    "{{order_id}}",
+                    "status"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "External Orders",
+      "item": [
+        {
+          "name": "Create External Order - Existing Clinic",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "clinic_id",
+                  "value": "{{existing_clinic_id}}",
+                  "type": "text",
+                  "description": "Existing clinic ID. Backend auto-fills clinic name/phone from the clinic record."
+                },
+                {
+                  "key": "materials[0][item_name]",
+                  "value": "Aquasil Ultra+ Smart Wetting Impression Material",
+                  "type": "text"
+                },
+                {
+                  "key": "materials[0][quantity]",
+                  "value": "5",
+                  "type": "text"
+                },
+                {
+                  "key": "materials[0][unit]",
+                  "value": "box",
+                  "type": "text"
+                },
+                {
+                  "key": "materials[1][item_name]",
+                  "value": "ProTaper Gold Files",
+                  "type": "text"
+                },
+                {
+                  "key": "materials[1][quantity]",
+                  "value": "2",
+                  "type": "text"
+                },
+                {
+                  "key": "materials[1][unit]",
+                  "value": "pack",
+                  "type": "text"
+                },
+                {
+                  "key": "shipping_cost",
+                  "value": "50.00",
+                  "type": "text"
+                },
+                {
+                  "key": "expected_delivery",
+                  "value": "2026-07-28",
+                  "type": "text"
+                },
+                {
+                  "key": "payment_method",
+                  "value": "Cash",
+                  "type": "text"
+                },
+                {
+                  "key": "delivery_address",
+                  "value": "123 Main St, Metropolis",
+                  "type": "text"
+                },
+                {
+                  "key": "notes",
+                  "value": "Please call the clinic before delivery.",
+                  "type": "text"
+                }
+              ]
+            },
+            "description": "Creates an external order for an existing clinic. Form-data array format is materials[0][item_name], materials[0][quantity], materials[0][unit]. The backend maps materials to items and expected_delivery to delivery_at.",
+            "url": {
+              "raw": "{{base_url}}/api/company/external-orders",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "company",
+                "external-orders"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create External Order - New External Clinic",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "external_clinic_name",
+                  "value": "Bright Smiles Dental",
+                  "type": "text"
+                },
+                {
+                  "key": "external_clinic_phone",
+                  "value": "555-0111",
+                  "type": "text"
+                },
+                {
+                  "key": "materials[0][item_name]",
+                  "value": "Aquasil Ultra+ Smart Wetting Impression Material",
+                  "type": "text"
+                },
+                {
+                  "key": "materials[0][quantity]",
+                  "value": "5",
+                  "type": "text"
+                },
+                {
+                  "key": "materials[0][unit]",
+                  "value": "box",
+                  "type": "text"
+                },
+                {
+                  "key": "materials[1][item_name]",
+                  "value": "Calibra Universal Cement",
+                  "type": "text"
+                },
+                {
+                  "key": "materials[1][quantity]",
+                  "value": "3",
+                  "type": "text"
+                },
+                {
+                  "key": "materials[1][unit]",
+                  "value": "tube",
+                  "type": "text"
+                },
+                {
+                  "key": "shipping_cost",
+                  "value": "65.00",
+                  "type": "text"
+                },
+                {
+                  "key": "expected_delivery",
+                  "value": "2026-07-29",
+                  "type": "text"
+                },
+                {
+                  "key": "payment_method",
+                  "value": "Visa",
+                  "type": "text"
+                },
+                {
+                  "key": "delivery_address",
+                  "value": "456 Dental Ave, Cairo",
+                  "type": "text"
+                },
+                {
+                  "key": "notes",
+                  "value": "New clinic order created manually.",
+                  "type": "text"
+                }
+              ]
+            },
+            "description": "Creates an external order for a new clinic entered as free text. Do not send clinic_id in this case.",
+            "url": {
+              "raw": "{{base_url}}/api/company/external-orders",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "company",
+                "external-orders"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update External Order Status",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Accepted\"\n}"
+            },
+            "description": "Allowed statuses: Pending Supplier Confirmation, Accepted, Processing, Shipped, Delivered, Completed, Cancelled, Rejected.",
+            "url": {
+              "raw": "{{base_url}}/api/company/external-orders/{{external_order_id}}/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "company",
+                "external-orders",
+                "{{external_order_id}}",
+                "status"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Settings",
+      "item": [
+        {
+          "name": "Get Settings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "description": "Fetches company settings so you can verify automation values after update.",
+            "url": {
+              "raw": "{{base_url}}/api/company/settings",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "company",
+                "settings"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Automation Settings - POST",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"auto_transfer_to_payments\": true,\n  \"auto_create_invoice_billing\": true,\n  \"whatsapp_notification_clinic\": false,\n  \"auto_pdf_generation\": true\n}"
+            },
+            "description": "Updates exactly the four supported automation toggles. Response returns only automation.auto_transfer_to_payments, automation.auto_create_invoice_billing, automation.whatsapp_notification_clinic, automation.auto_pdf_generation.",
+            "url": {
+              "raw": "{{base_url}}/api/company/settings/automation",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "company",
+                "settings",
+                "automation"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Automation Settings - PATCH",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"auto_transfer_to_payments\": false,\n  \"auto_create_invoice_billing\": true,\n  \"whatsapp_notification_clinic\": true,\n  \"auto_pdf_generation\": true\n}"
+            },
+            "description": "PATCH variant for updating exactly the same four automation toggles.",
+            "url": {
+              "raw": "{{base_url}}/api/company/settings/automation",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "company",
+                "settings",
+                "automation"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Billing",
+      "item": [
+        {
+          "name": "Download Billing Invoice PDF (Public)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "description": "Public direct Billing invoice PDF download route. It responds with Content-Disposition: attachment.",
+            "url": {
+              "raw": "{{base_url}}/api/company/invoices/{{invoice_id}}/download-file",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "company",
+                "invoices",
+                "{{invoice_id}}",
+                "download-file"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

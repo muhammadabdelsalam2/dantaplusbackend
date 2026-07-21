@@ -47,8 +47,8 @@ class BillingService
 
 public  function generateAndStoreInvoicePdf(Invoice $invoice): string
 {
-    $invoice->loadMissing('clinic', 'order');
-    $pdf = Pdf::loadHTML(view('emails.invoice', ['invoice' => $invoice])->render());
+    $invoice->loadMissing(['company', 'clinic', 'order.items.product']);
+    $pdf = Pdf::loadView('pdf.company-billing-invoice', ['invoice' => $invoice]);
 
     $filename = 'invoice-' . $invoice->invoice_number . '-' . $invoice->id . '.pdf';
     $path = 'company/invoices/' . $filename;
@@ -86,10 +86,8 @@ public function markPaid(Invoice $invoice): array
 }
 public function downloadForInvoice(Invoice $invoice): array
 {
-    if (!$invoice->file_path || !Storage::disk('public')->exists($invoice->file_path)) {
-        $invoice->update(['file_path' => $this->generateAndStoreInvoicePdf($invoice)]);
-        $invoice->refresh();
-    }
+    $invoice->update(['file_path' => $this->generateAndStoreInvoicePdf($invoice)]);
+    $invoice->refresh();
 
     return [
         'filename' => basename($invoice->file_path),
@@ -98,10 +96,8 @@ public function downloadForInvoice(Invoice $invoice): array
 }
 public function download(Invoice $invoice): array
 {
-    if (!$invoice->file_path || !Storage::disk('public')->exists($invoice->file_path)) {
-        $invoice->update(['file_path' => $this->generateAndStoreInvoicePdf($invoice)]);
-        $invoice->refresh();
-    }
+    $invoice->update(['file_path' => $this->generateAndStoreInvoicePdf($invoice)]);
+    $invoice->refresh();
 
     return [
         'filename' => basename($invoice->file_path),
