@@ -51,7 +51,58 @@ class PatientDocumentController extends BasePatientController
 
         return ApiResponse::success(new PatientDocumentResource($document), 'Patient document retrieved successfully');
     }
+public function downloadSigned(Request $request, int $id)
+{
+    if (! $request->hasValidSignature()) {
+        abort(403, 'Invalid or expired link.');
+    }
 
+    $document = PatientDocument::query()->find($id);
+    $path = $document ? $this->publicStoragePath($document->file_path) : null;
+
+    if (! $document || ! $path || ! Storage::disk('public')->exists($path)) {
+        return ApiResponse::error('Document file not found', 404);
+    }
+
+    return Storage::disk('public')->download($path, $document->original_name ?: basename($path));
+}
+
+public function downloadRadiologySigned(Request $request, int $id)
+{
+    if (! $request->hasValidSignature()) {
+        abort(403, 'Invalid or expired link.');
+    }
+
+    $radiology = PatientRadiology::query()->find($id);
+    $path = $radiology ? $this->publicStoragePath($radiology->file_path) : null;
+
+    if (! $radiology || ! $path || ! Storage::disk('public')->exists($path)) {
+        return ApiResponse::error('Radiology file not found', 404);
+    }
+
+    return Storage::disk('public')->download($path, basename($path));
+}
+
+public function downloadRadiologyImageSigned(Request $request, int $id, string $type)
+{
+    if (! $request->hasValidSignature()) {
+        abort(403, 'Invalid or expired link.');
+    }
+
+    if (! in_array($type, ['before', 'after'], true)) {
+        return ApiResponse::error('Invalid image type', 422);
+    }
+
+    $radiology = PatientRadiology::query()->find($id);
+    $column = $type === 'before' ? 'before_image_path' : 'after_image_path';
+    $path = $radiology ? $this->publicStoragePath($radiology->{$column}) : null;
+
+    if (! $radiology || ! $path || ! Storage::disk('public')->exists($path)) {
+        return ApiResponse::error('Image not found', 404);
+    }
+
+    return Storage::disk('public')->download($path, basename($path));
+}
     public function radiology(Request $request)
     {
         $patient = $this->currentPatient($request);

@@ -14,8 +14,27 @@ use App\Http\Controllers\Api\Patient\PatientTreatmentController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/patient/login', PatientLoginController::class)->middleware('guest');
+
+/*
+| ====================================
+|  Public Signed Download Links (no auth token needed)
+| ====================================
+*/
 Route::get('/patient/invoices/{id}/download-file', [PatientInvoiceController::class, 'downloadSigned'])
     ->name('patient.invoices.download.signed')
+    ->middleware('signed');
+
+Route::get('/patient/documents/{id}/download-file', [PatientDocumentController::class, 'downloadSigned'])
+    ->name('patient.documents.download.signed')
+    ->middleware('signed');
+
+Route::get('/patient/radiology/{id}/download-file', [PatientDocumentController::class, 'downloadRadiologySigned'])
+    ->name('patient.radiology.download.signed')
+    ->middleware('signed');
+
+Route::get('/patient/radiology/{id}/download-file/{type}', [PatientDocumentController::class, 'downloadRadiologyImageSigned'])
+    ->name('patient.radiology.download.image.signed')
+    ->where('type', 'before|after')
     ->middleware('signed');
 
 /*
@@ -38,22 +57,14 @@ Route::middleware(['auth:sanctum', 'role:patient'])->group(function () {
 
         Route::get('/invoices', [PatientInvoiceController::class, 'index']);
         Route::get('/invoices/{id}', [PatientInvoiceController::class, 'show']);
-        Route::get('/invoices/{id}/download', [PatientInvoiceController::class, 'download']);
 
         Route::get('/payments', [PatientPaymentController::class, 'index']);
         Route::post('/payments/{id}/refund-request', [PatientPaymentController::class, 'refundRequest']);
 
         Route::get('/documents', [PatientDocumentController::class, 'index']);
         Route::get('/documents/{id}', [PatientDocumentController::class, 'show']);
-        Route::get('/documents/{id}/download', [PatientDocumentController::class, 'download'])
-            ->name('patient.documents.download');
 
         Route::get('/radiology', [PatientDocumentController::class, 'radiology']);
-        Route::get('/radiology/{id}/download', [PatientDocumentController::class, 'downloadRadiology'])
-            ->name('patient.radiology.download');
-        Route::get('/radiology/{id}/download/{type}', [PatientDocumentController::class, 'downloadRadiologyImage'])
-            ->name('patient.radiology.download.image')
-            ->where('type', 'before|after');
 
         Route::get('/notes', [PatientDocumentController::class, 'notes']);
         Route::get('/medical-notes', [PatientDocumentController::class, 'notes']);
@@ -73,5 +84,4 @@ Route::middleware(['auth:sanctum', 'role:patient'])->group(function () {
         Route::get('/doctors', [PatientAppointmentController::class, 'doctors']);
         Route::get('/doctors/{doctorId}/slots', [PatientAppointmentController::class, 'availableSlots']);
     });
-
 });
