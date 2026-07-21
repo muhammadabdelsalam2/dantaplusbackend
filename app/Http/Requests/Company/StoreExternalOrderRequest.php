@@ -18,16 +18,8 @@ class StoreExternalOrderRequest extends FormRequest
                     return $item;
                 }
 
-                if (! isset($item['item_name'])) {
-                    $item['item_name'] = $item['item'] ?? $item['product_name'] ?? $item['name'] ?? null;
-                }
-
                 if (! isset($item['product_id'])) {
                     $item['product_id'] = $item['item_id'] ?? $item['material_product_id'] ?? null;
-                }
-
-                if (! isset($item['unit_price'])) {
-                    $item['unit_price'] = $item['price'] ?? null;
                 }
 
                 return $item;
@@ -53,11 +45,7 @@ class StoreExternalOrderRequest extends FormRequest
             'shipping_cost' => 'required|numeric|min:0',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:material_products,id',
-            'items.*.category' => 'required|string|max:255',
-            'items.*.item_name' => 'required_without:items.*.product_id|nullable|string|max:255',
-            'items.*.unit' => 'required|string|max:50',
             'items.*.quantity' => 'required|integer|min:1',
-            'items.*.unit_price' => 'required|numeric|min:0',
         ];
     }
 }

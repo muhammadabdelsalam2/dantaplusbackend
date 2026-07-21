@@ -22,7 +22,7 @@ public const APPROVAL_REJECTED = 'rejected';
     'rejection_reason',
     'approved_at',
     'approved_by',
-        'price', 'stock', 'status', 'estimated_delivery_time', 'rating', 'review_count', 'created_by', 'updated_by', 'category',
+        'price', 'stock', 'status', 'estimated_delivery_time', 'rating', 'review_count', 'created_by', 'updated_by', 'category', 'unit',
     ];
 
     protected $appends = [];

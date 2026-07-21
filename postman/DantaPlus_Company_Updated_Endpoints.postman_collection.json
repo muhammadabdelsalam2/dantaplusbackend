@@ -494,7 +494,7 @@
                 "type": "text"
               }
             ],
-            "description": "Returns inventory materials for the authenticated user's supplier company. Any company_id query param is ignored for safety. Each material item contains exactly: id, name, category, price. Use id as materials[x][material_product_id], category as materials[x][category], and price as read-only materials[x][price].",
+            "description": "Returns inventory materials for the authenticated user's supplier company. Any company_id query param is ignored for safety. Each material item contains exactly: id, name, category, price. Use id as materials[x][material_product_id]. The backend reads category, unit, and price from the product record.",
             "url": {
               "raw": "{{base_url}}/api/company/materials/by-company",
               "host": [
@@ -537,25 +537,9 @@
                   "description": "Selected inventory product id."
                 },
                 {
-                  "key": "materials[0][category]",
-                  "value": "Impression Material",
-                  "type": "text"
-                },
-                {
                   "key": "materials[0][quantity]",
                   "value": "5",
                   "type": "text"
-                },
-                {
-                  "key": "materials[0][unit]",
-                  "value": "box",
-                  "type": "text"
-                },
-                {
-                  "key": "materials[0][price]",
-                  "value": "85.50",
-                  "type": "text",
-                  "description": "Read-only value from inventory. Backend verifies and uses the product price from the database."
                 },
                 {
                   "key": "materials[1][material_product_id]",
@@ -564,25 +548,9 @@
                   "description": "Selected inventory product id."
                 },
                 {
-                  "key": "materials[1][category]",
-                  "value": "Endodontics",
-                  "type": "text"
-                },
-                {
                   "key": "materials[1][quantity]",
                   "value": "2",
                   "type": "text"
-                },
-                {
-                  "key": "materials[1][unit]",
-                  "value": "pack",
-                  "type": "text"
-                },
-                {
-                  "key": "materials[1][price]",
-                  "value": "112.00",
-                  "type": "text",
-                  "description": "Read-only value from inventory. Backend verifies and uses the product price from the database."
                 },
                 {
                   "key": "shipping_cost",
@@ -611,7 +579,7 @@
                 }
               ]
             },
-            "description": "Creates an external order for an existing clinic. Form-data array format is materials[0][material_product_id], materials[0][category], materials[0][quantity], materials[0][unit], materials[0][price]. The backend maps material_product_id to product_id, price to unit_price for validation only, expected_delivery to delivery_at, then verifies and uses the actual product price/category from inventory.",
+            "description": "Creates an external order for an existing clinic. Form-data array format is materials[0][material_product_id], materials[0][quantity]. The backend maps material_product_id to product_id, expected_delivery to delivery_at, then reads name, category, unit, and price from inventory.",
             "url": {
               "raw": "{{base_url}}/api/company/external-orders",
               "host": [
@@ -657,25 +625,9 @@
                   "description": "Selected inventory product id."
                 },
                 {
-                  "key": "materials[0][category]",
-                  "value": "Impression Material",
-                  "type": "text"
-                },
-                {
                   "key": "materials[0][quantity]",
                   "value": "5",
                   "type": "text"
-                },
-                {
-                  "key": "materials[0][unit]",
-                  "value": "box",
-                  "type": "text"
-                },
-                {
-                  "key": "materials[0][price]",
-                  "value": "85.50",
-                  "type": "text",
-                  "description": "Read-only value from inventory. Backend verifies and uses the product price from the database."
                 },
                 {
                   "key": "materials[1][material_product_id]",
@@ -684,25 +636,9 @@
                   "description": "Selected inventory product id."
                 },
                 {
-                  "key": "materials[1][category]",
-                  "value": "Cement",
-                  "type": "text"
-                },
-                {
                   "key": "materials[1][quantity]",
                   "value": "3",
                   "type": "text"
-                },
-                {
-                  "key": "materials[1][unit]",
-                  "value": "tube",
-                  "type": "text"
-                },
-                {
-                  "key": "materials[1][price]",
-                  "value": "49.75",
-                  "type": "text",
-                  "description": "Read-only value from inventory. Backend verifies and uses the product price from the database."
                 },
                 {
                   "key": "shipping_cost",

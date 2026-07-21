@@ -66,19 +66,19 @@ class OrderService
 
                     if (! empty($item['product_id']) && ! $product) {
                         throw ValidationException::withMessages([
-                            'items' => ['Selected material product was not found for this company.'],
+                            'items' => ['Product not found for this company.'],
                         ]);
                     }
 
-                    $unitPrice = $product ? (float) $product->price : (float) ($item['unit_price'] ?? 0);
+                    $unitPrice = (float) $product->price;
                     $quantity = (int) $item['quantity'];
 
                     OrderItem::create([
                         'order_id' => $order->id,
-                        'product_id' => $product?->id ?? ($item['product_id'] ?? null),
-                        'item_name' => $product?->name ?? $item['item_name'],
-                        'category' => $product?->category ?? ($item['category'] ?? null),
-                        'unit' => $item['unit'] ?? null,
+                        'product_id' => $product->id,
+                        'item_name' => $product->name,
+                        'category' => $product->category,
+                        'unit' => $this->productUnit($product),
                         'quantity' => $quantity,
                         'unit_price' => $unitPrice,
                         'line_total' => $quantity * $unitPrice,
@@ -206,7 +206,7 @@ public function clinicsFilterOptions(): array
 
             if (! $product) {
                 throw ValidationException::withMessages([
-                    'items' => ['Selected material product was not found for this company.'],
+                    'items' => ['Product not found for this company.'],
                 ]);
             }
 
@@ -218,7 +218,7 @@ public function clinicsFilterOptions(): array
                 'product_id' => $product->id,
                 'item_name' => $product->name,
                 'category' => $product->category,
-                'unit' => $item['unit'] ?? null,
+                'unit' => $this->productUnit($product),
                 'quantity' => $quantity,
                 'unit_price' => $unitPrice,
                 'line_total' => $quantity * $unitPrice,
@@ -328,6 +328,11 @@ private function resolveExternalOrderProduct(array $item, int $companyId): ?Mate
     }
 
     return null;
+}
+
+private function productUnit(MaterialProduct $product): string
+{
+    return $product->unit ?: 'piece';
 }
 
 private function orderInvoiceData(Order $order): array

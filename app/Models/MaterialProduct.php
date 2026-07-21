@@ -26,6 +26,7 @@ public const APPROVAL_REJECTED = 'rejected';
         'brand',
         'description',
         'category',
+        'unit',
         'price',
         'stock',
         'status',
