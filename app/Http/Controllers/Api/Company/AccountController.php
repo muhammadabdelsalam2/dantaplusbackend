@@ -38,16 +38,13 @@ class AccountController extends Controller
     public function expenses() { return ApiResponse::success($this->service->expenses(), 'Expenses fetched successfully'); }
     public function storeExpense(StoreExpenseRequest $request) { return ApiResponse::success($this->service->createExpense($request->validated()), 'Expense created successfully', 201); }
     public function bankTransactions() { return ApiResponse::success($this->service->bankTransactions(), 'Bank transactions fetched successfully'); }
-    public function syncBankTransactions() { return ApiResponse::success($this->service->syncBankTransactions(), 'Bank transactions synced successfully'); }
-  public function profitLoss(Request $request)
+    public function syncBankTransactions() { return ApiResponse::success($this->service->syncBankTransactions(), 'Bank transactions synced successfully'); }public function profitLoss(Request $request)
 {
     $filters = $request->validate([
         'period' => 'nullable|in:day,week,month,year',
     ]);
 
-    $data = $this->service->profitLoss($filters['period'] ?? null);
-
-    $data['download_url'] = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+    $downloadUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
         'company.profit-loss.download.signed',
         now()->addDays(7),
         [
@@ -56,7 +53,9 @@ class AccountController extends Controller
         ]
     );
 
-    return ApiResponse::success($data, 'Profit and loss report fetched successfully');
+    return ApiResponse::success([
+        'download_url' => $downloadUrl,
+    ], 'Download URL generated successfully');
 }
 
 public function profitLossDownloadSigned(Request $request)
