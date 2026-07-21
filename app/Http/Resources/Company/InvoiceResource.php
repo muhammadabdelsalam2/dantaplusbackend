@@ -10,6 +10,11 @@ class InvoiceResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $paid = $this->relationLoaded('payments')
+            ? (float) $this->payments->whereIn('status', ['paid', 'Paid'])->sum('amount')
+            : (float) $this->payments()->whereIn('status', ['paid', 'Paid'])->sum('amount');
+        $remaining = max((float) $this->total_amount - $paid, 0);
+
         return [
             'id' => $this->id,
             'invoice_number' => $this->invoice_number,
@@ -18,6 +23,8 @@ class InvoiceResource extends JsonResource
             'due_date' => optional($this->due_date)?->toDateString(),
             'subtotal' => (float) $this->subtotal,
             'tax' => (float) $this->tax,
+            'paid' => $paid,
+            'remaining' => $remaining,
             'file_url' => URL::route(
                 'company.invoices.download.signed',
                 ['id' => $this->id]

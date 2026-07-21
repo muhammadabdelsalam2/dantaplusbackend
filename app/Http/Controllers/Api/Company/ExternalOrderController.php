@@ -21,5 +21,5 @@ class ExternalOrderController extends Controller
     public function index(Request $request) { return ApiResponse::success($this->service->paginate($request->all(), 'external'), 'External orders fetched successfully'); }
     public function update(UpdateOrderRequest $request, Order $id) { return ApiResponse::success($this->service->update($id, $request->validated()), 'External order updated successfully'); }
     public function updateStatus(UpdateOrderStatusRequest $request, Order $id) { return ApiResponse::success($this->service->updateStatus($id, $request->validated()['status']), 'External order status updated successfully'); }
-    public function sendWhatsApp(Order $id) { return ApiResponse::success(['queued' => true, 'order_id' => $id->id], 'WhatsApp send queued successfully'); }
+    public function sendWhatsApp(Order $id) { return ApiResponse::success($this->service->sendExternalOrderWhatsApp($id), 'WhatsApp send attempted'); }
 }

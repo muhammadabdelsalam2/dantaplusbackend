@@ -64,11 +64,7 @@ class PatientInvoiceController extends BasePatientController
             return ApiResponse::error('Invoice not found', 404);
         }
 
-        $html = view()->exists('pdf.clinic-invoice')
-            ? view('pdf.clinic-invoice', ['invoice' => $invoice])->render()
-            : view('emails.invoice', ['invoice' => $invoice])->render();
-
-        $pdf = Pdf::loadHTML($html)->output();
+        $pdf = Pdf::loadView('pdf.simple-invoice', ['invoiceData' => $this->invoicePdfData($invoice)])->output();
         $filename = ($invoice->invoice_number ?: 'patient-invoice-' . $invoice->id) . '.pdf';
 
         return response($pdf, 200, [
@@ -104,17 +100,50 @@ class PatientInvoiceController extends BasePatientController
 
 private function renderInvoicePdf(ClinicInvoice $invoice, string $disposition = 'attachment')
 {
-    $html = view()->exists('pdf.clinic-invoice')
-        ? view('pdf.clinic-invoice', ['invoice' => $invoice])->render()
-        : view('emails.invoice', ['invoice' => $invoice])->render();
-
-    $pdf = Pdf::loadHTML($html)->output();
+    $pdf = Pdf::loadView('pdf.simple-invoice', ['invoiceData' => $this->invoicePdfData($invoice)])->output();
     $filename = ($invoice->invoice_number ?: 'patient-invoice-' . $invoice->id) . '.pdf';
 
     return response($pdf, 200, [
         'Content-Type' => 'application/pdf',
         'Content-Disposition' => $disposition . '; filename="' . $filename . '"',
     ]);
+}
+
+private function invoicePdfData(ClinicInvoice $invoice): array
+{
+    $invoice->loadMissing(['clinic', 'patient.user', 'items']);
+    $items = $invoice->items;
+
+    return [
+        'invoice_number' => $invoice->invoice_number,
+        'date' => optional($invoice->issued_at)->format('m/d/Y'),
+        'due_date' => optional($invoice->due_date)->format('m/d/Y'),
+        'company' => [
+            'name' => $invoice->clinic?->name,
+            'address' => $invoice->clinic?->address,
+            'phone' => $invoice->clinic?->phone,
+            'email' => $invoice->clinic?->email,
+        ],
+        'bill_to' => [
+            'name' => $invoice->patient?->user?->name,
+            'address' => $invoice->patient?->address,
+            'phone' => $invoice->patient?->phone,
+        ],
+        'items' => $items->isNotEmpty()
+            ? $items->map(fn ($item) => [
+                'description' => $item->description,
+                'amount' => $item->amount,
+            ])->values()->all()
+            : [[
+                'description' => $invoice->notes ?: 'Dental services',
+                'amount' => $invoice->total,
+            ]],
+        'total' => (float) $invoice->total,
+        'paid' => (float) $invoice->paid,
+        'remaining' => (float) $invoice->remaining,
+        'total_due' => (float) $invoice->remaining,
+        'footer_message' => 'Thank you for your visit!',
+    ];
 }
 
 

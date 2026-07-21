@@ -48,7 +48,7 @@ class BillingService
 public  function generateAndStoreInvoicePdf(Invoice $invoice): string
 {
     $invoice->loadMissing(['company', 'clinic', 'order.items.product']);
-    $pdf = Pdf::loadView('pdf.company-billing-invoice', ['invoice' => $invoice]);
+    $pdf = Pdf::loadView('pdf.simple-invoice', ['invoiceData' => $this->invoicePdfData($invoice)]);
 
     $filename = 'invoice-' . $invoice->invoice_number . '-' . $invoice->id . '.pdf';
     $path = 'company/invoices/' . $filename;
@@ -128,6 +128,45 @@ public function download(Invoice $invoice): array
             }
             return (new PaymentResource($payment))->resolve();
         });
+    }
+
+    private function invoicePdfData(Invoice $invoice): array
+    {
+        $paid = (float) $invoice->payments()->whereIn('status', ['paid', 'Paid'])->sum('amount');
+        $total = (float) $invoice->total_amount;
+        $remaining = max($total - $paid, 0);
+        $items = $invoice->order?->items;
+
+        return [
+            'invoice_number' => $invoice->invoice_number,
+            'date' => optional($invoice->issue_date)->format('m/d/Y'),
+            'due_date' => optional($invoice->due_date)->format('m/d/Y'),
+            'company' => [
+                'name' => $invoice->company?->name,
+                'address' => $invoice->company?->address,
+                'phone' => $invoice->company?->phone,
+                'email' => $invoice->company?->email,
+            ],
+            'bill_to' => [
+                'name' => $invoice->clinic?->name ?? 'External Clinic',
+                'address' => $invoice->clinic?->address,
+                'phone' => $invoice->clinic?->phone,
+            ],
+            'items' => $items && $items->isNotEmpty()
+                ? $items->map(fn ($item) => [
+                    'description' => $item->item_name ?: $item->product?->name,
+                    'amount' => $item->line_total,
+                ])->values()->all()
+                : [[
+                    'description' => $invoice->order?->order_code ? 'Order ' . $invoice->order->order_code : 'Dental services',
+                    'amount' => $total,
+                ]],
+            'total' => $total,
+            'paid' => $paid,
+            'remaining' => $remaining,
+            'total_due' => $remaining,
+            'footer_message' => 'Thank you for your visit!',
+        ];
     }
 
 

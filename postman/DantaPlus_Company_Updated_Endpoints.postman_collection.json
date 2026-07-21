@@ -519,6 +519,11 @@
                   "type": "text"
                 },
                 {
+                  "key": "materials[0][price]",
+                  "value": "85.50",
+                  "type": "text"
+                },
+                {
                   "key": "materials[1][item_name]",
                   "value": "ProTaper Gold Files",
                   "type": "text"
@@ -531,6 +536,11 @@
                 {
                   "key": "materials[1][unit]",
                   "value": "pack",
+                  "type": "text"
+                },
+                {
+                  "key": "materials[1][price]",
+                  "value": "112.00",
                   "type": "text"
                 },
                 {
@@ -560,7 +570,7 @@
                 }
               ]
             },
-            "description": "Creates an external order for an existing clinic. Form-data array format is materials[0][item_name], materials[0][quantity], materials[0][unit]. The backend maps materials to items and expected_delivery to delivery_at.",
+            "description": "Creates an external order for an existing clinic. Form-data array format is materials[0][item_name], materials[0][quantity], materials[0][unit], materials[0][price]. The backend maps materials to items, price to unit_price, and expected_delivery to delivery_at.",
             "url": {
               "raw": "{{base_url}}/api/company/external-orders",
               "host": [
@@ -615,6 +625,11 @@
                   "type": "text"
                 },
                 {
+                  "key": "materials[0][price]",
+                  "value": "85.50",
+                  "type": "text"
+                },
+                {
                   "key": "materials[1][item_name]",
                   "value": "Calibra Universal Cement",
                   "type": "text"
@@ -627,6 +642,11 @@
                 {
                   "key": "materials[1][unit]",
                   "value": "tube",
+                  "type": "text"
+                },
+                {
+                  "key": "materials[1][price]",
+                  "value": "49.75",
                   "type": "text"
                 },
                 {
