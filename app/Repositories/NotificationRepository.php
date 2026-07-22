@@ -37,6 +37,20 @@ class NotificationRepository
             $q->where('audience_type', $role)
               ->whereNull('user_id');
         });
+
+        if ($user->lab_id) {
+            $query->orWhere(function (Builder $q) use ($user) {
+                $q->where('audience_type', 'lab')
+                    ->where('audience_id', $user->lab_id);
+            });
+        }
+
+        if ($user->clinic_id) {
+            $query->orWhere(function (Builder $q) use ($user) {
+                $q->where('audience_type', 'clinic')
+                    ->where('audience_id', $user->clinic_id);
+            });
+        }
     });
 }
 

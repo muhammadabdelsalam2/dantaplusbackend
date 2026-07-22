@@ -4,8 +4,10 @@ namespace App\Providers;
 
 
 use App\Models\ClinicAppointment;
+use App\Models\LabMaterial;
 use App\Models\MaterialProduct;
 use App\Observers\ClinicAppointmentObserver;
+use App\Observers\LabMaterialObserver;
 use App\Observers\MaterialProductObserver;
 use App\Repositories\Access\RoleAccessRepository;
 use App\Repositories\Chat\Message\MessageRepository;
@@ -92,6 +94,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         ClinicAppointment::observe(ClinicAppointmentObserver::class);
+        LabMaterial::observe(LabMaterialObserver::class);
         MaterialProduct::observe(MaterialProductObserver::class);
     }
 }

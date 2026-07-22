@@ -6,6 +6,8 @@ use App\Http\Resources\CaseActivityLogResource;
 use App\Http\Resources\CaseAttachmentResource;
 use App\Http\Resources\CaseMessageResource;
 use App\Models\CaseModel;
+use App\Models\CommunicationConversation;
+use App\Models\CommunicationMessage;
 use App\Repositories\CaseMessageRepository;
 use App\Repositories\CaseRepository;
 use App\Repositories\NotificationLogRepository;
@@ -71,11 +73,14 @@ class CaseCommunicationService
             $this->caseRepository->createActivityLog($case, [
                 'actor_id' => $sender?->id,
                 'actor_name' => $sender?->name,
-                'action' => 'message_sent',
+                'action' => (bool) ($data['is_internal'] ?? false) ? 'internal_note_added' : 'message_sent',
                 'notes' => $data['message'],
             ]);
 
-            $this->notifyCaseParticipants($case, 'case_message', "New message on case {$case->case_number}.", $sender?->id, $sender?->name, $data['sender_type']);
+            if (! (bool) ($data['is_internal'] ?? false)) {
+                $this->syncCommunicationMessage($case, $message->message, $sender?->id, $sender?->name, $data['sender_type']);
+                $this->notifyCaseParticipants($case, 'case_message', "New message on case {$case->case_number}: {$message->message}", $sender?->id, $sender?->name, $data['sender_type']);
+            }
 
             return ServiceResult::success(
                 (new CaseMessageResource($message))->resolve(),
@@ -126,14 +131,14 @@ class CaseCommunicationService
         });
     }
 
-    public function listActivityLogs(int $caseId): array
+    public function listActivityLogs(int $caseId, ?string $range = null): array
     {
         $case = $this->findCaseForLab($caseId);
         if (! $case) {
             return ServiceResult::error('Case not found', null, null, 404);
         }
 
-        $logs = $this->caseRepository->listActivityLogs($caseId);
+        $logs = $this->caseRepository->listActivityLogs($caseId, $range);
 
         return ServiceResult::success([
             'items' => CaseActivityLogResource::collection($logs)->resolve(),
@@ -192,6 +197,42 @@ class CaseCommunicationService
             'status' => 'Sent',
             'message_content' => $notification->message,
             'sent_at' => now(),
+        ]);
+    }
+
+    private function syncCommunicationMessage(CaseModel $case, string $text, ?int $senderId, ?string $senderName, string $senderType): void
+    {
+        $conversation = CommunicationConversation::query()->firstOrCreate(
+            [
+                'clinic_id' => $case->clinic_id,
+                'lab_id' => $case->lab_id,
+                'contact_type' => CommunicationConversation::CONTACT_TYPE_LAB,
+                'context_type' => 'case',
+                'context_id' => $case->id,
+            ],
+            [
+                'contact_id' => $case->lab_id,
+                'status' => CommunicationConversation::STATUS_ACTIVE,
+            ]
+        );
+
+        CommunicationMessage::query()->create([
+            'conversation_id' => $conversation->id,
+            'sender_id' => $senderId,
+            'sender_name' => $senderName,
+            'sender_type' => $senderType,
+            'text' => $text,
+            'type' => CommunicationMessage::TYPE_TEXT,
+            'related_id' => $case->id,
+            'related_type' => 'case',
+            'is_system_message' => false,
+            'is_read' => false,
+        ]);
+
+        $conversation->update([
+            'last_message_text' => $text,
+            'last_message_at' => now(),
+            'last_message_sender_id' => $senderId,
         ]);
     }
 }

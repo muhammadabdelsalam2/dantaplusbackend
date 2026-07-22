@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class LabSupportTicket extends Model
 {
@@ -17,6 +18,7 @@ class LabSupportTicket extends Model
 
     protected $fillable = [
         'lab_id',
+        'ticket_number',
         'created_by',
         'title',
         'category',
@@ -42,5 +44,10 @@ class LabSupportTicket extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function messages(): HasMany
+    {
+        return $this->hasMany(LabSupportTicketMessage::class, 'ticket_id');
     }
 }

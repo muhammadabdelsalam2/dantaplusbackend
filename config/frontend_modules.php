@@ -30,12 +30,12 @@ return [
         'delivery-reports' => ['delivery.view'],
         'delivery-reps' => ['delivery.assign'],
         'delivery-tasks' => [],   // ⬅️ جديدة، كانت ناقصة خالص
+        'communication' => [],
         'equipment' => ['equipment.view'],
         'inventories' => ['inventory.view', 'inventory.manage'],
         'orders' => ['cases.view', 'cases.create', 'cases.update'],
         'settings' => ['settings.manage'],
         'support' => ['support.view', 'support.create', 'support.manage'],
-        // 'communication' اتشالت — مفيش route حقيقي اسمه /lab/communication، الرسايل جوه /cases/{id}/messages
     ],
 
     'patient' => [
@@ -80,8 +80,8 @@ return [
         'settings' => [],
     ],
     'lab_role_modules' => [
-    'lab_admin' => ['dashboard', 'accounting', 'analytics', 'clinics', 'orders', 'inventories', 'support', 'delivery-reps', 'delivery-reports', 'delivery-tasks', 'equipment', 'settings'],
-    'lab_receptionist' => ['dashboard', 'accounting', 'analytics', 'clinics', 'orders', 'inventories', 'support', 'delivery-reps', 'delivery-reports', 'delivery-tasks'],
+    'lab_admin' => ['dashboard', 'accounting', 'analytics', 'clinics', 'orders', 'inventories', 'support', 'delivery-reps', 'delivery-reports', 'delivery-tasks', 'communication', 'equipment', 'settings'],
+    'lab_receptionist' => ['dashboard', 'accounting', 'analytics', 'clinics', 'orders', 'inventories', 'support', 'delivery-reps', 'delivery-reports', 'delivery-tasks', 'communication'],
     'lab_technician' => ['dashboard', 'orders', 'inventories', 'support'],
     'delivery_representative' => ['dashboard', 'support', 'delivery-tasks'],
 ],

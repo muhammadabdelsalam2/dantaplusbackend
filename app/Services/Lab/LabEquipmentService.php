@@ -36,6 +36,13 @@ class LabEquipmentService
             'summary' => $this->labEquipmentRepository->maintenanceSummaryForLab((int) $authUser->lab_id),
             'filters' => [
                 'maintenance_statuses' => LabEquipment::MAINTENANCE_STATUSES,
+                'maintenance_status_options' => [
+                    ['key' => 'all', 'label' => 'All'],
+                    ['key' => LabEquipment::MAINTENANCE_STATUS_KEY_UP_TO_DATE, 'label' => LabEquipment::MAINTENANCE_STATUS_UP_TO_DATE],
+                    ['key' => LabEquipment::MAINTENANCE_STATUS_KEY_DUE_SOON, 'label' => LabEquipment::MAINTENANCE_STATUS_DUE_SOON],
+                    ['key' => LabEquipment::MAINTENANCE_STATUS_KEY_OVERDUE, 'label' => LabEquipment::MAINTENANCE_STATUS_OVERDUE],
+                    ['key' => LabEquipment::MAINTENANCE_STATUS_KEY_NA, 'label' => LabEquipment::MAINTENANCE_STATUS_NA],
+                ],
                 'equipment_statuses' => LabEquipment::STATUSES,
             ],
             'pagination' => [
@@ -62,6 +69,8 @@ class LabEquipmentService
                 'model_serial_number' => $data['model_serial_number'] ?? null,
                 'purchase_date' => $data['purchase_date'],
                 'last_maintenance_date' => $data['last_maintenance_date'],
+                'next_due_date' => Carbon::parse($data['last_maintenance_date'])->addDays((int) $data['maintenance_cycle_days'])->toDateString(),
+                'maintenance_status' => LabEquipment::MAINTENANCE_STATUS_KEY_UP_TO_DATE,
                 'maintenance_cycle_days' => $data['maintenance_cycle_days'],
                 'status' => $data['status'] ?? LabEquipment::STATUS_OPERATIONAL,
                 'maintenance_notes' => $data['maintenance_notes'] ?? null,
@@ -157,6 +166,8 @@ class LabEquipmentService
 
             $payload = [
                 'last_maintenance_date' => $data['maintenance_date'] ?? now()->toDateString(),
+                'next_due_date' => $data['next_due_date'] ?? $this->nextDueDate($data['maintenance_date'] ?? now()->toDateString(), $equipment),
+                'maintenance_status' => LabEquipment::MAINTENANCE_STATUS_KEY_UP_TO_DATE,
                 'status' => $data['status'] ?? LabEquipment::STATUS_OPERATIONAL,
             ];
 
@@ -166,8 +177,15 @@ class LabEquipmentService
 
             $updated = $this->labEquipmentRepository->update($equipment, $payload);
 
+            $this->labEquipmentRepository->createMaintenanceLog($updated, [
+                'performed_by' => $authUser->id,
+                'notes' => $data['maintenance_notes'] ?? $data['notes'] ?? null,
+                'maintenance_date' => $payload['last_maintenance_date'],
+                'next_due_date' => $payload['next_due_date'],
+            ]);
+
             return ServiceResult::success(
-                $this->mapDetails($updated),
+                $this->mapDetails($updated->fresh(['maintenanceLogs.performer:id,name'])),
                 'Equipment maintenance recorded successfully'
             );
         });
@@ -188,6 +206,7 @@ class LabEquipmentService
             'is_maintenance_due_soon' => $computed['is_maintenance_due_soon'],
             'maintenance_warning' => $computed['maintenance_warning'],
             'maintenance_status' => $computed['maintenance_status'],
+            'maintenance_status_key' => $computed['maintenance_status_key'],
             'status' => $equipment->status,
             'maintenance_cycle_days' => $equipment->maintenance_cycle_days,
             'maintenance_notes' => $equipment->maintenance_notes,
@@ -209,9 +228,23 @@ class LabEquipmentService
             'is_maintenance_due_soon' => $computed['is_maintenance_due_soon'],
             'maintenance_warning' => $computed['maintenance_warning'],
             'maintenance_status' => $computed['maintenance_status'],
+            'maintenance_status_key' => $computed['maintenance_status_key'],
             'status' => $equipment->status,
             'maintenance_cycle_days' => $equipment->maintenance_cycle_days,
             'maintenance_notes' => $equipment->maintenance_notes,
+            'maintenance_logs' => $equipment->relationLoaded('maintenanceLogs')
+                ? $equipment->maintenanceLogs->sortByDesc('created_at')->values()->map(fn ($log) => [
+                    'id' => $log->id,
+                    'performed_by' => $log->performer ? [
+                        'id' => $log->performer->id,
+                        'name' => $log->performer->name,
+                    ] : null,
+                    'notes' => $log->notes,
+                    'maintenance_date' => optional($log->maintenance_date)->format('Y-m-d'),
+                    'next_due_date' => optional($log->next_due_date)->format('Y-m-d'),
+                    'created_at' => optional($log->created_at)->toISOString(),
+                ])->all()
+                : [],
             'created_at' => optional($equipment->created_at)->toISOString(),
             'updated_at' => optional($equipment->updated_at)->toISOString(),
         ];
@@ -219,39 +252,62 @@ class LabEquipmentService
 
     private function computeMaintenanceData(LabEquipment $equipment): array
     {
-        $baseDate = $equipment->last_maintenance_date ?? $equipment->purchase_date;
+        $nextDue = $equipment->next_due_date
+            ? Carbon::parse($equipment->next_due_date)->startOfDay()
+            : null;
 
-        if (! $baseDate) {
+        if (! $nextDue) {
+            $baseDate = $equipment->last_maintenance_date ?? $equipment->purchase_date;
+
+            if ($baseDate) {
+                $nextDue = Carbon::parse($baseDate)
+                    ->addDays((int) ($equipment->maintenance_cycle_days ?: 30))
+                    ->startOfDay();
+            }
+        }
+
+        if (! $nextDue) {
             return [
                 'next_due_date' => null,
-                'maintenance_status' => LabEquipment::MAINTENANCE_STATUS_UP_TO_DATE,
+                'maintenance_status' => LabEquipment::MAINTENANCE_STATUS_NA,
+                'maintenance_status_key' => LabEquipment::MAINTENANCE_STATUS_KEY_NA,
                 'days_until_maintenance' => null,
                 'is_maintenance_due_soon' => false,
                 'maintenance_warning' => null,
             ];
         }
 
-        $nextDue = Carbon::parse($baseDate)->addDays((int) $equipment->maintenance_cycle_days)->startOfDay();
         $today = now()->startOfDay();
         $daysUntil = (int) $today->diffInDays($nextDue, false);
 
         if ($nextDue->lt($today)) {
             $maintenanceStatus = LabEquipment::MAINTENANCE_STATUS_OVERDUE;
+            $maintenanceStatusKey = LabEquipment::MAINTENANCE_STATUS_KEY_OVERDUE;
             $maintenanceWarning = 'overdue';
-        } elseif ($nextDue->lte((clone $today)->addDays(30))) {
+        } elseif ($nextDue->lte((clone $today)->addDays(14))) {
             $maintenanceStatus = LabEquipment::MAINTENANCE_STATUS_DUE_SOON;
+            $maintenanceStatusKey = LabEquipment::MAINTENANCE_STATUS_KEY_DUE_SOON;
             $maintenanceWarning = $daysUntil === 0 ? 'due_today' : "due_in_{$daysUntil}_days";
         } else {
             $maintenanceStatus = LabEquipment::MAINTENANCE_STATUS_UP_TO_DATE;
+            $maintenanceStatusKey = LabEquipment::MAINTENANCE_STATUS_KEY_UP_TO_DATE;
             $maintenanceWarning = null;
         }
 
         return [
             'next_due_date' => $nextDue->format('Y-m-d'),
             'maintenance_status' => $maintenanceStatus,
+            'maintenance_status_key' => $maintenanceStatusKey,
             'days_until_maintenance' => $daysUntil,
-            'is_maintenance_due_soon' => $daysUntil <= 15,
+            'is_maintenance_due_soon' => $daysUntil >= 0 && $daysUntil <= 14,
             'maintenance_warning' => $maintenanceWarning,
         ];
+    }
+
+    private function nextDueDate(string $maintenanceDate, LabEquipment $equipment): string
+    {
+        return Carbon::parse($maintenanceDate)
+            ->addDays((int) ($equipment->maintenance_cycle_days ?: 30))
+            ->toDateString();
     }
 }

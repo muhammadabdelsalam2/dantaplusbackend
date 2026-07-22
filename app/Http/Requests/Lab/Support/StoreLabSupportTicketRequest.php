@@ -15,6 +15,10 @@ class StoreLabSupportTicketRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        if ($this->has('priority') && is_string($this->input('priority'))) {
+            $this->merge(['priority' => strtolower($this->input('priority'))]);
+        }
+
         if (!$this->has('priority')) {
             $this->merge([
                 'priority' => LabSupportTicket::PRIORITY_MEDIUM,

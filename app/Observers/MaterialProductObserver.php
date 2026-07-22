@@ -3,6 +3,7 @@
 namespace App\Observers;
 
 use App\Models\MaterialProduct;
+use App\Models\Notification;
 
 class MaterialProductObserver
 {
@@ -24,7 +25,29 @@ public function created(MaterialProduct $product): void
      */
     public function updated(MaterialProduct $materialProduct): void
     {
-        //
+        if (! $materialProduct->wasChanged('stock')) {
+            return;
+        }
+
+        $oldStock = (int) $materialProduct->getOriginal('stock');
+        $newStock = (int) $materialProduct->stock;
+
+        if ($newStock >= $oldStock || ! ($newStock === 10 || $newStock <= 5)) {
+            return;
+        }
+
+        Notification::query()->create([
+            'title' => 'Inventory Low Stock',
+            'message' => "{$materialProduct->name} stock reached {$newStock}.",
+            'type' => 'inventory_low_stock',
+            'status' => 'Sent',
+            'audience_type' => 'supplier',
+            'audience_id' => $materialProduct->company_id,
+            'priority' => $newStock <= 5 ? 'Urgent' : 'Normal',
+            'delivery_methods' => ['system'],
+            'is_read' => false,
+            'link' => '/company/inventory',
+        ]);
     }
 
     /**

@@ -15,6 +15,16 @@ class IndexLabSupportTicketRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        if ($this->has('status') && is_string($this->input('status'))) {
+            $status = strtolower(str_replace(' ', '_', $this->input('status')));
+            $this->merge(['status' => in_array($status, ['all', 'all_statuses', ''], true) ? null : $status]);
+        }
+
+        if ($this->has('priority') && is_string($this->input('priority'))) {
+            $priority = strtolower($this->input('priority'));
+            $this->merge(['priority' => in_array($priority, ['all', 'all_priorities', ''], true) ? null : $priority]);
+        }
+
         if ($this->has('per_page')) {
             $this->merge([
                 'per_page' => (int) $this->input('per_page'),

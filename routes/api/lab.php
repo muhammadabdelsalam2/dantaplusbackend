@@ -25,6 +25,9 @@ use App\Http\Controllers\Api\Lab\Accounting\LabAccountingController;
 use App\Http\Controllers\Api\Lab\AnalyticsController;
 use Illuminate\Support\Facades\Route;
 
+Route::get('lab/orders/lab-order/{token}/download', [CaseController::class, 'publicLabOrder'])
+    ->name('lab.orders.lab-order.public');
+
 Route::prefix('lab')
     ->middleware(['auth:sanctum'])
     ->group(function () {
@@ -76,6 +79,11 @@ Route::prefix('lab')
             Route::delete('/{clinic}/partnership', [ClinicPartnershipController::class, 'destroy']);
         });
 
+        Route::middleware(['role:lab_admin|lab_receptionist'])->prefix('partnered-clinics')->group(function () {
+            Route::get('/', [ClinicController::class, 'index']);
+            Route::get('/{clinic}', [ClinicController::class, 'show']);
+        });
+
         Route::middleware(['role:lab_admin|lab_receptionist|lab_technician'])->prefix('cases')->group(function () {
             Route::get('/', [CaseController::class, 'index']);
             Route::post('/', [CaseController::class, 'store'])->middleware('role:lab_admin|lab_receptionist');
@@ -90,6 +98,27 @@ Route::prefix('lab')
             Route::post('/{id}/messages', [CaseController::class, 'storeMessage']);
             Route::post('/{id}/attachments', [CaseController::class, 'storeAttachment']);
             Route::get('/{id}/activity-log', [CaseController::class, 'activityLog']);
+        });
+
+        Route::middleware(['role:lab_admin|lab_receptionist|lab_technician'])->prefix('orders')->group(function () {
+            Route::get('/', [CaseController::class, 'index']);
+            Route::post('/', [CaseController::class, 'store'])->middleware('role:lab_admin|lab_receptionist');
+            Route::get('/{id}', [CaseController::class, 'show']);
+            Route::patch('/{id}', [CaseController::class, 'update']);
+            Route::patch('/{id}/status', [CaseController::class, 'updateStatus']);
+            Route::post('/{id}/assign-technician', [CaseController::class, 'assignTechnician'])
+                ->middleware('role:lab_admin|lab_receptionist');
+            Route::post('/{id}/complete', [CaseController::class, 'complete'])
+                ->middleware('role:lab_admin|lab_receptionist');
+            Route::post('/{caseId}/assign-delivery', [DeliveryTaskController::class, 'assign'])
+                ->middleware(['role:lab_admin|lab_receptionist', 'throttle:10,1']);
+            Route::get('/{id}/notes', [CaseController::class, 'notes']);
+            Route::post('/{id}/notes', [CaseController::class, 'storeNote']);
+            Route::get('/{id}/messages', [CaseController::class, 'messages']);
+            Route::post('/{id}/messages', [CaseController::class, 'storeMessage']);
+            Route::post('/{id}/attachments', [CaseController::class, 'storeAttachment']);
+            Route::get('/{id}/activity-log', [CaseController::class, 'activityLog']);
+            Route::get('/{id}/lab-order', [CaseController::class, 'labOrder']);
         });
 
         Route::middleware(['role:lab_admin|lab_receptionist|lab_technician'])->group(function () {
@@ -112,6 +141,7 @@ Route::prefix('lab')
             Route::get('/tickets', [SupportController::class, 'index']);
             Route::post('/tickets', [SupportController::class, 'store']);
             Route::get('/tickets/{id}', [SupportController::class, 'show']);
+            Route::post('/tickets/{id}/messages', [SupportController::class, 'storeMessage']);
         });
 
         Route::middleware(['role:lab_admin|lab_receptionist'])->prefix('delivery-reps')->group(function () {
@@ -121,9 +151,20 @@ Route::prefix('lab')
             Route::patch('/{id}', [DeliveryRepController::class, 'update']);
             Route::delete('/{id}', [DeliveryRepController::class, 'destroy']);
             Route::get('/{id}/tasks', [DeliveryRepController::class, 'tasks']);
+            Route::post('/{id}/login-as', [DeliveryRepController::class, 'loginAs'])
+                ->middleware('role:lab_admin');
         });
 
         Route::middleware(['role:lab_admin'])->prefix('equipments')->group(function () {
+            Route::get('/', [LabEquipmentController::class, 'index']);
+            Route::post('/', [LabEquipmentController::class, 'store']);
+            Route::get('/{id}', [LabEquipmentController::class, 'show']);
+            Route::patch('/{id}', [LabEquipmentController::class, 'update']);
+            Route::delete('/{id}', [LabEquipmentController::class, 'destroy']);
+            Route::post('/{id}/record-maintenance', [LabEquipmentController::class, 'recordMaintenance']);
+        });
+
+        Route::middleware(['role:lab_admin'])->prefix('equipment')->group(function () {
             Route::get('/', [LabEquipmentController::class, 'index']);
             Route::post('/', [LabEquipmentController::class, 'store']);
             Route::get('/{id}', [LabEquipmentController::class, 'show']);

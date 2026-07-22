@@ -25,6 +25,13 @@ class UpdateCaseStatusRequest extends FormRequest
                     $query->where('lab_id', auth()->user()?->lab_id);
                 }),
             ],
+            'technician_id' => [
+                'nullable',
+                'integer',
+                \Illuminate\Validation\Rule::exists('users', 'id')->where(function ($query) {
+                    $query->where('lab_id', auth()->user()?->lab_id);
+                }),
+            ],
             'delivery_rep_user_id' => ['nullable', 'integer', 'exists:users,id'],
             'generate_invoice' => ['nullable', 'boolean'],
             'assign_for_delivery' => ['nullable', 'boolean'],
@@ -34,5 +41,12 @@ class UpdateCaseStatusRequest extends FormRequest
             'pickup_notes' => ['nullable', 'string', 'max:1000'],
             'delivery_notes' => ['nullable', 'string', 'max:1000'],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if (! $this->filled('assigned_technician_id') && $this->filled('technician_id')) {
+            $this->merge(['assigned_technician_id' => $this->input('technician_id')]);
+        }
     }
 }

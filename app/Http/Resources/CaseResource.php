@@ -49,6 +49,8 @@ class CaseResource extends JsonResource
             'technician' => $this->whenLoaded('technician', fn () => [
                 'id' => $this->technician?->id,
                 'name' => $this->technician?->name,
+                'image_url' => $this->technician?->avatar_url ?? null,
+                'role' => 'Technician',
             ]),
             'deliveryRep' => $this->whenLoaded('deliveryRep', fn () => [
                 'id' => $this->deliveryRep?->id,

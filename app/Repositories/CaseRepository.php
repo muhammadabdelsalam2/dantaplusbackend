@@ -20,21 +20,27 @@ class CaseRepository
                 'patient.user:id,name',
                 'dentist:id,user_id',
                 'dentist.user:id,name',
-                'technician:id,name',
+                'technician:id,name,avatar_url',
                 'deliveryRep:id,name',
             ])
             ->where('lab_id', $labId)
 
-            ->when($filters['status'] ?? null,
+            ->when($this->activeFilter($filters['status'] ?? null, ['All Statuses', 'all', 'All']),
                 fn (Builder $q, $status) => $q->where('status', $status)
             )
 
-            ->when($filters['priority'] ?? null,
+            ->when($this->activeFilter($filters['priority'] ?? null, ['All Priorities', 'all', 'All']),
                 fn (Builder $q, $priority) => $q->where('priority', $priority)
             )
 
-            ->when($filters['clinic_id'] ?? null,
-                fn (Builder $q, $clinicId) => $q->where('clinic_id', $clinicId)
+            ->when($filters['clinic_id'] ?? $filters['clinic'] ?? null,
+                function (Builder $q, $clinic) {
+                    if (is_numeric($clinic)) {
+                        $q->where('clinic_id', $clinic);
+                    } elseif (! in_array($clinic, ['All Clinics', 'all', 'All'], true)) {
+                        $q->whereHas('clinic', fn (Builder $clinicQuery) => $clinicQuery->where('name', 'like', "%{$clinic}%"));
+                    }
+                }
             )
 
             ->when($filters['patient_id'] ?? null,
@@ -90,6 +96,25 @@ class CaseRepository
             ->paginate($perPage);
     }
 
+    public function statsForLab(int $labId, array $filters = []): array
+    {
+        $base = CaseModel::query()->where('lab_id', $labId);
+
+        if ($restrictedUserId = $filters['restricted_user_id'] ?? null) {
+            $base->where(function (Builder $restricted) use ($restrictedUserId) {
+                $restricted->where('assigned_technician_id', $restrictedUserId)
+                    ->orWhere('created_by', $restrictedUserId);
+            });
+        }
+
+        return [
+            ['key' => 'total', 'label' => 'Total Cases', 'value' => (int) (clone $base)->count()],
+            ['key' => 'pending', 'label' => 'Pending Cases', 'value' => (int) (clone $base)->where('status', CaseModel::STATUS_PENDING)->count()],
+            ['key' => 'completed', 'label' => 'Completed Cases', 'value' => (int) (clone $base)->where('status', CaseModel::STATUS_COMPLETED)->count()],
+            ['key' => 'urgent', 'label' => 'Urgent Cases', 'value' => (int) (clone $base)->where('priority', CaseModel::PRIORITY_URGENT)->count()],
+        ];
+    }
+
     public function findByIdForLab(int $id, int $labId): ?CaseModel
     {
         return CaseModel::query()
@@ -100,7 +125,7 @@ class CaseRepository
                 'patient.user:id,name',
                 'dentist:id,user_id',
                 'dentist.user:id,name',
-                'technician:id,name',
+                'technician:id,name,avatar_url',
                 'deliveryRep:id,name',
                 'creator:id,name',
                 'attachments',
@@ -130,12 +155,24 @@ class CaseRepository
         return $case->activityLogs()->create($data);
     }
 
-    public function listActivityLogs(int $caseId)
+    public function listActivityLogs(int $caseId, ?string $range = null)
     {
         return CaseActivityLog::query()
             ->where('case_id', $caseId)
+            ->when($range === 'today', fn ($q) => $q->whereDate('created_at', now()->toDateString()))
+            ->when($range === 'week', fn ($q) => $q->where('created_at', '>=', now()->subWeek()))
+            ->when($range === 'month', fn ($q) => $q->where('created_at', '>=', now()->subMonth()))
             ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->get();
+    }
+
+    private function activeFilter(mixed $value, array $emptyValues): mixed
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return in_array($value, $emptyValues, true) ? null : $value;
     }
 }

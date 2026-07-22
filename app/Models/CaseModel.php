@@ -19,6 +19,8 @@ class CaseModel extends Model
     public const STATUS_IN_PROGRESS = 'In Progress';
     public const STATUS_COMPLETED = 'Completed';
     public const STATUS_DELIVERED = 'Delivered';
+    public const STATUS_REJECTED = 'Rejected';
+    public const STATUS_RECEIVED_BY_LAB = 'Received By Lab';
 
     public const STATUSES = [
         self::STATUS_PENDING,
@@ -26,6 +28,8 @@ class CaseModel extends Model
         self::STATUS_IN_PROGRESS,
         self::STATUS_COMPLETED,
         self::STATUS_DELIVERED,
+        self::STATUS_REJECTED,
+        self::STATUS_RECEIVED_BY_LAB,
     ];
 
     public const PRIORITY_NORMAL = 'Normal';
@@ -55,6 +59,7 @@ class CaseModel extends Model
         'completed_at',
         'delivered_at',
         'tooth_chart_3d',
+        'lab_order_token',
     ];
 
     protected function casts(): array

@@ -22,6 +22,7 @@ class LabEquipmentRepository
     public function findForLabById(int $labId, int $id): ?LabEquipment
     {
         return LabEquipment::query()
+            ->with(['maintenanceLogs.performer:id,name'])
             ->where('lab_id', $labId)
             ->find($id);
     }
@@ -43,22 +44,27 @@ class LabEquipmentRepository
         $equipment->delete();
     }
 
+    public function createMaintenanceLog(LabEquipment $equipment, array $data): \App\Models\EquipmentMaintenanceLog
+    {
+        return $equipment->maintenanceLogs()->create($data);
+    }
+
     public function maintenanceSummaryForLab(int $labId): array
     {
         $baseDateSql = "COALESCE(last_maintenance_date, purchase_date)";
-        $nextDueSql = "DATE_ADD({$baseDateSql}, INTERVAL maintenance_cycle_days DAY)";
+        $nextDueSql = "COALESCE(next_due_date, DATE_ADD({$baseDateSql}, INTERVAL COALESCE(maintenance_cycle_days, 30) DAY))";
 
         $overdue = LabEquipment::query()
             ->where('lab_id', $labId)
-            ->whereNotNull(DB::raw($baseDateSql))
+            ->whereRaw("{$nextDueSql} IS NOT NULL")
             ->whereRaw("{$nextDueSql} < CURDATE()")
             ->count();
 
         $dueSoon = LabEquipment::query()
             ->where('lab_id', $labId)
-            ->whereNotNull(DB::raw($baseDateSql))
+            ->whereRaw("{$nextDueSql} IS NOT NULL")
             ->whereRaw("{$nextDueSql} >= CURDATE()")
-            ->whereRaw("{$nextDueSql} <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)")
+            ->whereRaw("{$nextDueSql} <= DATE_ADD(CURDATE(), INTERVAL 14 DAY)")
             ->count();
 
         return [
@@ -71,7 +77,7 @@ class LabEquipmentRepository
     private function applyFilters(Builder $query, array $filters): Builder
     {
         $baseDateSql = "COALESCE(last_maintenance_date, purchase_date)";
-        $nextDueSql = "DATE_ADD({$baseDateSql}, INTERVAL maintenance_cycle_days DAY)";
+        $nextDueSql = "COALESCE(next_due_date, DATE_ADD({$baseDateSql}, INTERVAL COALESCE(maintenance_cycle_days, 30) DAY))";
 
         return $query
             ->when($filters['search'] ?? null, function (Builder $query, string $search) {
@@ -83,18 +89,19 @@ class LabEquipmentRepository
             })
             ->when($filters['status'] ?? null, fn (Builder $query, string $status) => $query->where('status', $status))
             ->when($filters['maintenance_status'] ?? null, function (Builder $query, string $maintenanceStatus) use ($baseDateSql, $nextDueSql) {
-                if ($maintenanceStatus === LabEquipment::MAINTENANCE_STATUS_OVERDUE) {
-                    $query->whereNotNull(DB::raw($baseDateSql))
+                if ($maintenanceStatus === LabEquipment::MAINTENANCE_STATUS_KEY_OVERDUE) {
+                    $query->whereRaw("{$nextDueSql} IS NOT NULL")
                         ->whereRaw("{$nextDueSql} < CURDATE()");
-                } elseif ($maintenanceStatus === LabEquipment::MAINTENANCE_STATUS_DUE_SOON) {
-                    $query->whereNotNull(DB::raw($baseDateSql))
+                } elseif ($maintenanceStatus === LabEquipment::MAINTENANCE_STATUS_KEY_DUE_SOON) {
+                    $query->whereRaw("{$nextDueSql} IS NOT NULL")
                         ->whereRaw("{$nextDueSql} >= CURDATE()")
-                        ->whereRaw("{$nextDueSql} <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)");
-                } elseif ($maintenanceStatus === LabEquipment::MAINTENANCE_STATUS_UP_TO_DATE) {
-                    $query->where(function (Builder $q) use ($baseDateSql, $nextDueSql) {
-                        $q->whereNull(DB::raw($baseDateSql))
-                            ->orWhereRaw("{$nextDueSql} > DATE_ADD(CURDATE(), INTERVAL 30 DAY)");
-                    });
+                        ->whereRaw("{$nextDueSql} <= DATE_ADD(CURDATE(), INTERVAL 14 DAY)");
+                } elseif ($maintenanceStatus === LabEquipment::MAINTENANCE_STATUS_KEY_UP_TO_DATE) {
+                    $query->whereRaw("{$nextDueSql} > DATE_ADD(CURDATE(), INTERVAL 14 DAY)");
+                } elseif ($maintenanceStatus === LabEquipment::MAINTENANCE_STATUS_KEY_NA) {
+                    $query->whereNull('next_due_date')
+                        ->whereNull('last_maintenance_date')
+                        ->whereNull('purchase_date');
                 }
             });
     }

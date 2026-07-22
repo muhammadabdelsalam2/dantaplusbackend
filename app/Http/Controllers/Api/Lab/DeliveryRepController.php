@@ -117,4 +117,15 @@ class DeliveryRepController extends Controller
             ],
         ], 'Delivery tasks fetched successfully');
     }
+
+    public function loginAs(\Illuminate\Http\Request $request, int $id)
+    {
+        $result = $this->deliveryRepService->loginAs($id, $request->ip(), $request->userAgent());
+
+        if (! $result['success']) {
+            return ApiResponse::error($result['message'], $result['code']);
+        }
+
+        return ApiResponse::success($result['data'] ?? null, $result['message'], $result['code']);
+    }
 }

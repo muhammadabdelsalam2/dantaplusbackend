@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Lab;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Lab\Support\IndexLabSupportTicketRequest;
 use App\Http\Requests\Lab\Support\StoreLabSupportTicketRequest;
+use App\Http\Requests\Lab\Support\StoreLabSupportTicketMessageRequest;
 use App\Services\Lab\SupportService;
 use App\Support\ApiResponse;
 
@@ -41,6 +42,17 @@ class SupportController extends Controller
     public function show(int $id)
     {
         $result = $this->service->showTicket($id);
+
+        if (!$result['success']) {
+            return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+        }
+
+        return ApiResponse::success($result['data'], $result['message'], $result['code']);
+    }
+
+    public function storeMessage(StoreLabSupportTicketMessageRequest $request, int $id)
+    {
+        $result = $this->service->sendMessage($id, $request->validated());
 
         if (!$result['success']) {
             return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);

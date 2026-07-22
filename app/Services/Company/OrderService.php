@@ -26,6 +26,9 @@ class OrderService
         $orders = Order::query()
             ->with(['clinic:id,name,email,phone', 'invoice:id,order_id', 'items'])
             ->when($source, fn ($q) => $q->where('source', $source))
+            ->when(! $source, fn ($q) => $q->where(function ($inner) {
+                $inner->whereNull('source')->orWhere('source', '!=', 'external');
+            }))
             ->when($filters['status'] ?? null, fn ($q, $status) => $q->where('status', $status))
              ->when($filters['clinic_id'] ?? null, fn ($q, $clinicId) => $q->where('clinic_id', $clinicId))
             ->when($filters['search'] ?? null, function ($q, $search) {

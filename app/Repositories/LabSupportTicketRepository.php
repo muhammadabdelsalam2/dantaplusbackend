@@ -13,6 +13,7 @@ class LabSupportTicketRepository
         return LabSupportTicket::query()
             ->with(['creator:id,name,email'])
             ->where('lab_id', $labId)
+            ->when($filters['created_by'] ?? null, fn (Builder $query, $userId) => $query->where('created_by', $userId))
             ->when($filters['status'] ?? null, fn (Builder $query, $status) => $query->where('status', $status))
             ->when($filters['priority'] ?? null, fn (Builder $query, $priority) => $query->where('priority', $priority))
             ->when($filters['search'] ?? null, function (Builder $query, $search) {
@@ -30,7 +31,7 @@ class LabSupportTicketRepository
     public function findForLabById(int $labId, int $id): ?LabSupportTicket
     {
         return LabSupportTicket::query()
-            ->with(['creator:id,name,email'])
+            ->with(['creator:id,name,email', 'messages.sender:id,name,email'])
             ->where('lab_id', $labId)
             ->find($id);
     }
@@ -38,5 +39,10 @@ class LabSupportTicketRepository
     public function create(array $data): LabSupportTicket
     {
         return LabSupportTicket::query()->create($data);
+    }
+
+    public function createMessage(LabSupportTicket $ticket, array $data): \App\Models\LabSupportTicketMessage
+    {
+        return $ticket->messages()->create($data);
     }
 }

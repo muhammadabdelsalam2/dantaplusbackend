@@ -34,9 +34,10 @@ class CaseService
 
         $perPage = (int) ($filters['per_page'] ?? 15);
         $cases = $this->caseRepository->paginateForLab($labId, $filters, $perPage);
-        $cases->load(['technician:id,name', 'deliveryRep:id,name', 'attachments']);
+        $cases->load(['technician:id,name,avatar_url', 'deliveryRep:id,name', 'attachments']);
 
         return ServiceResult::success([
+            'stats' => $this->caseRepository->statsForLab($labId, $filters),
             'items' => CaseResource::collection($cases->items())->resolve(),
             'pagination' => [
                 'current_page' => $cases->currentPage(),
@@ -60,7 +61,7 @@ class CaseService
             return ServiceResult::error('Case not found', null, null, 404);
         }
 
-        $case->load(['technician:id,name', 'deliveryRep:id,name', 'attachments']);
+        $case->load(['technician:id,name,avatar_url', 'deliveryRep:id,name', 'attachments']);
 
         return ServiceResult::success((new CaseResource($case))->resolve(), 'Case details fetched successfully');
     }
@@ -403,16 +404,48 @@ class CaseService
                 'lab',
                 'patient.user',
                 'dentist.user',
-                'technician:id,name',
+                'technician:id,name,avatar_url',
                 'deliveryRep:id,name',
                 'attachments'
             ]);
 
             return ServiceResult::success(
-                (new CaseResource($updated))->resolve(),
+                $this->statusResponsePayload($updated, $data),
                 'Case status updated successfully'
             );
         });
+    }
+
+    public function completeCase(int $id, array $data): array
+    {
+        $data['status'] = CaseModel::STATUS_COMPLETED;
+
+        return $this->updateStatus($id, $data);
+    }
+
+    public function labOrder(int $id): array
+    {
+        $labId = $this->currentLabId();
+        if (! $labId) {
+            return ServiceResult::error('Lab account is not linked to a dental lab', null, null, 403);
+        }
+
+        $case = $this->caseRepository->findByIdForLab($id, $labId);
+        if (! $case) {
+            return ServiceResult::error('Case not found', null, null, 404);
+        }
+
+        return ServiceResult::success($this->labOrderPayload($this->ensureLabOrderToken($case)), 'Lab order fetched successfully');
+    }
+
+    public function publicLabOrder(string $token): ?array
+    {
+        $case = CaseModel::query()
+            ->with(['clinic', 'lab', 'patient.user', 'dentist.user', 'technician:id,name,avatar_url', 'attachments'])
+            ->where('lab_order_token', $token)
+            ->first();
+
+        return $case ? $this->labOrderPayload($case) : null;
     }
 
     public function assignTechnician(int $id, array $data): array
@@ -451,9 +484,9 @@ class CaseService
                 ],
             ]);
 
-            if ($updated->status === CaseModel::STATUS_PENDING) {
+            if (in_array($updated->status, [CaseModel::STATUS_PENDING, CaseModel::STATUS_ACCEPTED, CaseModel::STATUS_RECEIVED_BY_LAB], true)) {
                 $updated = $this->caseRepository->update($updated, [
-                    'status' => CaseModel::STATUS_ACCEPTED,
+                    'status' => CaseModel::STATUS_IN_PROGRESS,
                 ]);
             }
 
@@ -482,7 +515,7 @@ class CaseService
             ]);
 
             return ServiceResult::success(
-                (new CaseResource($updated))->resolve(),
+                (new CaseResource($updated->fresh(['technician:id,name,avatar_url'])))->resolve(),
                 'Technician assigned successfully'
             );
         });
@@ -524,11 +557,13 @@ class CaseService
     private function buildStatusPayload(CaseModel $case, string $targetStatus, ?int $incomingTechnicianId = null): array
     {
         $allowedTransitions = [
-            CaseModel::STATUS_PENDING => [CaseModel::STATUS_ACCEPTED],
+            CaseModel::STATUS_PENDING => [CaseModel::STATUS_RECEIVED_BY_LAB, CaseModel::STATUS_ACCEPTED, CaseModel::STATUS_REJECTED],
+            CaseModel::STATUS_RECEIVED_BY_LAB => [CaseModel::STATUS_ACCEPTED, CaseModel::STATUS_REJECTED],
             CaseModel::STATUS_ACCEPTED => [CaseModel::STATUS_IN_PROGRESS, CaseModel::STATUS_COMPLETED],
-            CaseModel::STATUS_IN_PROGRESS => [CaseModel::STATUS_COMPLETED],
+            CaseModel::STATUS_IN_PROGRESS => [CaseModel::STATUS_COMPLETED, CaseModel::STATUS_REJECTED],
             CaseModel::STATUS_COMPLETED => [CaseModel::STATUS_DELIVERED],
             CaseModel::STATUS_DELIVERED => [],
+            CaseModel::STATUS_REJECTED => [],
         ];
 
         if ($case->status !== $targetStatus && ! in_array($targetStatus, $allowedTransitions[$case->status] ?? [], true)) {
@@ -563,5 +598,89 @@ class CaseService
         \Illuminate\Support\Facades\Storage::disk('public')->putFileAs('cases/attachments', $file, $filename);
 
         return 'cases/attachments/' . $filename;
+    }
+
+    private function ensureLabOrderToken(CaseModel $case): CaseModel
+    {
+        if (! $case->lab_order_token) {
+            $case = $this->caseRepository->update($case, ['lab_order_token' => (string) Str::uuid()]);
+        }
+
+        return $case->fresh(['clinic', 'lab', 'patient.user', 'dentist.user', 'technician:id,name,avatar_url', 'attachments']);
+    }
+
+    private function statusResponsePayload(CaseModel $case, array $input): array
+    {
+        $payload = (new CaseResource($case))->resolve();
+
+        if ($case->status === CaseModel::STATUS_COMPLETED) {
+            $payload['next_action'] = [
+                'assign_for_delivery' => (bool) ($input['assign_for_delivery'] ?? false),
+                'requires_delivery_rep' => (bool) ($input['assign_for_delivery'] ?? false) && empty($input['delivery_rep_user_id']),
+            ];
+        }
+
+        if ($case->status === CaseModel::STATUS_RECEIVED_BY_LAB) {
+            $payload['lab_order'] = $this->labOrderPayload($this->ensureLabOrderToken($case));
+        }
+
+        return $payload;
+    }
+
+    private function labOrderPayload(CaseModel $case): array
+    {
+        $fileUrl = route('lab.orders.lab-order.public', ['token' => $case->lab_order_token]);
+
+        return [
+            'case_id' => $case->id,
+            'case_number' => $case->case_number,
+            'file_url' => $fileUrl,
+            'lab' => [
+                'id' => $case->lab?->id,
+                'name' => $case->lab?->name,
+                'address' => $case->lab?->address ?? null,
+                'logo_url' => $case->lab?->logo_url ?? null,
+                'qr_code' => $fileUrl,
+            ],
+            'clinic' => [
+                'id' => $case->clinic?->id,
+                'name' => $case->clinic?->name,
+                'address' => $case->clinic?->address ?? null,
+                'phone' => $case->clinic?->phone ?? null,
+                'doctor_name' => $case->dentist?->user?->name,
+            ],
+            'patient' => [
+                'id' => $case->patient?->id,
+                'name' => $case->patient?->user?->name,
+                'file_number' => $case->patient?->file_number ?? $case->patient?->patient_code ?? null,
+                'age' => $case->patient?->age ?? null,
+                'gender' => $case->patient?->gender ?? null,
+            ],
+            'case' => [
+                'case_type' => $case->case_type,
+                'material' => $case->material ?? null,
+                'shade' => $case->shade ?? null,
+                'delivery_date' => optional($case->due_date)->toDateString(),
+                'teeth' => $case->tooth_numbers,
+                'teeth_chart' => $case->tooth_chart_3d,
+                'clinic_notes' => $case->description,
+                'status' => $case->status,
+                'priority' => $case->priority,
+            ],
+            'lab_use' => [
+                'assigned_technician' => $case->technician ? [
+                    'id' => $case->technician->id,
+                    'name' => $case->technician->name,
+                    'role' => 'Technician',
+                    'image_url' => $case->technician->avatar_url ?? null,
+                ] : null,
+                'assignment_date' => optional($case->updated_at)->toDateString(),
+            ],
+            'signatures' => [
+                'clinic_signature' => null,
+                'lab_receiver_signature' => null,
+                'technician_signature' => null,
+            ],
+        ];
     }
 }

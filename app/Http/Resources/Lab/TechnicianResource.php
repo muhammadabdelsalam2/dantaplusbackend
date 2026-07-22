@@ -12,6 +12,8 @@ class TechnicianResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name ?? '',
+            'image_url' => $this->avatar_url ?? null,
+            'role' => 'Technician',
         ];
     }
 }

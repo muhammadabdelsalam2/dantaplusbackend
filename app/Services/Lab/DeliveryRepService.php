@@ -4,6 +4,7 @@ namespace App\Services\Lab;
 
 use App\Models\LabDeliveryRep;
 use App\Models\User;
+use App\Models\ImpersonationAudit;
 use App\Repositories\LabDeliveryRepRepository;
 use App\Support\ServiceResult;
 use Illuminate\Http\UploadedFile;
@@ -235,6 +236,45 @@ class DeliveryRepService
         });
     }
 
+    public function loginAs(int $id, ?string $ipAddress = null, ?string $userAgent = null): array
+    {
+        $authUser = auth()->user();
+
+        if (!$authUser || !$authUser->lab_id || !$authUser->hasRole('lab_admin')) {
+            return ServiceResult::error('Only lab admins can impersonate delivery representatives.', null, null, 403);
+        }
+
+        $rep = $this->deliveryRepRepository->findForLabById((int) $authUser->lab_id, $id);
+        if (!$rep || !$rep->user || !$rep->user->hasRole('delivery_representative')) {
+            return ServiceResult::error('Delivery representative not found.', null, null, 404);
+        }
+
+        ImpersonationAudit::query()->create([
+            'impersonator_id' => $authUser->id,
+            'impersonated_user_id' => $rep->user->id,
+            'impersonated_role' => 'delivery_representative',
+            'guard' => 'sanctum',
+            'ip_address' => $ipAddress,
+            'user_agent' => $userAgent,
+        ]);
+
+        $token = $rep->user->createToken('delivery-rep-impersonation')->plainTextToken;
+
+        return ServiceResult::success([
+            'token' => $token,
+            'token_type' => 'Bearer',
+            'user' => [
+                'id' => $rep->user->id,
+                'name' => $rep->user->name,
+                'email' => $this->normalizeEmailForOutput($rep->user->email),
+                'phone' => $rep->user->phone,
+                'role' => 'delivery_representative',
+                'lab_id' => $rep->user->lab_id,
+            ],
+            'redirect_to' => '/delivery/dashboard',
+        ], 'Delivery representative impersonation token created successfully');
+    }
+
     private function mapListItem(LabDeliveryRep $rep): array
     {
         return [
@@ -318,4 +358,3 @@ class DeliveryRepService
         }
     }
 }
-

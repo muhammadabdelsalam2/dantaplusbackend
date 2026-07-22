@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class LabEquipment extends Model
@@ -26,11 +27,25 @@ class LabEquipment extends Model
     public const MAINTENANCE_STATUS_UP_TO_DATE = 'Up to Date';
     public const MAINTENANCE_STATUS_DUE_SOON = 'Due Soon';
     public const MAINTENANCE_STATUS_OVERDUE = 'Overdue';
+    public const MAINTENANCE_STATUS_NA = 'N/A';
+
+    public const MAINTENANCE_STATUS_KEY_UP_TO_DATE = 'up_to_date';
+    public const MAINTENANCE_STATUS_KEY_DUE_SOON = 'due_soon';
+    public const MAINTENANCE_STATUS_KEY_OVERDUE = 'overdue';
+    public const MAINTENANCE_STATUS_KEY_NA = 'n_a';
 
     public const MAINTENANCE_STATUSES = [
         self::MAINTENANCE_STATUS_UP_TO_DATE,
         self::MAINTENANCE_STATUS_DUE_SOON,
         self::MAINTENANCE_STATUS_OVERDUE,
+        self::MAINTENANCE_STATUS_NA,
+    ];
+
+    public const MAINTENANCE_STATUS_KEYS = [
+        self::MAINTENANCE_STATUS_KEY_UP_TO_DATE,
+        self::MAINTENANCE_STATUS_KEY_DUE_SOON,
+        self::MAINTENANCE_STATUS_KEY_OVERDUE,
+        self::MAINTENANCE_STATUS_KEY_NA,
     ];
 
     protected $fillable = [
@@ -39,6 +54,8 @@ class LabEquipment extends Model
         'model_serial_number',
         'purchase_date',
         'last_maintenance_date',
+        'next_due_date',
+        'maintenance_status',
         'maintenance_cycle_days',
         'status',
         'maintenance_notes',
@@ -49,6 +66,7 @@ class LabEquipment extends Model
         return [
             'purchase_date' => 'date',
             'last_maintenance_date' => 'date',
+            'next_due_date' => 'date',
             'maintenance_cycle_days' => 'integer',
         ];
     }
@@ -56,5 +74,10 @@ class LabEquipment extends Model
     public function lab(): BelongsTo
     {
         return $this->belongsTo(DentalLab::class, 'lab_id');
+    }
+
+    public function maintenanceLogs(): HasMany
+    {
+        return $this->hasMany(EquipmentMaintenanceLog::class, 'equipment_id');
     }
 }

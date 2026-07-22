@@ -6,6 +6,7 @@ use App\Http\Resources\CommunicationConversationResource;
 use App\Http\Resources\CommunicationMessageResource;
 use App\Models\CommunicationConversation;
 use App\Models\CommunicationMessage;
+use App\Models\Notification;
 use App\Repositories\CommunicationConversationRepository;
 use App\Support\ServiceResult;
 use Illuminate\Support\Facades\DB;
@@ -89,6 +90,8 @@ class ConversationService
                 'last_message_sender_id' => $sender?->id,
             ]);
 
+            $this->notifyMessageRecipient($conversation, $message, $sender?->id, $sender?->name);
+
             return ServiceResult::success(
                 (new CommunicationMessageResource($message))->resolve(),
                 'Message sent successfully',
@@ -154,5 +157,31 @@ class ConversationService
         }
 
         return 'user';
+    }
+
+    private function notifyMessageRecipient(CommunicationConversation $conversation, CommunicationMessage $message, ?int $senderId, ?string $senderName): void
+    {
+        $senderType = $message->sender_type;
+        $audienceType = $senderType === 'lab' ? 'clinic' : 'lab';
+        $audienceId = $senderType === 'lab' ? $conversation->clinic_id : $conversation->lab_id;
+
+        if (! $audienceId) {
+            return;
+        }
+
+        Notification::query()->create([
+            'title' => 'New Message',
+            'message' => $message->text ?: 'New attachment received.',
+            'type' => 'message',
+            'status' => 'Sent',
+            'audience_type' => $audienceType,
+            'audience_id' => $audienceId,
+            'priority' => 'Normal',
+            'delivery_methods' => ['system'],
+            'is_read' => false,
+            'sender_id' => $senderId,
+            'sender_name' => $senderName,
+            'link' => '/communication',
+        ]);
     }
 }
