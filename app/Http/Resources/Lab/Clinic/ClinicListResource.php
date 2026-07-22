@@ -19,7 +19,7 @@ class ClinicListResource extends JsonResource
             'phone' => $this->phone ?? '',
             'address' => $this->address ?? '',
             'subdomain' => $this->subdomain ?? '',
-            'is_external' => (bool) ($this->is_external ?? false),
+            'type' => (bool) ($this->is_external ?? false) ? 'External' : 'Internal',
             'clinic_type' => $this->clinic_type?->value ?? '',
             'partnership' => [
                 'id' => (int) ($partnership?->id ?? 0),

@@ -141,7 +141,9 @@
     {
       "name": "Partnered Clinics",
       "item": [
-        { "name": "List Partnered Clinics", "request": { "method": "GET", "url": "{{base_url}}/lab/partnered-clinics?type=internal&status=Active&per_page=15" } },
+        { "name": "List Partnered Clinics", "request": { "method": "GET", "url": "{{base_url}}/lab/partnered-clinics?type=internal&status=Active&per_page=15" }, "response": [
+          { "name": "Success", "status": "OK", "code": 200, "body": "{\"success\":true,\"data\":{\"data\":[{\"id\":\"1\",\"name\":\"Smile Clinic\",\"email\":\"clinic@example.com\",\"phone\":\"01000000000\",\"type\":\"Internal\",\"clinic_type\":\"General Dentist\",\"partnership\":{\"status\":\"Active\"}},{\"id\":\"2\",\"name\":\"External Clinic\",\"email\":\"external@example.com\",\"phone\":\"01000000001\",\"type\":\"External\",\"clinic_type\":\"\",\"partnership\":{\"status\":\"Pending\"}}]}}" }
+        ] },
         {
           "name": "Invite Clinic",
           "request": {
@@ -150,7 +152,11 @@
               { "key": "email", "value": "clinic@example.com", "type": "text" }
             ] },
             "url": "{{base_url}}/lab/partnered-clinics/invite"
-          }
+          },
+          "response": [
+            { "name": "Unregistered Email Success", "status": "Created", "code": 201, "body": "{\"success\":true,\"message\":\"Clinic invitation sent!\",\"data\":{\"type\":\"external_invitation\",\"email\":\"newclinic@example.com\",\"email_sent\":true,\"invitation\":{\"status\":\"Pending\",\"invite_url\":\"http://localhost/register?email=newclinic%40example.com&invitation=token\"}}}" },
+            { "name": "Existing Clinic Success", "status": "Created", "code": 201, "body": "{\"success\":true,\"message\":\"Partnership invitation sent!\",\"data\":{\"type\":\"existing_clinic\",\"email\":\"clinic@example.com\",\"email_sent\":true,\"partnership\":{\"status\":\"Pending\"}}}" }
+          ]
         }
       ]
     },
