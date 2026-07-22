@@ -25,20 +25,49 @@
         { "name": "List Orders", "request": { "method": "GET", "url": "{{base_url}}/lab/orders?clinic=All Clinics&status=All Statuses&priority=All Priorities&search=&per_page=15" } },
         { "name": "Show Order", "request": { "method": "GET", "url": "{{base_url}}/lab/orders/{{order_id}}" } },
         {
-          "name": "Update Status",
+          "name": "Change Status",
           "request": {
-            "method": "PATCH",
+            "method": "POST",
             "body": { "mode": "formdata", "formdata": [
               { "key": "status", "value": "Accepted", "type": "text" },
-              { "key": "technician_id", "value": "{{technician_id}}", "type": "text" },
-              { "key": "notes", "value": "Accepted and ready for workflow.", "type": "text" }
+              { "key": "notes", "value": "Status changed by workflow.", "type": "text" }
             ] },
             "url": "{{base_url}}/lab/orders/{{order_id}}/status"
           },
           "response": [
-            { "name": "Success", "originalRequest": { "method": "PATCH", "url": "{{base_url}}/lab/orders/{{order_id}}/status" }, "status": "OK", "code": 200, "body": "{\"success\":true,\"message\":\"Case status updated successfully\",\"data\":{\"id\":1,\"status\":\"Accepted\"}}" },
-            { "name": "Validation Error", "originalRequest": { "method": "PATCH", "url": "{{base_url}}/lab/orders/{{order_id}}/status" }, "status": "Unprocessable Entity", "code": 422, "body": "{\"success\":false,\"message\":\"Validation failed\",\"errors\":{\"status\":[\"The status field is required.\"]}}" }
+            { "name": "Success", "originalRequest": { "method": "POST", "url": "{{base_url}}/lab/orders/{{order_id}}/status" }, "status": "OK", "code": 200, "body": "{\"success\":true,\"message\":\"Case status updated successfully\"}" },
+            { "name": "Validation Error", "originalRequest": { "method": "POST", "url": "{{base_url}}/lab/orders/{{order_id}}/status" }, "status": "Unprocessable Entity", "code": 422, "body": "{\"success\":false,\"message\":\"Validation failed\",\"errors\":{\"status\":[\"The status field is required.\"]}}" }
           ]
+        },
+        {
+          "name": "Accept Order",
+          "request": {
+            "method": "POST",
+            "body": { "mode": "formdata", "formdata": [
+              { "key": "delivery_rep_id", "value": "{{delivery_rep_id}}", "type": "text" },
+              { "key": "notification_method", "value": "system", "type": "text" },
+              { "key": "latitude", "value": "30.0444", "type": "text" },
+              { "key": "longitude", "value": "31.2357", "type": "text" },
+              { "key": "delivery_address", "value": "Clinic address", "type": "text" },
+              { "key": "delivery_notes", "value": "Deliver to clinic reception.", "type": "text" }
+            ] },
+            "url": "{{base_url}}/lab/orders/{{order_id}}/accept"
+          },
+          "response": [
+            { "name": "Success", "originalRequest": { "method": "POST", "url": "{{base_url}}/lab/orders/{{order_id}}/accept" }, "status": "OK", "code": 200, "body": "{\"success\":true,\"message\":\"Order accepted and delivery representative assigned successfully\"}" },
+            { "name": "Validation Error", "originalRequest": { "method": "POST", "url": "{{base_url}}/lab/orders/{{order_id}}/accept" }, "status": "Unprocessable Entity", "code": 422, "body": "{\"success\":false,\"message\":\"Validation failed\",\"errors\":{\"delivery_rep_id\":[\"The selected delivery representative id must exist in lab_delivery_reps for your lab.\"]}}" }
+          ]
+        },
+        {
+          "name": "Start Order (In Progress)",
+          "request": {
+            "method": "POST",
+            "body": { "mode": "formdata", "formdata": [
+              { "key": "technician_id", "value": "{{technician_id}}", "type": "text" },
+              { "key": "notes", "value": "Work instructions.", "type": "text" }
+            ] },
+            "url": "{{base_url}}/lab/orders/{{order_id}}/start"
+          }
         },
         {
           "name": "Complete Case",
@@ -46,14 +75,14 @@
             "method": "POST",
             "body": { "mode": "formdata", "formdata": [
               { "key": "generate_invoice", "value": "true", "type": "text" },
-              { "key": "assign_for_delivery", "value": "true", "type": "text" },
-              { "key": "delivery_rep_user_id", "value": "{{delivery_rep_id}}", "type": "text" },
+              { "key": "assign_for_delivery", "value": "false", "type": "text" },
               { "key": "notes", "value": "Case completed.", "type": "text" }
             ] },
             "url": "{{base_url}}/lab/orders/{{order_id}}/complete"
           }
         },
         { "name": "Activity Log", "request": { "method": "GET", "url": "{{base_url}}/lab/orders/{{order_id}}/activity-log?range=all" } },
+        { "name": "Received By Lab", "request": { "method": "GET", "url": "{{base_url}}/lab/orders/{{order_id}}/received-by-lab" } },
         { "name": "Lab Order JSON", "request": { "method": "GET", "url": "{{base_url}}/lab/orders/{{order_id}}/lab-order" } },
         { "name": "Lab Order PDF", "request": { "method": "GET", "url": "{{base_url}}/lab/orders/{{order_id}}/lab-order-pdf" } },
         { "name": "Public Lab Order Download", "auth": { "type": "noauth" }, "request": { "method": "GET", "url": "{{base_url}}/lab/orders/lab-order/{{lab_order_token}}/download" } }
@@ -62,42 +91,13 @@
     {
       "name": "Technicians",
       "item": [
-        { "name": "List Technicians", "request": { "method": "GET", "url": "{{base_url}}/lab/technicians?search=" } },
-        {
-          "name": "Assign Technician",
-          "request": {
-            "method": "POST",
-            "body": { "mode": "formdata", "formdata": [
-              { "key": "technician_id", "value": "{{technician_id}}", "type": "text" },
-              { "key": "notes", "value": "Work instructions.", "type": "text" }
-            ] },
-            "url": "{{base_url}}/lab/orders/{{order_id}}/assign-technician"
-          }
-        }
+        { "name": "List Technicians", "request": { "method": "GET", "url": "{{base_url}}/lab/technicians?search=" } }
       ]
     },
     {
       "name": "Delivery",
       "item": [
         { "name": "List Delivery Reps", "request": { "method": "GET", "url": "{{base_url}}/lab/delivery-reps?search=&status=Active&per_page=15" } },
-        {
-          "name": "Assign Delivery Representative",
-          "request": {
-            "method": "POST",
-            "body": { "mode": "formdata", "formdata": [
-              { "key": "delivery_rep_user_id", "value": "{{delivery_rep_id}}", "type": "text" },
-              { "key": "notification_method", "value": "system", "type": "text" },
-              { "key": "latitude", "value": "", "type": "text" },
-              { "key": "longitude", "value": "", "type": "text" },
-              { "key": "delivery_address", "value": "", "type": "text" },
-              { "key": "delivery_notes", "value": "Deliver to clinic reception.", "type": "text" }
-            ] },
-            "url": "{{base_url}}/lab/orders/{{order_id}}/assign-delivery"
-          },
-          "response": [
-            { "name": "Success", "originalRequest": { "method": "POST", "url": "{{base_url}}/lab/orders/{{order_id}}/assign-delivery" }, "status": "OK", "code": 200, "body": "{\"success\":true,\"message\":\"Delivery assigned successfully\",\"data\":{\"id\":1,\"status\":\"assigned\"}}" }
-          ]
-        },
         { "name": "Login As Mandoub", "request": { "method": "POST", "url": "{{base_url}}/lab/delivery-reps/{{delivery_rep_id}}/login-as" } }
       ]
     },

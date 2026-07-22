@@ -94,12 +94,11 @@ Route::prefix('lab')
             Route::post('/', [CaseController::class, 'store'])->middleware('role:lab_admin|lab_receptionist');
             Route::get('/{id}', [CaseController::class, 'show']);
             Route::patch('/{id}', [CaseController::class, 'update']);
-            Route::patch('/{id}/status', [CaseController::class, 'updateStatus']);
-            Route::post('/{id}/status', [CaseController::class, 'updateStatus']);
-            Route::post('/{id}/assign-technician', [CaseController::class, 'assignTechnician'])
+            Route::post('/{id}/accept', [CaseController::class, 'accept'])
                 ->middleware('role:lab_admin|lab_receptionist');
-            Route::post('/{caseId}/assign-delivery', [DeliveryTaskController::class, 'assign'])
-                ->middleware(['role:lab_admin|lab_receptionist', 'throttle:10,1']);
+            Route::post('/{id}/start', [CaseController::class, 'start'])
+                ->middleware('role:lab_admin|lab_receptionist');
+            Route::post('/{id}/status', [CaseController::class, 'updateStatus']);
             Route::get('/{id}/messages', [CaseController::class, 'messages']);
             Route::post('/{id}/messages', [CaseController::class, 'storeMessage']);
             Route::post('/{id}/attachments', [CaseController::class, 'storeAttachment']);
@@ -112,14 +111,13 @@ Route::prefix('lab')
             Route::post('/', [CaseController::class, 'store'])->middleware('role:lab_admin|lab_receptionist');
             Route::get('/{id}', [CaseController::class, 'show']);
             Route::patch('/{id}', [CaseController::class, 'update']);
-            Route::patch('/{id}/status', [CaseController::class, 'updateStatus']);
-            Route::post('/{id}/status', [CaseController::class, 'updateStatus']);
-            Route::post('/{id}/assign-technician', [CaseController::class, 'assignTechnician'])
+            Route::post('/{id}/accept', [CaseController::class, 'accept'])
                 ->middleware('role:lab_admin|lab_receptionist');
+            Route::post('/{id}/start', [CaseController::class, 'start'])
+                ->middleware('role:lab_admin|lab_receptionist');
+            Route::post('/{id}/status', [CaseController::class, 'updateStatus']);
             Route::post('/{id}/complete', [CaseController::class, 'complete'])
                 ->middleware('role:lab_admin|lab_receptionist');
-            Route::post('/{caseId}/assign-delivery', [DeliveryTaskController::class, 'assign'])
-                ->middleware(['role:lab_admin|lab_receptionist', 'throttle:10,1']);
             Route::get('/{id}/notes', [CaseController::class, 'notes']);
             Route::post('/{id}/notes', [CaseController::class, 'storeNote']);
             Route::get('/{id}/messages', [CaseController::class, 'messages']);
@@ -127,6 +125,7 @@ Route::prefix('lab')
             Route::post('/{id}/attachments', [CaseController::class, 'storeAttachment']);
             Route::get('/{id}/activity-log', [CaseController::class, 'activityLog']);
             Route::get('/{id}/lab-order', [CaseController::class, 'labOrder']);
+            Route::get('/{id}/received-by-lab', [CaseController::class, 'labOrder']);
             Route::get('/{id}/lab-order-pdf', [CaseController::class, 'labOrderPdf']);
         });
 

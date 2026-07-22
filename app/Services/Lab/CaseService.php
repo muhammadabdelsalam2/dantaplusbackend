@@ -442,9 +442,222 @@ class CaseService
 
     public function completeCase(int $id, array $data): array
     {
-        $data['status'] = CaseModel::STATUS_COMPLETED;
+        $labId = $this->currentLabId();
+        if (! $labId) {
+            return ServiceResult::error('Lab account is not linked to a dental lab', null, null, 403);
+        }
 
-        return $this->updateStatus($id, $data);
+        return DB::transaction(function () use ($id, $data, $labId) {
+            $case = $this->caseRepository->findByIdForLab($id, $labId);
+            if (! $case) {
+                return ServiceResult::error('Case not found', null, null, 404);
+            }
+
+            $user = auth()->user();
+
+            if ($data['generate_invoice'] ?? false) {
+                $this->generateInvoiceForCompletedCase($case, $user);
+            }
+
+            $this->caseRepository->createActivityLog($case, [
+                'actor_id' => $user?->id,
+                'actor_name' => $user?->name,
+                'action' => 'complete_options_saved',
+                'notes' => $data['notes'] ?? null,
+                'payload' => [
+                    'generate_invoice' => (bool) ($data['generate_invoice'] ?? false),
+                    'assign_for_delivery' => (bool) ($data['assign_for_delivery'] ?? false),
+                ],
+            ]);
+
+            $fresh = $case->fresh(['clinic', 'lab', 'patient.user', 'dentist.user', 'technician:id,name,avatar_url', 'deliveryRep:id,name', 'attachments']);
+
+            return ServiceResult::success([
+                ...((new CaseResource($fresh))->resolve()),
+                'next_action' => [
+                    'assign_for_delivery' => (bool) ($data['assign_for_delivery'] ?? false),
+                    'requires_delivery_rep' => false,
+                ],
+            ], 'Complete case options saved successfully');
+        });
+    }
+
+    public function acceptOrder(int $id, array $data): array
+    {
+        $labId = $this->currentLabId();
+        if (! $labId) {
+            return ServiceResult::error('Lab account is not linked to a dental lab', null, null, 403);
+        }
+
+        return DB::transaction(function () use ($id, $data, $labId) {
+            $case = $this->caseRepository->findByIdForLab($id, $labId);
+            if (! $case) {
+                return ServiceResult::error('Case not found', null, null, 404);
+            }
+
+            $deliveryProfile = \App\Models\LabDeliveryRep::query()
+                ->with('user')
+                ->where('lab_id', $labId)
+                ->find($data['delivery_rep_id']);
+
+            if (! $deliveryProfile || ! $deliveryProfile->user || ! $deliveryProfile->user->hasRole('delivery_representative')) {
+                throw ValidationException::withMessages([
+                    'delivery_rep_id' => ['The selected delivery representative id must exist in lab_delivery_reps and be linked to a delivery_representative user.'],
+                ]);
+            }
+
+            $task = app(\App\Services\Lab\DeliveryTrackingService::class)->assign($case, $deliveryProfile->user, [
+                'delivery_address' => $data['delivery_address'] ?? $case->clinic?->address ?? null,
+                'delivery_notes' => $data['delivery_notes'] ?? null,
+            ]);
+
+            if (isset($data['latitude'], $data['longitude'])) {
+                $task->update([
+                    'last_location_lat' => $data['latitude'],
+                    'last_location_lng' => $data['longitude'],
+                    'last_location_at' => now(),
+                ]);
+            }
+
+            $user = auth()->user();
+            $message = "Case {$case->case_number} assigned to you for delivery.";
+            $whatsappResult = null;
+
+            if ($data['notification_method'] === 'whatsapp') {
+                $phone = $this->normalizeWhatsAppPhone((string) ($deliveryProfile->whatsapp_number ?: $deliveryProfile->user->phone));
+                if ($phone !== '') {
+                    $whatsappResult = app(\App\Services\Clinic\WhatsappBot\Providers\MetaWhatsAppService::class)
+                        ->sendMessage($phone, $message, $case->clinic);
+                }
+            }
+
+            $this->notificationRepository->create([
+                'title' => $data['notification_method'] === 'whatsapp' ? 'WhatsApp Delivery Assignment' : 'Delivery Assignment',
+                'message' => $message,
+                'type' => 'delivery_assignment',
+                'status' => (($whatsappResult['success'] ?? true) ? 'Sent' : 'Failed'),
+                'audience_type' => 'user',
+                'audience_id' => $deliveryProfile->user_id,
+                'user_id' => $data['notification_method'] === 'system' ? $deliveryProfile->user_id : null,
+                'priority' => 'Normal',
+                'delivery_methods' => [$data['notification_method']],
+                'is_read' => false,
+                'sender_id' => $user?->id,
+                'sender_name' => $user?->name,
+                'link' => '/lab/delivery-tasks',
+            ]);
+
+            $this->caseRepository->createActivityLog($case, [
+                'actor_id' => $user?->id,
+                'actor_name' => $user?->name,
+                'action' => 'delivery_assignment_saved',
+                'payload' => [
+                    'delivery_rep_id' => $deliveryProfile->id,
+                    'delivery_rep_user_id' => $deliveryProfile->user_id,
+                    'delivery_rep_name' => $deliveryProfile->user?->name,
+                    'notification_method' => $data['notification_method'],
+                    'whatsapp_result' => $whatsappResult,
+                ],
+            ]);
+
+            return ServiceResult::success([
+                'order' => (new CaseResource($case->fresh(['clinic', 'lab', 'patient.user', 'dentist.user', 'technician:id,name,avatar_url', 'deliveryRep:id,name', 'attachments'])))->resolve(),
+                'delivery_task' => app(\App\Services\Lab\DeliveryTrackingService::class)->mapTask($task->fresh(['deliveryRep:id,name,phone', 'case:id,case_number,status'])),
+            ], 'Order accepted and delivery representative assigned successfully');
+        });
+    }
+
+    public function startOrder(int $id, array $data): array
+    {
+        $labId = $this->currentLabId();
+        if (! $labId) {
+            return ServiceResult::error('Lab account is not linked to a dental lab', null, null, 403);
+        }
+
+        return DB::transaction(function () use ($id, $data, $labId) {
+            $case = $this->caseRepository->findByIdForLab($id, $labId);
+            if (! $case) {
+                return ServiceResult::error('Case not found', null, null, 404);
+            }
+
+            $this->validateTechnician((int) $data['technician_id'], $labId);
+
+            $updated = $this->caseRepository->update($case, [
+                'assigned_technician_id' => $data['technician_id'],
+            ]);
+
+            $user = auth()->user();
+            $this->caseRepository->createActivityLog($updated, [
+                'actor_id' => $user?->id,
+                'actor_name' => $user?->name,
+                'action' => 'technician_assignment_saved',
+                'notes' => $data['notes'] ?? null,
+                'payload' => [
+                    'technician_id' => $data['technician_id'],
+                ],
+            ]);
+
+            return ServiceResult::success(
+                (new CaseResource($updated->fresh(['technician:id,name,avatar_url'])))->resolve(),
+                'Technician assignment saved successfully'
+            );
+        });
+    }
+
+    private function generateInvoiceForCompletedCase(CaseModel $case, ?\App\Models\User $user = null): void
+    {
+        $existingItem = \App\Models\LabInvoiceItem::query()
+            ->where('case_id', $case->id)
+            ->whereHas('invoice', fn ($q) => $q->where('status', '!=', \App\Models\LabInvoice::STATUS_CANCELLED))
+            ->exists();
+
+        if ($existingItem) {
+            return;
+        }
+
+        $service = \App\Models\LabService::query()
+            ->where('lab_id', $case->lab_id)
+            ->where('service_name', $case->case_type)
+            ->first();
+
+        if (! $service || (float) $service->price <= 0) {
+            throw ValidationException::withMessages([
+                'generate_invoice' => ["Cannot generate invoice automatically. No lab service with a valid price was found matching case type '{$case->case_type}'."],
+            ]);
+        }
+
+        app(\App\Services\Lab\Accounting\LabAccountingService::class)->createInvoice([
+            'clinic_id' => $case->clinic_id,
+            'doctor_id' => $case->dentist_id,
+            'issue_date' => now()->toDateString(),
+            'due_date' => now()->addDays(15)->toDateString(),
+            'notes' => 'Auto-generated for completed case ' . $case->case_number,
+            'items' => [
+                [
+                    'case_id' => $case->id,
+                    'technician_id' => $case->assigned_technician_id,
+                    'case_number' => $case->case_number,
+                    'patient_name' => $case->patient?->user?->name,
+                    'service_name' => $service->service_name,
+                    'lab_service_id' => $service->id,
+                    'teeth_numbers' => $case->tooth_numbers,
+                    'quantity' => 1,
+                    'unit_price' => (float) $service->price,
+                    'materials_cost' => 0,
+                    'discount' => 0,
+                    'tax' => 0,
+                ],
+            ],
+        ]);
+
+        $this->caseRepository->createActivityLog($case, [
+            'actor_id' => $user?->id,
+            'actor_name' => $user?->name,
+            'action' => 'generated_invoice',
+            'payload' => [
+                'case_number' => $case->case_number,
+            ],
+        ]);
     }
 
     public function labOrder(int $id): array
@@ -622,6 +835,21 @@ class CaseService
         \Illuminate\Support\Facades\Storage::disk('public')->putFileAs('cases/attachments', $file, $filename);
 
         return 'cases/attachments/' . $filename;
+    }
+
+    private function normalizeWhatsAppPhone(string $phone): string
+    {
+        $digits = preg_replace('/\D+/', '', $phone) ?: '';
+
+        if (str_starts_with($digits, '00')) {
+            $digits = substr($digits, 2);
+        }
+
+        if (str_starts_with($digits, '01') && strlen($digits) === 11) {
+            return '20' . substr($digits, 1);
+        }
+
+        return $digits;
     }
 
     private function ensureLabOrderToken(CaseModel $case): CaseModel

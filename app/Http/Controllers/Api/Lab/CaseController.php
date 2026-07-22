@@ -87,6 +87,60 @@ class CaseController extends Controller
         return ApiResponse::success($result['data'], $result['message'], $result['code']);
     }
 
+    public function accept(Request $request, int $id)
+    {
+        $case = $this->case($id);
+        $this->authorize('update', $case);
+
+        $data = $request->validate([
+            'delivery_rep_id' => [
+                'required',
+                'integer',
+                \Illuminate\Validation\Rule::exists('lab_delivery_reps', 'id')->where(fn ($query) => $query->where('lab_id', auth()->user()?->lab_id)),
+            ],
+            'notification_method' => ['required', 'string', 'in:system,whatsapp'],
+            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
+            'delivery_address' => ['nullable', 'string', 'max:255'],
+            'delivery_notes' => ['nullable', 'string', 'max:1000'],
+        ], [
+            'delivery_rep_id.exists' => 'The selected delivery representative id must exist in lab_delivery_reps for your lab.',
+        ]);
+
+        $result = $this->caseService->acceptOrder($id, $data);
+
+        if (! $result['success']) {
+            return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+        }
+
+        return ApiResponse::success($result['data'], $result['message'], $result['code']);
+    }
+
+    public function start(Request $request, int $id)
+    {
+        $case = $this->case($id);
+        $this->authorize('update', $case);
+
+        $data = $request->validate([
+            'technician_id' => [
+                'required',
+                'integer',
+                \Illuminate\Validation\Rule::exists('users', 'id')->where(fn ($query) => $query->where('lab_id', auth()->user()?->lab_id)),
+            ],
+            'notes' => ['nullable', 'string', 'max:1000'],
+        ], [
+            'technician_id.exists' => 'The selected technician id must exist in users for your lab and have the lab_technician role.',
+        ]);
+
+        $result = $this->caseService->startOrder($id, $data);
+
+        if (! $result['success']) {
+            return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+        }
+
+        return ApiResponse::success($result['data'], $result['message'], $result['code']);
+    }
+
     public function assignTechnician(AssignTechnicianRequest $request, int $id)
     {
         $case = $this->case($id);
@@ -148,12 +202,6 @@ class CaseController extends Controller
         $data = $request->validate([
             'generate_invoice' => ['sometimes', 'boolean'],
             'assign_for_delivery' => ['sometimes', 'boolean'],
-            'delivery_rep_user_id' => ['nullable', 'integer', 'exists:users,id'],
-            'scheduled_for' => ['nullable', 'date'],
-            'pickup_address' => ['nullable', 'string', 'max:255'],
-            'delivery_address' => ['nullable', 'string', 'max:255'],
-            'pickup_notes' => ['nullable', 'string', 'max:1000'],
-            'delivery_notes' => ['nullable', 'string', 'max:1000'],
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);
 
@@ -210,7 +258,8 @@ class CaseController extends Controller
 
     private function downloadLabOrderPdf(array $data)
     {
-        if (! in_array($data['case']['status'] ?? null, [CaseModel::STATUS_RECEIVED_BY_LAB, 'Received', 'Received by Lab'], true)) {
+        $statusKey = strtolower(str_replace([' ', '-'], '_', (string) ($data['case']['status'] ?? '')));
+        if (! in_array($statusKey, ['received_by_lab', 'received'], true)) {
             return ApiResponse::error('PDF is only available once the order has been received by the lab.', 422);
         }
 
