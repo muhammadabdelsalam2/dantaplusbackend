@@ -43,9 +43,12 @@ class DeliveryTaskController extends Controller
     {
         $validated = $request->validate([
             'delivery_rep_user_id' => ['required', 'integer', 'exists:users,id'],
+            'notification_method' => ['required', 'string', 'in:system,whatsapp'],
             'scheduled_for' => ['nullable', 'date'],
             'pickup_address' => ['nullable', 'string', 'max:255'],
             'delivery_address' => ['nullable', 'string', 'max:255'],
+            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
             'pickup_notes' => ['nullable', 'string', 'max:1000'],
             'delivery_notes' => ['nullable', 'string', 'max:1000'],
         ]);
@@ -54,9 +57,42 @@ class DeliveryTaskController extends Controller
         $this->authorize('update', $case);
         $deliveryRep = $this->deliveryTrackingService->deliveryRepresentativeForLab((int) $request->user()?->lab_id, (int) $validated['delivery_rep_user_id']);
 
+        $validated['delivery_address'] = $validated['delivery_address']
+            ?? $case->clinic?->address
+            ?? $case->description;
+
         $task = $this->deliveryTrackingService->assign($case, $deliveryRep, $validated);
 
-        return ApiResponse::success($this->deliveryTrackingService->mapTask($task->fresh(['deliveryRep:id,name', 'case:id,case_number,status'])), 'Delivery assigned successfully');
+        \App\Models\Notification::query()->create([
+            'title' => $validated['notification_method'] === 'whatsapp' ? 'WhatsApp Delivery Assignment' : 'Delivery Assignment',
+            'message' => "Case {$case->case_number} assigned to {$deliveryRep->name} via {$validated['notification_method']}.",
+            'type' => 'delivery_assignment',
+            'status' => 'Sent',
+            'audience_type' => 'user',
+            'audience_id' => $deliveryRep->id,
+            'user_id' => $validated['notification_method'] === 'system' ? $deliveryRep->id : null,
+            'priority' => 'Normal',
+            'delivery_methods' => [$validated['notification_method']],
+            'is_read' => false,
+            'sender_id' => $request->user()?->id,
+            'sender_name' => $request->user()?->name,
+            'link' => '/lab/delivery-tasks',
+        ]);
+
+        app(\App\Repositories\CaseRepository::class)->createActivityLog($case, [
+            'actor_id' => $request->user()?->id,
+            'actor_name' => $request->user()?->name,
+            'action' => 'assigned_delivery',
+            'payload' => [
+                'delivery_rep_user_id' => $deliveryRep->id,
+                'delivery_rep_name' => $deliveryRep->name,
+                'notification_method' => $validated['notification_method'],
+                'latitude' => $validated['latitude'] ?? null,
+                'longitude' => $validated['longitude'] ?? null,
+            ],
+        ]);
+
+        return ApiResponse::success($this->deliveryTrackingService->mapTask($task->fresh(['deliveryRep:id,name,phone', 'case:id,case_number,status'])), 'Delivery assigned successfully');
     }
 
     public function updateLocation(Request $request, int $taskId)

@@ -16,13 +16,13 @@ class LabMaterialObserver
         $oldStock = (int) $material->getOriginal('stock');
         $newStock = (int) $material->stock;
 
-        if ($newStock >= $oldStock || ! $this->shouldNotify($newStock)) {
+        if ($newStock >= $oldStock || ! $this->shouldNotify($oldStock, $newStock)) {
             return;
         }
 
         Notification::query()->create([
             'title' => 'Inventory Low Stock',
-            'message' => "{$material->name} stock reached {$newStock}.",
+            'message' => $this->message($material->name, $newStock),
             'type' => 'inventory_low_stock',
             'status' => 'Sent',
             'audience_type' => 'lab',
@@ -34,8 +34,19 @@ class LabMaterialObserver
         ]);
     }
 
-    private function shouldNotify(int $stock): bool
+    private function shouldNotify(int $oldStock, int $newStock): bool
     {
-        return $stock === 10 || $stock <= 5;
+        return ($oldStock > 10 && $newStock <= 10)
+            || ($oldStock > 5 && $newStock <= 5)
+            || ($oldStock <= 5 && $newStock < $oldStock);
+    }
+
+    private function message(string $name, int $stock): string
+    {
+        if ($stock <= 5) {
+            return "{$name} stock is critically low ({$stock}).";
+        }
+
+        return "{$name} stock is running low ({$stock}).";
     }
 }

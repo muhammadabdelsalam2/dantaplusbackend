@@ -146,8 +146,8 @@ class CaseController extends Controller
         $this->authorize('update', $case);
 
         $data = $request->validate([
-            'generate_invoice' => ['nullable', 'boolean'],
-            'assign_for_delivery' => ['nullable', 'boolean'],
+            'generate_invoice' => ['sometimes', 'boolean'],
+            'assign_for_delivery' => ['sometimes', 'boolean'],
             'delivery_rep_user_id' => ['nullable', 'integer', 'exists:users,id'],
             'scheduled_for' => ['nullable', 'date'],
             'pickup_address' => ['nullable', 'string', 'max:255'],
@@ -156,6 +156,9 @@ class CaseController extends Controller
             'delivery_notes' => ['nullable', 'string', 'max:1000'],
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);
+
+        $data['generate_invoice'] = $data['generate_invoice'] ?? true;
+        $data['assign_for_delivery'] = $data['assign_for_delivery'] ?? true;
 
         $result = $this->caseService->completeCase($id, $data);
 
@@ -180,12 +183,35 @@ class CaseController extends Controller
         return ApiResponse::success($result['data'], $result['message'], $result['code']);
     }
 
+    public function labOrderPdf(int $id)
+    {
+        $case = $this->case($id);
+        $this->authorize('view', $case);
+
+        $result = $this->caseService->labOrder($id);
+
+        if (! $result['success']) {
+            return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+        }
+
+        return $this->downloadLabOrderPdf($result['data']);
+    }
+
     public function publicLabOrder(string $token)
     {
         $data = $this->caseService->publicLabOrder($token);
 
         if (! $data) {
             abort(404);
+        }
+
+        return $this->downloadLabOrderPdf($data);
+    }
+
+    private function downloadLabOrderPdf(array $data)
+    {
+        if (! in_array($data['case']['status'] ?? null, [CaseModel::STATUS_RECEIVED_BY_LAB, 'Received', 'Received by Lab'], true)) {
+            return ApiResponse::error('PDF is only available once the order has been received by the lab.', 422);
         }
 
         if (class_exists(\Barryvdh\DomPDF\Facade\Pdf::class)) {

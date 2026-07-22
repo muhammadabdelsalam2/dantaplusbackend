@@ -120,6 +120,21 @@ class CaseService
                     ],
                 ]);
 
+                $this->notificationRepository->create([
+                    'title' => 'New case received',
+                    'message' => "New case {$case->case_number} received from clinic.",
+                    'type' => 'new_case',
+                    'status' => 'Sent',
+                    'audience_type' => 'lab',
+                    'audience_id' => $case->lab_id,
+                    'priority' => $case->priority,
+                    'delivery_methods' => ['system'],
+                    'is_read' => false,
+                    'sender_id' => $user?->id,
+                    'sender_name' => $user?->name,
+                    'link' => '/lab/orders/' . $case->id,
+                ]);
+
                 if ($attachmentData) {
                     $attachment = $this->caseRepository->createAttachment($case, [
                         'uploaded_by' => $user?->id,
@@ -273,12 +288,6 @@ class CaseService
             $assignForDelivery = $data['assign_for_delivery'] ?? false;
             $deliveryRepId = $data['delivery_rep_user_id'] ?? null;
 
-            if ($isCompleted && $assignForDelivery && empty($deliveryRepId)) {
-                throw ValidationException::withMessages([
-                    'delivery_rep_user_id' => ['A delivery representative must be selected to assign delivery.'],
-                ]);
-            }
-
             $shouldAssignDelivery = false;
             if ($isAccepted && !empty($deliveryRepId)) {
                 $shouldAssignDelivery = true;
@@ -388,6 +397,21 @@ class CaseService
                 'sender_id' => $user?->id,
                 'sender_name' => $user?->name,
                 'link' => null,
+            ]);
+
+            $this->notificationRepository->create([
+                'title' => 'Case Status Updated',
+                'message' => $message,
+                'type' => 'case_status',
+                'status' => 'Sent',
+                'audience_type' => 'lab',
+                'audience_id' => $updated->lab_id,
+                'priority' => $updated->priority,
+                'delivery_methods' => ['system'],
+                'is_read' => false,
+                'sender_id' => $user?->id,
+                'sender_name' => $user?->name,
+                'link' => '/lab/orders/' . $updated->id,
             ]);
 
             $this->notificationLogRepository->create([

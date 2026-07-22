@@ -79,7 +79,8 @@ class CaseCommunicationService
 
             if (! (bool) ($data['is_internal'] ?? false)) {
                 $this->syncCommunicationMessage($case, $message->message, $sender?->id, $sender?->name, $data['sender_type']);
-                $this->notifyCaseParticipants($case, 'case_message', "New message on case {$case->case_number}: {$message->message}", $sender?->id, $sender?->name, $data['sender_type']);
+                $from = $sender?->name ?: ($data['sender_name'] ?? 'Clinic');
+                $this->notifyCaseParticipants($case, 'case_message', "Message from {$from} on case {$case->case_number}: {$message->message}", $sender?->id, $sender?->name, $data['sender_type']);
             }
 
             return ServiceResult::success(

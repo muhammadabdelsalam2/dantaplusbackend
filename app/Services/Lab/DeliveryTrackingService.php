@@ -4,6 +4,7 @@ namespace App\Services\Lab;
 
 use App\Models\CaseModel;
 use App\Models\DeliveryTask;
+use App\Models\Notification;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -134,6 +135,23 @@ class DeliveryTrackingService
                     'status' => CaseModel::STATUS_DELIVERED,
                     'delivered_at' => now(),
                 ]);
+
+                if ($task->case) {
+                    Notification::query()->create([
+                        'title' => 'Case Delivered',
+                        'message' => "Case {$task->case->case_number} has been delivered.",
+                        'type' => 'case_status',
+                        'status' => 'Sent',
+                        'audience_type' => 'lab',
+                        'audience_id' => $task->lab_id,
+                        'priority' => 'Normal',
+                        'delivery_methods' => ['system'],
+                        'is_read' => false,
+                        'sender_id' => auth()->id(),
+                        'sender_name' => auth()->user()?->name,
+                        'link' => '/lab/orders/' . $task->case->id,
+                    ]);
+                }
             }
 
             return $task->fresh(['deliveryRep:id,name', 'case:id,case_number,status,clinic_id,patient_id', 'case.clinic', 'case.patient.user']);
@@ -247,6 +265,7 @@ class DeliveryTrackingService
             'delivery_rep' => $task->deliveryRep ? [
                 'id' => $task->deliveryRep->id,
                 'name' => $task->deliveryRep->name,
+                'phone' => $task->deliveryRep->phone,
             ] : null,
             'receipt_proof_url' => $task->receipt_proof_path ? asset('storage/' . $task->receipt_proof_path) : null,
             'receipt_proof_original_name' => $task->receipt_proof_original_name,

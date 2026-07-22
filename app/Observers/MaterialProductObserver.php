@@ -32,13 +32,13 @@ public function created(MaterialProduct $product): void
         $oldStock = (int) $materialProduct->getOriginal('stock');
         $newStock = (int) $materialProduct->stock;
 
-        if ($newStock >= $oldStock || ! ($newStock === 10 || $newStock <= 5)) {
+        if ($newStock >= $oldStock || ! $this->shouldNotify($oldStock, $newStock)) {
             return;
         }
 
         Notification::query()->create([
             'title' => 'Inventory Low Stock',
-            'message' => "{$materialProduct->name} stock reached {$newStock}.",
+            'message' => $this->message($materialProduct->name, $newStock),
             'type' => 'inventory_low_stock',
             'status' => 'Sent',
             'audience_type' => 'supplier',
@@ -72,5 +72,21 @@ public function created(MaterialProduct $product): void
     public function forceDeleted(MaterialProduct $materialProduct): void
     {
         //
+    }
+
+    private function shouldNotify(int $oldStock, int $newStock): bool
+    {
+        return ($oldStock > 10 && $newStock <= 10)
+            || ($oldStock > 5 && $newStock <= 5)
+            || ($oldStock <= 5 && $newStock < $oldStock);
+    }
+
+    private function message(string $name, int $stock): string
+    {
+        if ($stock <= 5) {
+            return "{$name} stock is critically low ({$stock}).";
+        }
+
+        return "{$name} stock is running low ({$stock}).";
     }
 }

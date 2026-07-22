@@ -7,10 +7,11 @@
     { "key": "base_url", "value": "http://localhost:8000/api" },
     { "key": "token", "value": "" },
     { "key": "order_id", "value": "1" },
+    { "key": "technician_id", "value": "1" },
     { "key": "delivery_rep_id", "value": "1" },
-    { "key": "clinic_id", "value": "1" },
     { "key": "support_ticket_id", "value": "1" },
     { "key": "equipment_id", "value": "1" },
+    { "key": "notification_id", "value": "1" },
     { "key": "lab_order_token", "value": "" }
   ],
   "auth": {
@@ -19,203 +20,172 @@
   },
   "item": [
     {
-      "name": "Orders - List with Stats and Filters",
-      "request": {
-        "method": "GET",
-        "url": "{{base_url}}/lab/orders?clinic=All Clinics&status=All Statuses&priority=All Priorities&search=&per_page=15"
-      }
-    },
-    {
-      "name": "Orders - Show",
-      "request": { "method": "GET", "url": "{{base_url}}/lab/orders/{{order_id}}" }
-    },
-    {
-      "name": "Orders - Update Status",
-      "request": {
-        "method": "PATCH",
-        "body": {
-          "mode": "formdata",
-          "formdata": [
-            { "key": "status", "value": "Accepted", "type": "text" },
-            { "key": "technician_id", "value": "", "type": "text" },
-            { "key": "notes", "value": "", "type": "text" },
-            { "key": "generate_invoice", "value": "false", "type": "text" },
-            { "key": "assign_for_delivery", "value": "false", "type": "text" },
-            { "key": "delivery_rep_user_id", "value": "", "type": "text" }
-          ]
-        },
-        "url": "{{base_url}}/lab/orders/{{order_id}}/status"
-      }
-    },
-    {
-      "name": "Orders - Assign Technician",
-      "request": {
-        "method": "POST",
-        "body": {
-          "mode": "formdata",
-          "formdata": [
-            { "key": "technician_id", "value": "", "type": "text" },
-            { "key": "notes", "value": "", "type": "text" }
-          ]
-        },
-        "url": "{{base_url}}/lab/orders/{{order_id}}/assign-technician"
-      }
-    },
-    {
-      "name": "Orders - Complete",
-      "request": {
-        "method": "POST",
-        "body": {
-          "mode": "formdata",
-          "formdata": [
-            { "key": "generate_invoice", "value": "false", "type": "text" },
-            { "key": "assign_for_delivery", "value": "false", "type": "text" },
-            { "key": "delivery_rep_user_id", "value": "", "type": "text" },
-            { "key": "notes", "value": "", "type": "text" }
-          ]
-        },
-        "url": "{{base_url}}/lab/orders/{{order_id}}/complete"
-      }
-    },
-    {
-      "name": "Orders - Activity Log",
-      "request": { "method": "GET", "url": "{{base_url}}/lab/orders/{{order_id}}/activity-log?range=all" }
-    },
-    {
-      "name": "Orders - Notes",
-      "request": { "method": "GET", "url": "{{base_url}}/lab/orders/{{order_id}}/notes" }
-    },
-    {
-      "name": "Orders - Add Note",
-      "request": {
-        "method": "POST",
-        "body": {
-          "mode": "formdata",
-          "formdata": [
-            { "key": "message", "value": "", "type": "text" },
-            { "key": "is_internal", "value": "false", "type": "text" }
-          ]
-        },
-        "url": "{{base_url}}/lab/orders/{{order_id}}/notes"
-      }
-    },
-    {
-      "name": "Orders - Lab Order JSON",
-      "request": { "method": "GET", "url": "{{base_url}}/lab/orders/{{order_id}}/lab-order" }
-    },
-    {
-      "name": "Orders - Public Lab Order Download",
-      "auth": { "type": "noauth" },
-      "request": { "method": "GET", "url": "{{base_url}}/lab/orders/lab-order/{{lab_order_token}}/download" }
-    },
-    {
-      "name": "Technicians - List",
-      "request": { "method": "GET", "url": "{{base_url}}/lab/technicians?search=" }
-    },
-    {
-      "name": "Delivery Reps - List",
-      "request": { "method": "GET", "url": "{{base_url}}/lab/delivery-reps?search=&status=Active&per_page=15" }
-    },
-    {
-      "name": "Delivery Reps - Login As Mandoub",
-      "request": { "method": "POST", "url": "{{base_url}}/lab/delivery-reps/{{delivery_rep_id}}/login-as" }
-    },
-    {
-      "name": "Partnered Clinics - List",
-      "request": { "method": "GET", "url": "{{base_url}}/lab/partnered-clinics?type=All Types&status=All Statuses&search=&per_page=15" }
-    },
-    {
-      "name": "Support Tickets",
+      "name": "Orders",
       "item": [
+        { "name": "List Orders", "request": { "method": "GET", "url": "{{base_url}}/lab/orders?clinic=All Clinics&status=All Statuses&priority=All Priorities&search=&per_page=15" } },
+        { "name": "Show Order", "request": { "method": "GET", "url": "{{base_url}}/lab/orders/{{order_id}}" } },
         {
-          "name": "List My Tickets",
-          "request": { "method": "GET", "url": "{{base_url}}/lab/support/tickets?search=&status=&priority=&per_page=10" }
+          "name": "Update Status",
+          "request": {
+            "method": "PATCH",
+            "body": { "mode": "formdata", "formdata": [
+              { "key": "status", "value": "Accepted", "type": "text" },
+              { "key": "technician_id", "value": "{{technician_id}}", "type": "text" },
+              { "key": "notes", "value": "Accepted and ready for workflow.", "type": "text" }
+            ] },
+            "url": "{{base_url}}/lab/orders/{{order_id}}/status"
+          },
+          "response": [
+            { "name": "Success", "originalRequest": { "method": "PATCH", "url": "{{base_url}}/lab/orders/{{order_id}}/status" }, "status": "OK", "code": 200, "body": "{\"success\":true,\"message\":\"Case status updated successfully\",\"data\":{\"id\":1,\"status\":\"Accepted\"}}" },
+            { "name": "Validation Error", "originalRequest": { "method": "PATCH", "url": "{{base_url}}/lab/orders/{{order_id}}/status" }, "status": "Unprocessable Entity", "code": 422, "body": "{\"success\":false,\"message\":\"Validation failed\",\"errors\":{\"status\":[\"The status field is required.\"]}}" }
+          ]
         },
         {
-          "name": "Create Ticket",
+          "name": "Complete Case",
           "request": {
             "method": "POST",
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                { "key": "title", "value": "", "type": "text" },
-                { "key": "category", "value": "Technical", "type": "text" },
-                { "key": "priority", "value": "High", "type": "text" },
-                { "key": "description", "value": "", "type": "text" },
-                { "key": "attachment", "type": "file", "src": "" }
-              ]
-            },
-            "url": "{{base_url}}/lab/support/tickets"
+            "body": { "mode": "formdata", "formdata": [
+              { "key": "generate_invoice", "value": "true", "type": "text" },
+              { "key": "assign_for_delivery", "value": "true", "type": "text" },
+              { "key": "delivery_rep_user_id", "value": "{{delivery_rep_id}}", "type": "text" },
+              { "key": "notes", "value": "Case completed.", "type": "text" }
+            ] },
+            "url": "{{base_url}}/lab/orders/{{order_id}}/complete"
           }
         },
+        { "name": "Activity Log", "request": { "method": "GET", "url": "{{base_url}}/lab/orders/{{order_id}}/activity-log?range=all" } },
+        { "name": "Lab Order JSON", "request": { "method": "GET", "url": "{{base_url}}/lab/orders/{{order_id}}/lab-order" } },
+        { "name": "Lab Order PDF", "request": { "method": "GET", "url": "{{base_url}}/lab/orders/{{order_id}}/lab-order-pdf" } },
+        { "name": "Public Lab Order Download", "auth": { "type": "noauth" }, "request": { "method": "GET", "url": "{{base_url}}/lab/orders/lab-order/{{lab_order_token}}/download" } }
+      ]
+    },
+    {
+      "name": "Technicians",
+      "item": [
+        { "name": "List Technicians", "request": { "method": "GET", "url": "{{base_url}}/lab/technicians?search=" } },
         {
-          "name": "Show Ticket With Messages",
-          "request": { "method": "GET", "url": "{{base_url}}/lab/support/tickets/{{support_ticket_id}}" }
-        },
-        {
-          "name": "Send Ticket Message",
+          "name": "Assign Technician",
           "request": {
             "method": "POST",
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                { "key": "message", "value": "", "type": "text" }
-              ]
-            },
-            "url": "{{base_url}}/lab/support/tickets/{{support_ticket_id}}/messages"
+            "body": { "mode": "formdata", "formdata": [
+              { "key": "technician_id", "value": "{{technician_id}}", "type": "text" },
+              { "key": "notes", "value": "Work instructions.", "type": "text" }
+            ] },
+            "url": "{{base_url}}/lab/orders/{{order_id}}/assign-technician"
           }
         }
       ]
     },
     {
+      "name": "Delivery",
+      "item": [
+        { "name": "List Delivery Reps", "request": { "method": "GET", "url": "{{base_url}}/lab/delivery-reps?search=&status=Active&per_page=15" } },
+        {
+          "name": "Assign Delivery Representative",
+          "request": {
+            "method": "POST",
+            "body": { "mode": "formdata", "formdata": [
+              { "key": "delivery_rep_user_id", "value": "{{delivery_rep_id}}", "type": "text" },
+              { "key": "notification_method", "value": "system", "type": "text" },
+              { "key": "latitude", "value": "", "type": "text" },
+              { "key": "longitude", "value": "", "type": "text" },
+              { "key": "delivery_address", "value": "", "type": "text" },
+              { "key": "delivery_notes", "value": "Deliver to clinic reception.", "type": "text" }
+            ] },
+            "url": "{{base_url}}/lab/orders/{{order_id}}/assign-delivery"
+          },
+          "response": [
+            { "name": "Success", "originalRequest": { "method": "POST", "url": "{{base_url}}/lab/orders/{{order_id}}/assign-delivery" }, "status": "OK", "code": 200, "body": "{\"success\":true,\"message\":\"Delivery assigned successfully\",\"data\":{\"id\":1,\"status\":\"assigned\"}}" }
+          ]
+        },
+        { "name": "Login As Mandoub", "request": { "method": "POST", "url": "{{base_url}}/lab/delivery-reps/{{delivery_rep_id}}/login-as" } }
+      ]
+    },
+    {
       "name": "Equipment",
       "item": [
-        {
-          "name": "List Equipment",
-          "request": { "method": "GET", "url": "{{base_url}}/lab/equipment?search=&maintenance_status=all&per_page=15" }
-        },
-        {
-          "name": "Show Equipment",
-          "request": { "method": "GET", "url": "{{base_url}}/lab/equipment/{{equipment_id}}" }
-        },
+        { "name": "List Equipment", "request": { "method": "GET", "url": "{{base_url}}/lab/equipment?search=&maintenance_status=all&per_page=15" } },
+        { "name": "Filter Overdue", "request": { "method": "GET", "url": "{{base_url}}/lab/equipment?maintenance_status=overdue" } },
+        { "name": "Filter Due Soon", "request": { "method": "GET", "url": "{{base_url}}/lab/equipment?maintenance_status=due_soon" } },
+        { "name": "Filter Up To Date", "request": { "method": "GET", "url": "{{base_url}}/lab/equipment?maintenance_status=up_to_date" } },
+        { "name": "Filter N/A", "request": { "method": "GET", "url": "{{base_url}}/lab/equipment?maintenance_status=n_a" } },
+        { "name": "Show Equipment", "request": { "method": "GET", "url": "{{base_url}}/lab/equipment/{{equipment_id}}" } },
         {
           "name": "Record Maintenance",
           "request": {
             "method": "POST",
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                { "key": "notes", "value": "", "type": "text" },
-                { "key": "maintenance_date", "value": "", "type": "text" },
-                { "key": "next_due_date", "value": "", "type": "text" }
-              ]
-            },
+            "body": { "mode": "formdata", "formdata": [
+              { "key": "notes", "value": "Routine maintenance completed.", "type": "text" },
+              { "key": "maintenance_date", "value": "2026-07-22", "type": "text" },
+              { "key": "next_due_date", "value": "2026-08-22", "type": "text" }
+            ] },
             "url": "{{base_url}}/lab/equipment/{{equipment_id}}/record-maintenance"
           }
         }
       ]
     },
     {
-      "name": "Communication - Contacts",
-      "request": { "method": "GET", "url": "{{base_url}}/communication/contacts?per_page=20" }
+      "name": "Notifications",
+      "item": [
+        { "name": "List Notifications", "request": { "method": "GET", "url": "{{base_url}}/lab/notifications?per_page=15" } },
+        { "name": "Unread Notifications", "request": { "method": "GET", "url": "{{base_url}}/lab/notifications/unread?per_page=15" } },
+        { "name": "Mark Read", "request": { "method": "POST", "url": "{{base_url}}/lab/notifications/{{notification_id}}/read" } },
+        { "name": "Mark All Read", "request": { "method": "POST", "body": { "mode": "formdata", "formdata": [] }, "url": "{{base_url}}/lab/notifications/mark-all-read" } }
+      ]
     },
     {
-      "name": "Communication - Messages",
-      "request": { "method": "GET", "url": "{{base_url}}/communication/conversations/1/messages" }
-    },
-    {
-      "name": "Communication - Send Message",
-      "request": {
-        "method": "POST",
-        "body": {
-          "mode": "formdata",
-          "formdata": [
-            { "key": "text", "value": "", "type": "text" },
-            { "key": "type", "value": "text", "type": "text" }
-          ]
+      "name": "Support Tickets",
+      "item": [
+        { "name": "List My Tickets", "request": { "method": "GET", "url": "{{base_url}}/lab/support/tickets?search=&status=&priority=&per_page=10" } },
+        {
+          "name": "Create Ticket",
+          "request": {
+            "method": "POST",
+            "body": { "mode": "formdata", "formdata": [
+              { "key": "title", "value": "Need help", "type": "text" },
+              { "key": "category", "value": "Technical", "type": "text" },
+              { "key": "priority", "value": "High", "type": "text" },
+              { "key": "description", "value": "Ticket description.", "type": "text" },
+              { "key": "attachment", "type": "file", "src": "" }
+            ] },
+            "url": "{{base_url}}/lab/support/tickets"
+          }
         },
-        "url": "{{base_url}}/communication/conversations/1/messages"
-      }
+        { "name": "Show Ticket With Messages", "request": { "method": "GET", "url": "{{base_url}}/lab/support/tickets/{{support_ticket_id}}" } },
+        {
+          "name": "Send Ticket Message",
+          "request": {
+            "method": "POST",
+            "body": { "mode": "formdata", "formdata": [{ "key": "message", "value": "Reply text.", "type": "text" }] },
+            "url": "{{base_url}}/lab/support/tickets/{{support_ticket_id}}/messages"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Communication",
+      "item": [
+        { "name": "Contacts", "request": { "method": "GET", "url": "{{base_url}}/communication/contacts?per_page=20" } },
+        { "name": "Messages", "request": { "method": "GET", "url": "{{base_url}}/communication/conversations/1/messages" } },
+        {
+          "name": "Send Message",
+          "request": {
+            "method": "POST",
+            "body": { "mode": "formdata", "formdata": [
+              { "key": "text", "value": "Hello", "type": "text" },
+              { "key": "type", "value": "text", "type": "text" }
+            ] },
+            "url": "{{base_url}}/communication/conversations/1/messages"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Inventory",
+      "item": [
+        { "name": "Materials", "request": { "method": "GET", "url": "{{base_url}}/lab/materials?per_page=15" } },
+        { "name": "Low Stock", "request": { "method": "GET", "url": "{{base_url}}/lab/materials/low-stock" } }
+      ]
     }
   ]
 }

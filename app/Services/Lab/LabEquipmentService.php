@@ -70,7 +70,6 @@ class LabEquipmentService
                 'purchase_date' => $data['purchase_date'],
                 'last_maintenance_date' => $data['last_maintenance_date'],
                 'next_due_date' => Carbon::parse($data['last_maintenance_date'])->addDays((int) $data['maintenance_cycle_days'])->toDateString(),
-                'maintenance_status' => LabEquipment::MAINTENANCE_STATUS_KEY_UP_TO_DATE,
                 'maintenance_cycle_days' => $data['maintenance_cycle_days'],
                 'status' => $data['status'] ?? LabEquipment::STATUS_OPERATIONAL,
                 'maintenance_notes' => $data['maintenance_notes'] ?? null,
@@ -167,7 +166,6 @@ class LabEquipmentService
             $payload = [
                 'last_maintenance_date' => $data['maintenance_date'] ?? now()->toDateString(),
                 'next_due_date' => $data['next_due_date'] ?? $this->nextDueDate($data['maintenance_date'] ?? now()->toDateString(), $equipment),
-                'maintenance_status' => LabEquipment::MAINTENANCE_STATUS_KEY_UP_TO_DATE,
                 'status' => $data['status'] ?? LabEquipment::STATUS_OPERATIONAL,
             ];
 
@@ -199,17 +197,10 @@ class LabEquipmentService
             'id' => $equipment->id,
             'name' => $equipment->name,
             'model_serial_number' => $equipment->model_serial_number,
-            'purchase_date' => optional($equipment->purchase_date)->format('Y-m-d'),
+            'model' => $equipment->model_serial_number,
             'last_maintenance_date' => optional($equipment->last_maintenance_date)->format('Y-m-d'),
             'next_due_date' => $computed['next_due_date'],
-            'days_until_maintenance' => $computed['days_until_maintenance'],
-            'is_maintenance_due_soon' => $computed['is_maintenance_due_soon'],
-            'maintenance_warning' => $computed['maintenance_warning'],
             'maintenance_status' => $computed['maintenance_status'],
-            'maintenance_status_key' => $computed['maintenance_status_key'],
-            'status' => $equipment->status,
-            'maintenance_cycle_days' => $equipment->maintenance_cycle_days,
-            'maintenance_notes' => $equipment->maintenance_notes,
         ];
     }
 
@@ -221,32 +212,10 @@ class LabEquipmentService
             'id' => $equipment->id,
             'name' => $equipment->name,
             'model_serial_number' => $equipment->model_serial_number,
-            'purchase_date' => optional($equipment->purchase_date)->format('Y-m-d'),
+            'model' => $equipment->model_serial_number,
             'last_maintenance_date' => optional($equipment->last_maintenance_date)->format('Y-m-d'),
             'next_due_date' => $computed['next_due_date'],
-            'days_until_maintenance' => $computed['days_until_maintenance'],
-            'is_maintenance_due_soon' => $computed['is_maintenance_due_soon'],
-            'maintenance_warning' => $computed['maintenance_warning'],
             'maintenance_status' => $computed['maintenance_status'],
-            'maintenance_status_key' => $computed['maintenance_status_key'],
-            'status' => $equipment->status,
-            'maintenance_cycle_days' => $equipment->maintenance_cycle_days,
-            'maintenance_notes' => $equipment->maintenance_notes,
-            'maintenance_logs' => $equipment->relationLoaded('maintenanceLogs')
-                ? $equipment->maintenanceLogs->sortByDesc('created_at')->values()->map(fn ($log) => [
-                    'id' => $log->id,
-                    'performed_by' => $log->performer ? [
-                        'id' => $log->performer->id,
-                        'name' => $log->performer->name,
-                    ] : null,
-                    'notes' => $log->notes,
-                    'maintenance_date' => optional($log->maintenance_date)->format('Y-m-d'),
-                    'next_due_date' => optional($log->next_due_date)->format('Y-m-d'),
-                    'created_at' => optional($log->created_at)->toISOString(),
-                ])->all()
-                : [],
-            'created_at' => optional($equipment->created_at)->toISOString(),
-            'updated_at' => optional($equipment->updated_at)->toISOString(),
         ];
     }
 

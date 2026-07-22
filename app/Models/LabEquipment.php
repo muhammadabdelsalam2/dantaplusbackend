@@ -55,7 +55,6 @@ class LabEquipment extends Model
         'purchase_date',
         'last_maintenance_date',
         'next_due_date',
-        'maintenance_status',
         'maintenance_cycle_days',
         'status',
         'maintenance_notes',

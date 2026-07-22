@@ -33,8 +33,8 @@ class UpdateCaseStatusRequest extends FormRequest
                 }),
             ],
             'delivery_rep_user_id' => ['nullable', 'integer', 'exists:users,id'],
-            'generate_invoice' => ['nullable', 'boolean'],
-            'assign_for_delivery' => ['nullable', 'boolean'],
+            'generate_invoice' => ['sometimes', 'boolean'],
+            'assign_for_delivery' => ['sometimes', 'boolean'],
             'scheduled_for' => ['nullable', 'date'],
             'pickup_address' => ['nullable', 'string', 'max:255'],
             'delivery_address' => ['nullable', 'string', 'max:255'],
@@ -45,8 +45,42 @@ class UpdateCaseStatusRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        if ($this->isMethod('PATCH') && ! $this->filled('status')) {
+            $this->merge($this->parseMultipartPatchFields());
+        }
+
         if (! $this->filled('assigned_technician_id') && $this->filled('technician_id')) {
             $this->merge(['assigned_technician_id' => $this->input('technician_id')]);
         }
+    }
+
+    private function parseMultipartPatchFields(): array
+    {
+        $contentType = (string) $this->headers->get('content-type');
+        if (! str_contains($contentType, 'multipart/form-data') || ! preg_match('/boundary=(.*)$/', $contentType, $matches)) {
+            return [];
+        }
+
+        $boundary = '--' . trim($matches[1], '"');
+        $fields = [];
+
+        foreach (explode($boundary, $this->getContent()) as $part) {
+            if (! str_contains($part, 'Content-Disposition: form-data;')) {
+                continue;
+            }
+
+            if (! preg_match('/name="([^"]+)"/', $part, $nameMatch)) {
+                continue;
+            }
+
+            $segments = preg_split("/\r\n\r\n/", $part, 2);
+            if (count($segments) !== 2) {
+                continue;
+            }
+
+            $fields[$nameMatch[1]] = trim($segments[1], "\r\n-");
+        }
+
+        return $fields;
     }
 }

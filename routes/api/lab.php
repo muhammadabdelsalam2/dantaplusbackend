@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\Lab\SupportController;
 use App\Http\Controllers\Api\Lab\DashboardController;
 use App\Http\Controllers\Api\Lab\Accounting\LabAccountingController;
 use App\Http\Controllers\Api\Lab\AnalyticsController;
+use App\Http\Controllers\Api\Clinic\NotificationCenterController as UserNotificationCenterController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('lab/orders/lab-order/{token}/download', [CaseController::class, 'publicLabOrder'])
@@ -68,6 +69,10 @@ Route::prefix('lab')
         });
         Route::middleware(['role:lab_admin|lab_receptionist'])->group(function () {
             Route::get('/analytics', [AnalyticsController::class, 'overview']);
+            Route::get('/notifications', [UserNotificationCenterController::class, 'index']);
+            Route::get('/notifications/unread', [UserNotificationCenterController::class, 'unread']);
+            Route::post('/notifications/{id}/read', [UserNotificationCenterController::class, 'markRead']);
+            Route::post('/notifications/mark-all-read', [UserNotificationCenterController::class, 'markAllRead']);
         });
         Route::get('/select/{resource}', [LabSelectController::class, 'show']);
         Route::middleware(['role:lab_admin|lab_receptionist'])->prefix('clinics')->group(function () {
@@ -90,6 +95,7 @@ Route::prefix('lab')
             Route::get('/{id}', [CaseController::class, 'show']);
             Route::patch('/{id}', [CaseController::class, 'update']);
             Route::patch('/{id}/status', [CaseController::class, 'updateStatus']);
+            Route::post('/{id}/status', [CaseController::class, 'updateStatus']);
             Route::post('/{id}/assign-technician', [CaseController::class, 'assignTechnician'])
                 ->middleware('role:lab_admin|lab_receptionist');
             Route::post('/{caseId}/assign-delivery', [DeliveryTaskController::class, 'assign'])
@@ -98,6 +104,7 @@ Route::prefix('lab')
             Route::post('/{id}/messages', [CaseController::class, 'storeMessage']);
             Route::post('/{id}/attachments', [CaseController::class, 'storeAttachment']);
             Route::get('/{id}/activity-log', [CaseController::class, 'activityLog']);
+            Route::get('/{id}/lab-order-pdf', [CaseController::class, 'labOrderPdf']);
         });
 
         Route::middleware(['role:lab_admin|lab_receptionist|lab_technician'])->prefix('orders')->group(function () {
@@ -106,6 +113,7 @@ Route::prefix('lab')
             Route::get('/{id}', [CaseController::class, 'show']);
             Route::patch('/{id}', [CaseController::class, 'update']);
             Route::patch('/{id}/status', [CaseController::class, 'updateStatus']);
+            Route::post('/{id}/status', [CaseController::class, 'updateStatus']);
             Route::post('/{id}/assign-technician', [CaseController::class, 'assignTechnician'])
                 ->middleware('role:lab_admin|lab_receptionist');
             Route::post('/{id}/complete', [CaseController::class, 'complete'])
@@ -119,6 +127,7 @@ Route::prefix('lab')
             Route::post('/{id}/attachments', [CaseController::class, 'storeAttachment']);
             Route::get('/{id}/activity-log', [CaseController::class, 'activityLog']);
             Route::get('/{id}/lab-order', [CaseController::class, 'labOrder']);
+            Route::get('/{id}/lab-order-pdf', [CaseController::class, 'labOrderPdf']);
         });
 
         Route::middleware(['role:lab_admin|lab_receptionist|lab_technician'])->group(function () {
