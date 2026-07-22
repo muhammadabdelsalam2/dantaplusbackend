@@ -453,6 +453,8 @@ class CaseService
                 return ServiceResult::error('Case not found', null, null, 404);
             }
 
+            $this->ensureActionStatus($case, CaseModel::STATUS_COMPLETED);
+
             $user = auth()->user();
 
             if ($data['generate_invoice'] ?? false) {
@@ -494,6 +496,8 @@ class CaseService
             if (! $case) {
                 return ServiceResult::error('Case not found', null, null, 404);
             }
+
+            $this->ensureActionStatus($case, CaseModel::STATUS_ACCEPTED);
 
             $deliveryProfile = \App\Models\LabDeliveryRep::query()
                 ->with('user')
@@ -580,6 +584,8 @@ class CaseService
                 return ServiceResult::error('Case not found', null, null, 404);
             }
 
+            $this->ensureActionStatus($case, CaseModel::STATUS_IN_PROGRESS);
+
             $this->validateTechnician((int) $data['technician_id'], $labId);
 
             $updated = $this->caseRepository->update($case, [
@@ -602,6 +608,17 @@ class CaseService
                 'Technician assignment saved successfully'
             );
         });
+    }
+
+    private function ensureActionStatus(CaseModel $case, string $expectedStatus): void
+    {
+        if ($case->status === $expectedStatus) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'status' => ["This action requires the order to be in '{$expectedStatus}' status. Current status: {$case->status}."],
+        ]);
     }
 
     private function generateInvoiceForCompletedCase(CaseModel $case, ?\App\Models\User $user = null): void
