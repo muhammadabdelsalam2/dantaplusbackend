@@ -198,7 +198,21 @@ class CaseService
                     return ServiceResult::error('Unauthorized case access', null, null, 403);
                 }
 
-                $updated = $this->caseRepository->update($case, $data);
+                $updateData = array_intersect_key($data, array_flip([
+                    'due_date',
+                    'case_type',
+                    'tooth_numbers',
+                    'description',
+                    'priority',
+                    'assigned_delivery_id',
+                    'assigned_technician_id',
+                    'tooth_chart_3d',
+                    'status',
+                ]));
+
+                $updated = ! empty($updateData)
+                    ? $this->caseRepository->update($case, $updateData)
+                    : $case;
 
                 $user = auth()->user();
                 $this->caseRepository->createActivityLog($updated, [
@@ -207,7 +221,7 @@ class CaseService
                     'action' => 'case_updated',
                     'old_status' => $case->status,
                     'new_status' => $updated->status,
-                    'payload' => $data,
+                    'payload' => $updateData,
                 ]);
 
                 if ($attachmentData) {
@@ -260,15 +274,13 @@ class CaseService
             }
 
             $oldStatus = $case->status;
-            $status = $data['status'];
-            $payload = $this->buildStatusPayload($case->load('latestDeliveryTask'), $status, $data['assigned_technician_id'] ?? null);
-
-            $updated = $this->caseRepository->update($case, $payload);
+            $status = $this->normalizeCaseStatus($data['status'] ?? null) ?? $case->status;
+            $updated = $this->caseRepository->update($case, $this->buildStatusPayload($case, $status));
 
             $user = auth()->user();
 
-            if (isset($data['assigned_technician_id'])) {
-                $this->validateTechnician((int) $data['assigned_technician_id'], $labId);
+            if (! empty($data['assigned_technician_id'])) {
+                if ($this->technicianBelongsToLab((int) $data['assigned_technician_id'], $labId)) {
                 $updated = $this->caseRepository->update($updated, [
                     'assigned_technician_id' => $data['assigned_technician_id'],
                 ]);
@@ -281,6 +293,7 @@ class CaseService
                         'assigned_technician_id' => $data['assigned_technician_id'],
                     ],
                 ]);
+                }
             }
 
             $isAccepted = $status === CaseModel::STATUS_ACCEPTED;
@@ -296,15 +309,16 @@ class CaseService
             }
 
             if ($shouldAssignDelivery) {
-                $deliveryTrackingService = app(\App\Services\Lab\DeliveryTrackingService::class);
-                $deliveryRep = $deliveryTrackingService->deliveryRepresentativeForLab((int) $labId, (int) $deliveryRepId);
-                $deliveryTrackingService->assign($updated, $deliveryRep, [
+                $deliveryRep = $this->findDeliveryRepUser((int) $deliveryRepId, $labId);
+                if ($deliveryRep) {
+                    $deliveryTrackingService = app(\App\Services\Lab\DeliveryTrackingService::class);
+                    $deliveryTrackingService->assign($updated, $deliveryRep, [
                     'scheduled_for' => $data['scheduled_for'] ?? null,
                     'pickup_address' => $data['pickup_address'] ?? null,
                     'delivery_address' => $data['delivery_address'] ?? null,
                     'pickup_notes' => $data['pickup_notes'] ?? null,
                     'delivery_notes' => $data['delivery_notes'] ?? null,
-                ]);
+                    ]);
 
                 $this->caseRepository->createActivityLog($updated, [
                     'actor_id' => $user?->id,
@@ -315,63 +329,11 @@ class CaseService
                         'delivery_rep_name' => $deliveryRep->name,
                     ],
                 ]);
+                }
             }
 
-            if ($status === CaseModel::STATUS_COMPLETED && ($data['generate_invoice'] ?? false)) {
-                $accountingService = app(\App\Services\Lab\Accounting\LabAccountingService::class);
-
-                // Check for existing invoice item for this case to prevent duplicates
-                $existingItem = \App\Models\LabInvoiceItem::query()
-                    ->where('case_id', $updated->id)
-                    ->whereHas('invoice', fn ($q) => $q->where('status', '!=', \App\Models\LabInvoice::STATUS_CANCELLED))
-                    ->exists();
-
-                if (! $existingItem) {
-                    $service = \App\Models\LabService::query()
-                        ->where('lab_id', $updated->lab_id)
-                        ->where('service_name', $updated->case_type)
-                        ->first();
-
-                    if (! $service || (float)$service->price <= 0) {
-                        throw ValidationException::withMessages([
-                            'generate_invoice' => ["Cannot generate invoice automatically. No lab service with a valid price was found matching case type '{$updated->case_type}'."],
-                        ]);
-                    }
-
-                    $invoiceData = [
-                        'clinic_id' => $updated->clinic_id,
-                        'doctor_id' => $updated->dentist_id,
-                        'issue_date' => now()->toDateString(),
-                        'due_date' => now()->addDays(15)->toDateString(),
-                        'notes' => 'Auto-generated for completed case ' . $updated->case_number,
-                        'items' => [
-                            [
-                                'case_id' => $updated->id,
-                                'technician_id' => $updated->assigned_technician_id,
-                                'case_number' => $updated->case_number,
-                                'patient_name' => $updated->patient?->user?->name,
-                                'service_name' => $service->service_name,
-                                'lab_service_id' => $service->id,
-                                'teeth_numbers' => $updated->tooth_numbers,
-                                'quantity' => 1,
-                                'unit_price' => (float)$service->price,
-                                'materials_cost' => 0,
-                                'discount' => 0,
-                                'tax' => 0,
-                            ],
-                        ],
-                    ];
-                    $accountingService->createInvoice($invoiceData);
-
-                    $this->caseRepository->createActivityLog($updated, [
-                        'actor_id' => $user?->id,
-                        'actor_name' => $user?->name,
-                        'action' => 'generated_invoice',
-                        'payload' => [
-                            'case_number' => $updated->case_number,
-                        ],
-                    ]);
-                }
+            if ($status === CaseModel::STATUS_COMPLETED && $this->truthy($data['generate_invoice'] ?? false)) {
+                $this->generateInvoiceForCompletedCase($updated, $user);
             }
 
             $this->caseRepository->createActivityLog($updated, [
@@ -453,13 +415,23 @@ class CaseService
                 return ServiceResult::error('Case not found', null, null, 404);
             }
 
-            $this->ensureActionStatus($case, CaseModel::STATUS_COMPLETED);
+            $oldStatus = $case->status;
+            $case = $this->caseRepository->update($case, $this->buildStatusPayload($case, CaseModel::STATUS_COMPLETED));
 
             $user = auth()->user();
 
-            if ($data['generate_invoice'] ?? false) {
+            if ($this->truthy($data['generate_invoice'] ?? false)) {
                 $this->generateInvoiceForCompletedCase($case, $user);
             }
+
+            $this->caseRepository->createActivityLog($case, [
+                'actor_id' => $user?->id,
+                'actor_name' => $user?->name,
+                'action' => 'status_updated',
+                'old_status' => $oldStatus,
+                'new_status' => CaseModel::STATUS_COMPLETED,
+                'notes' => $data['notes'] ?? null,
+            ]);
 
             $this->caseRepository->createActivityLog($case, [
                 'actor_id' => $user?->id,
@@ -497,23 +469,16 @@ class CaseService
                 return ServiceResult::error('Case not found', null, null, 404);
             }
 
-            $this->ensureActionStatus($case, CaseModel::STATUS_ACCEPTED);
+            $oldStatus = $case->status;
+            $case = $this->caseRepository->update($case, $this->buildStatusPayload($case, CaseModel::STATUS_ACCEPTED));
+            $deliveryProfile = $this->findDeliveryProfile($data['delivery_rep_id'] ?? $data['mandoub_id'] ?? null, $labId);
+            $task = null;
 
-            $deliveryProfile = \App\Models\LabDeliveryRep::query()
-                ->with('user')
-                ->where('lab_id', $labId)
-                ->find($data['delivery_rep_id']);
-
-            if (! $deliveryProfile || ! $deliveryProfile->user || ! $deliveryProfile->user->hasRole('delivery_representative')) {
-                throw ValidationException::withMessages([
-                    'delivery_rep_id' => ['The selected delivery representative id must exist in lab_delivery_reps and be linked to a delivery_representative user.'],
+            if ($deliveryProfile?->user) {
+                $task = app(\App\Services\Lab\DeliveryTrackingService::class)->assign($case, $deliveryProfile->user, [
+                    'delivery_address' => $data['delivery_address'] ?? $case->clinic?->address ?? null,
+                    'delivery_notes' => $data['delivery_notes'] ?? $data['notes'] ?? $data['message'] ?? null,
                 ]);
-            }
-
-            $task = app(\App\Services\Lab\DeliveryTrackingService::class)->assign($case, $deliveryProfile->user, [
-                'delivery_address' => $data['delivery_address'] ?? $case->clinic?->address ?? null,
-                'delivery_notes' => $data['delivery_notes'] ?? null,
-            ]);
 
             if (isset($data['latitude'], $data['longitude'])) {
                 $task->update([
@@ -522,12 +487,13 @@ class CaseService
                     'last_location_at' => now(),
                 ]);
             }
+            }
 
             $user = auth()->user();
             $message = "Case {$case->case_number} assigned to you for delivery.";
             $whatsappResult = null;
 
-            if ($data['notification_method'] === 'whatsapp') {
+            if (($data['notification_method'] ?? 'system') === 'whatsapp' && $deliveryProfile?->user) {
                 $phone = $this->normalizeWhatsAppPhone((string) ($deliveryProfile->whatsapp_number ?: $deliveryProfile->user->phone));
                 if ($phone !== '') {
                     $whatsappResult = app(\App\Services\Clinic\WhatsappBot\Providers\MetaWhatsAppService::class)
@@ -535,16 +501,26 @@ class CaseService
                 }
             }
 
+            $this->caseRepository->createActivityLog($case, [
+                'actor_id' => $user?->id,
+                'actor_name' => $user?->name,
+                'action' => 'status_updated',
+                'old_status' => $oldStatus,
+                'new_status' => CaseModel::STATUS_ACCEPTED,
+                'notes' => $data['notes'] ?? $data['message'] ?? null,
+            ]);
+
+            if ($deliveryProfile?->user) {
             $this->notificationRepository->create([
-                'title' => $data['notification_method'] === 'whatsapp' ? 'WhatsApp Delivery Assignment' : 'Delivery Assignment',
+                'title' => ($data['notification_method'] ?? 'system') === 'whatsapp' ? 'WhatsApp Delivery Assignment' : 'Delivery Assignment',
                 'message' => $message,
                 'type' => 'delivery_assignment',
                 'status' => (($whatsappResult['success'] ?? true) ? 'Sent' : 'Failed'),
                 'audience_type' => 'user',
                 'audience_id' => $deliveryProfile->user_id,
-                'user_id' => $data['notification_method'] === 'system' ? $deliveryProfile->user_id : null,
+                'user_id' => ($data['notification_method'] ?? 'system') === 'system' ? $deliveryProfile->user_id : null,
                 'priority' => 'Normal',
-                'delivery_methods' => [$data['notification_method']],
+                'delivery_methods' => [$data['notification_method'] ?? 'system'],
                 'is_read' => false,
                 'sender_id' => $user?->id,
                 'sender_name' => $user?->name,
@@ -559,14 +535,15 @@ class CaseService
                     'delivery_rep_id' => $deliveryProfile->id,
                     'delivery_rep_user_id' => $deliveryProfile->user_id,
                     'delivery_rep_name' => $deliveryProfile->user?->name,
-                    'notification_method' => $data['notification_method'],
+                    'notification_method' => $data['notification_method'] ?? 'system',
                     'whatsapp_result' => $whatsappResult,
                 ],
             ]);
+            }
 
             return ServiceResult::success([
                 'order' => (new CaseResource($case->fresh(['clinic', 'lab', 'patient.user', 'dentist.user', 'technician:id,name,avatar_url', 'deliveryRep:id,name', 'attachments'])))->resolve(),
-                'delivery_task' => app(\App\Services\Lab\DeliveryTrackingService::class)->mapTask($task->fresh(['deliveryRep:id,name,phone', 'case:id,case_number,status'])),
+                'delivery_task' => $task ? app(\App\Services\Lab\DeliveryTrackingService::class)->mapTask($task->fresh(['deliveryRep:id,name,phone', 'case:id,case_number,status'])) : null,
             ], 'Order accepted and delivery representative assigned successfully');
         });
     }
@@ -584,22 +561,30 @@ class CaseService
                 return ServiceResult::error('Case not found', null, null, 404);
             }
 
-            $this->ensureActionStatus($case, CaseModel::STATUS_IN_PROGRESS);
-
-            $this->validateTechnician((int) $data['technician_id'], $labId);
-
-            $updated = $this->caseRepository->update($case, [
-                'assigned_technician_id' => $data['technician_id'],
-            ]);
+            $oldStatus = $case->status;
+            $payload = $this->buildStatusPayload($case, CaseModel::STATUS_IN_PROGRESS);
+            if (! empty($data['technician_id']) && $this->technicianBelongsToLab((int) $data['technician_id'], $labId)) {
+                $payload['assigned_technician_id'] = $data['technician_id'];
+            }
+            $updated = $this->caseRepository->update($case, $payload);
 
             $user = auth()->user();
+            $this->caseRepository->createActivityLog($updated, [
+                'actor_id' => $user?->id,
+                'actor_name' => $user?->name,
+                'action' => 'status_updated',
+                'old_status' => $oldStatus,
+                'new_status' => CaseModel::STATUS_IN_PROGRESS,
+                'notes' => $data['notes'] ?? null,
+            ]);
+
             $this->caseRepository->createActivityLog($updated, [
                 'actor_id' => $user?->id,
                 'actor_name' => $user?->name,
                 'action' => 'technician_assignment_saved',
                 'notes' => $data['notes'] ?? null,
                 'payload' => [
-                    'technician_id' => $data['technician_id'],
+                    'technician_id' => $data['technician_id'] ?? null,
                 ],
             ]);
 
@@ -608,17 +593,6 @@ class CaseService
                 'Technician assignment saved successfully'
             );
         });
-    }
-
-    private function ensureActionStatus(CaseModel $case, string $expectedStatus): void
-    {
-        if ($case->status === $expectedStatus) {
-            return;
-        }
-
-        throw ValidationException::withMessages([
-            'status' => ["This action requires the order to be in '{$expectedStatus}' status. Current status: {$case->status}."],
-        ]);
     }
 
     private function generateInvoiceForCompletedCase(CaseModel $case, ?\App\Models\User $user = null): void
@@ -638,9 +612,13 @@ class CaseService
             ->first();
 
         if (! $service || (float) $service->price <= 0) {
-            throw ValidationException::withMessages([
-                'generate_invoice' => ["Cannot generate invoice automatically. No lab service with a valid price was found matching case type '{$case->case_type}'."],
+            $this->caseRepository->createActivityLog($case, [
+                'actor_id' => $user?->id,
+                'actor_name' => $user?->name,
+                'action' => 'invoice_generation_skipped',
+                'notes' => "No lab service with a valid price was found matching case type '{$case->case_type}'.",
             ]);
+            return;
         }
 
         app(\App\Services\Lab\Accounting\LabAccountingService::class)->createInvoice([
@@ -794,6 +772,42 @@ class CaseService
         }
     }
 
+    private function technicianBelongsToLab(int $technicianId, int $labId): bool
+    {
+        $technician = \App\Models\User::query()
+            ->where('lab_id', $labId)
+            ->find($technicianId);
+
+        return (bool) ($technician?->hasRole('lab_technician'));
+    }
+
+    private function findDeliveryProfile(mixed $deliveryRepId, int $labId): ?\App\Models\LabDeliveryRep
+    {
+        if (! $deliveryRepId) {
+            return null;
+        }
+
+        return \App\Models\LabDeliveryRep::query()
+            ->with('user')
+            ->where('lab_id', $labId)
+            ->find((int) $deliveryRepId);
+    }
+
+    private function findDeliveryRepUser(int $deliveryRepId, int $labId): ?\App\Models\User
+    {
+        $profile = $this->findDeliveryProfile($deliveryRepId, $labId);
+
+        if ($profile?->user?->hasRole('delivery_representative')) {
+            return $profile->user;
+        }
+
+        $user = \App\Models\User::query()
+            ->where('lab_id', $labId)
+            ->find($deliveryRepId);
+
+        return $user?->hasRole('delivery_representative') ? $user : null;
+    }
+
     private function generateCaseNumber(): string
     {
         do {
@@ -808,41 +822,44 @@ class CaseService
         return auth()->user()?->lab_id;
     }
 
-    private function buildStatusPayload(CaseModel $case, string $targetStatus, ?int $incomingTechnicianId = null): array
+    private function normalizeCaseStatus(?string $status): ?string
     {
-        $allowedTransitions = [
-            CaseModel::STATUS_PENDING => [CaseModel::STATUS_RECEIVED_BY_LAB, CaseModel::STATUS_ACCEPTED, CaseModel::STATUS_REJECTED],
-            CaseModel::STATUS_RECEIVED_BY_LAB => [CaseModel::STATUS_ACCEPTED, CaseModel::STATUS_REJECTED],
-            CaseModel::STATUS_ACCEPTED => [CaseModel::STATUS_IN_PROGRESS, CaseModel::STATUS_COMPLETED],
-            CaseModel::STATUS_IN_PROGRESS => [CaseModel::STATUS_COMPLETED, CaseModel::STATUS_REJECTED],
-            CaseModel::STATUS_COMPLETED => [CaseModel::STATUS_DELIVERED],
-            CaseModel::STATUS_DELIVERED => [],
-            CaseModel::STATUS_REJECTED => [],
+        if ($status === null || $status === '') {
+            return null;
+        }
+
+        $normalized = strtolower(str_replace([' ', '-'], '_', trim($status)));
+        $aliases = [
+            'pending' => CaseModel::STATUS_PENDING,
+            'accepted' => CaseModel::STATUS_ACCEPTED,
+            'in_progress' => CaseModel::STATUS_IN_PROGRESS,
+            'complete' => CaseModel::STATUS_COMPLETED,
+            'completed' => CaseModel::STATUS_COMPLETED,
+            'delivered' => CaseModel::STATUS_DELIVERED,
+            'rejected' => CaseModel::STATUS_REJECTED,
+            'received' => CaseModel::STATUS_RECEIVED_BY_LAB,
+            'received_by_lab' => CaseModel::STATUS_RECEIVED_BY_LAB,
         ];
 
-        if ($case->status !== $targetStatus && ! in_array($targetStatus, $allowedTransitions[$case->status] ?? [], true)) {
-            throw ValidationException::withMessages([
-                'status' => ["Invalid case transition from {$case->status} to {$targetStatus}."],
-            ]);
+        if (isset($aliases[$normalized])) {
+            return $aliases[$normalized];
         }
 
-        if ($targetStatus === CaseModel::STATUS_IN_PROGRESS && ! $case->assigned_technician_id && ! $incomingTechnicianId) {
-            throw ValidationException::withMessages([
-                'status' => ['A technician must be assigned before moving the case to In Progress.'],
-            ]);
-        }
+        return in_array($status, CaseModel::STATUSES, true) ? $status : null;
+    }
 
-        if ($targetStatus === CaseModel::STATUS_DELIVERED && ! $case->latestDeliveryTask?->delivered_at) {
-            throw ValidationException::withMessages([
-                'status' => ['Delivery must be completed before marking the case as delivered.'],
-            ]);
-        }
-
+    private function buildStatusPayload(CaseModel $case, string $targetStatus): array
+    {
         return array_filter([
             'status' => $targetStatus,
             'completed_at' => $targetStatus === CaseModel::STATUS_COMPLETED ? now() : null,
             'delivered_at' => $targetStatus === CaseModel::STATUS_DELIVERED ? now() : null,
         ], fn ($value) => $value !== null);
+    }
+
+    private function truthy(mixed $value): bool
+    {
+        return filter_var($value, FILTER_VALIDATE_BOOLEAN);
     }
 
     private function storeAttachment(\Illuminate\Http\UploadedFile $file): string

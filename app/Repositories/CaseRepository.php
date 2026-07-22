@@ -14,9 +14,9 @@ class CaseRepository
     {
         return CaseModel::query()
             ->with([
-                'clinic:id,name',
+                'clinic:id,name,email,phone,address',
                 'lab:id,name',
-                'patient:id,user_id',
+                'patient:id,user_id,date_of_birth,gender',
                 'patient.user:id,name',
                 'dentist:id,user_id',
                 'dentist.user:id,name',
@@ -119,9 +119,9 @@ class CaseRepository
     {
         return CaseModel::query()
             ->with([
-                'clinic:id,name',
+                'clinic:id,name,email,phone,address',
                 'lab:id,name',
-                'patient:id,user_id',
+                'patient:id,user_id,date_of_birth,gender',
                 'patient.user:id,name',
                 'dentist:id,user_id',
                 'dentist.user:id,name',

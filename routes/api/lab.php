@@ -86,6 +86,7 @@ Route::prefix('lab')
 
         Route::middleware(['role:lab_admin|lab_receptionist'])->prefix('partnered-clinics')->group(function () {
             Route::get('/', [ClinicController::class, 'index']);
+            Route::post('/invite', [ClinicInviteController::class, 'store']);
             Route::get('/{clinic}', [ClinicController::class, 'show']);
         });
 
@@ -129,6 +130,16 @@ Route::prefix('lab')
             Route::get('/{id}/lab-order-pdf', [CaseController::class, 'labOrderPdf']);
         });
 
+        Route::middleware(['role:lab_admin|lab_receptionist|lab_technician'])->prefix('order')->group(function () {
+            Route::post('/{id}/accept', [CaseController::class, 'accept'])
+                ->middleware('role:lab_admin|lab_receptionist');
+            Route::post('/{id}/start', [CaseController::class, 'start'])
+                ->middleware('role:lab_admin|lab_receptionist');
+            Route::post('/{id}/complete', [CaseController::class, 'complete'])
+                ->middleware('role:lab_admin|lab_receptionist');
+            Route::get('/{id}/received-by-lab', [CaseController::class, 'labOrder']);
+        });
+
         Route::middleware(['role:lab_admin|lab_receptionist|lab_technician'])->group(function () {
             Route::get('/patients', [LookupController::class, 'patients']);
             Route::get('/dentists', [LookupController::class, 'dentists']);
@@ -156,6 +167,7 @@ Route::prefix('lab')
             Route::get('/', [DeliveryRepController::class, 'index']);
             Route::post('/', [DeliveryRepController::class, 'store']);
             Route::get('/{id}', [DeliveryRepController::class, 'show']);
+            Route::get('/{id}/report', [DeliveryReportController::class, 'showRep']);
             Route::patch('/{id}', [DeliveryRepController::class, 'update']);
             Route::delete('/{id}', [DeliveryRepController::class, 'destroy']);
             Route::get('/{id}/tasks', [DeliveryRepController::class, 'tasks']);

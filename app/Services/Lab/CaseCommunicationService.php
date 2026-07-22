@@ -63,9 +63,9 @@ class CaseCommunicationService
                 'case_id' => $case->id,
                 'sender_id' => $sender?->id,
                 'sender_name' => $data['sender_name'] ?? $sender?->name,
-                'sender_type' => $data['sender_type'],
-                'message' => $data['message'],
-                'is_internal' => (bool) ($data['is_internal'] ?? false),
+                'sender_type' => $data['sender_type'] ?? ($sender?->lab_id ? 'lab' : 'clinic'),
+                'message' => (string) ($data['message'] ?? $data['notes'] ?? ''),
+                'is_internal' => (bool) ($data['is_internal'] ?? $data['internal'] ?? false),
                 'is_read' => false,
                 'attachment_url' => $data['attachment_url'] ?? null,
             ]);
@@ -73,14 +73,15 @@ class CaseCommunicationService
             $this->caseRepository->createActivityLog($case, [
                 'actor_id' => $sender?->id,
                 'actor_name' => $sender?->name,
-                'action' => (bool) ($data['is_internal'] ?? false) ? 'internal_note_added' : 'message_sent',
-                'notes' => $data['message'],
+                'action' => (bool) ($data['is_internal'] ?? $data['internal'] ?? false) ? 'internal_note_added' : 'message_sent',
+                'notes' => $message->message,
             ]);
 
-            if (! (bool) ($data['is_internal'] ?? false)) {
-                $this->syncCommunicationMessage($case, $message->message, $sender?->id, $sender?->name, $data['sender_type']);
+            if (! (bool) ($data['is_internal'] ?? $data['internal'] ?? false)) {
+                $senderType = $data['sender_type'] ?? ($sender?->lab_id ? 'lab' : 'clinic');
+                $this->syncCommunicationMessage($case, $message->message, $sender?->id, $sender?->name, $senderType);
                 $from = $sender?->name ?: ($data['sender_name'] ?? 'Clinic');
-                $this->notifyCaseParticipants($case, 'case_message', "Message from {$from} on case {$case->case_number}: {$message->message}", $sender?->id, $sender?->name, $data['sender_type']);
+                $this->notifyCaseParticipants($case, 'case_message', "Message from {$from} on case {$case->case_number}: {$message->message}", $sender?->id, $sender?->name, $senderType);
             }
 
             return ServiceResult::success(
@@ -96,6 +97,10 @@ class CaseCommunicationService
         $case = $this->findCaseForLab($caseId);
         if (! $case) {
             return ServiceResult::error('Case not found', null, null, 404);
+        }
+
+        if (! isset($data['attachment']) || ! $data['attachment'] instanceof UploadedFile) {
+            return ServiceResult::success(null, 'No attachment provided.');
         }
 
         $file = $data['attachment'];

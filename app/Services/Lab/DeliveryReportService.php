@@ -3,6 +3,7 @@
 namespace App\Services\Lab;
 
 use App\Models\LabDeliveryRep;
+use App\Models\DeliveryTask;
 use App\Support\ServiceResult;
 use Carbon\Carbon;
 
@@ -28,6 +29,69 @@ class DeliveryReportService
         $report = $this->buildReport($reps, $period);
 
         return ServiceResult::success($report, 'Delivery reports fetched successfully');
+    }
+
+    public function showRepReport(int $repId, array $filters): array
+    {
+        $user = auth()->user();
+
+        if (!$user || !$user->lab_id) {
+            return ServiceResult::error('Authenticated lab account is required.', null, null, 403);
+        }
+
+        $rep = LabDeliveryRep::query()
+            ->with(['user:id,name,phone'])
+            ->where('lab_id', (int) $user->lab_id)
+            ->find($repId);
+
+        if (!$rep) {
+            return ServiceResult::error('Delivery representative not found.', null, null, 404);
+        }
+
+        $start = !empty($filters['start_date']) ? Carbon::parse($filters['start_date'])->startOfDay() : now()->startOfMonth();
+        $end = !empty($filters['end_date']) ? Carbon::parse($filters['end_date'])->endOfDay() : now()->endOfDay();
+
+        $tasks = DeliveryTask::query()
+            ->with(['case:id,case_number,clinic_id', 'case.clinic:id,name'])
+            ->where('lab_id', (int) $user->lab_id)
+            ->where('delivery_rep_user_id', $rep->user_id)
+            ->whereBetween('created_at', [$start, $end])
+            ->orderByDesc('created_at')
+            ->get();
+
+        $deliveredCount = $tasks->where('status', DeliveryTask::STATUS_DELIVERED)->count();
+        $onTimeBase = max($deliveredCount, 1);
+        $onTimeCount = $tasks
+            ->filter(fn (DeliveryTask $task) => $task->status === DeliveryTask::STATUS_DELIVERED
+                && (!$task->scheduled_for || !$task->delivered_at || $task->delivered_at->lessThanOrEqualTo($task->scheduled_for)))
+            ->count();
+
+        $deliveries = $tasks->map(fn (DeliveryTask $task) => [
+            'date' => optional($task->created_at)->format('Y-m-d'),
+            'case_id' => $task->case?->case_number ?? $task->case_id,
+            'clinic' => $task->case?->clinic?->name,
+            'expense' => round((float) ($task->trip_expense ?? 0), 2),
+            'status' => $task->status,
+        ])->values()->all();
+
+        return ServiceResult::success([
+            'rep' => [
+                'id' => $rep->id,
+                'name' => $rep->user?->name,
+                'area' => $rep->assigned_region_city,
+                'phone' => $rep->user?->phone,
+            ],
+            'summary' => [
+                'total_deliveries' => $tasks->count(),
+                'total_expenses' => round((float) $tasks->sum('trip_expense'), 2),
+                'on_time_rate' => $deliveredCount > 0 ? round(($onTimeCount / $onTimeBase) * 100, 2) : 0,
+            ],
+            'deliveries' => $deliveries,
+            'filters' => [
+                'start_date' => $start->toDateString(),
+                'end_date' => $end->toDateString(),
+            ],
+        ], 'Delivery representative report fetched successfully');
     }
 
     private function buildReport($reps, string $period): array

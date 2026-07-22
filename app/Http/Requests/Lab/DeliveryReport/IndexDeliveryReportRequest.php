@@ -27,6 +27,9 @@ class IndexDeliveryReportRequest extends FormRequest
                 'last_30_days',
                 'last_3_months',
             ])],
+            'start_date' => ['nullable', 'date'],
+            'end_date' => ['nullable', 'date'],
+            'export' => ['nullable', 'string', 'in:excel'],
         ];
     }
 }

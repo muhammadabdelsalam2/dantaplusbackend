@@ -59,12 +59,17 @@ class CaseController extends Controller
         return ApiResponse::success($result['data'], $result['message'], $result['code']);
     }
 
-    public function update(UpdateCaseRequest $request, int $id)
+    public function update(Request $request, int $id)
     {
         $case = $this->case($id);
         $this->authorize('update', $case);
 
-        $result = $this->caseService->updateCase($id, $request->validated());
+        $data = $request->all();
+        if ($request->hasFile('attachment')) {
+            $data['attachment'] = $request->file('attachment');
+        }
+
+        $result = $this->caseService->updateCase($id, $data);
 
         if (! $result['success']) {
             return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
@@ -73,12 +78,12 @@ class CaseController extends Controller
         return ApiResponse::success($result['data'], $result['message'], $result['code']);
     }
 
-    public function updateStatus(UpdateCaseStatusRequest $request, int $id)
+    public function updateStatus(Request $request, int $id)
     {
         $case = $this->case($id);
         $this->authorize('update', $case);
 
-        $result = $this->caseService->updateStatus($id, $request->validated());
+        $result = $this->caseService->updateStatus($id, $request->all());
 
         if (! $result['success']) {
             return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
@@ -92,22 +97,7 @@ class CaseController extends Controller
         $case = $this->case($id);
         $this->authorize('update', $case);
 
-        $data = $request->validate([
-            'delivery_rep_id' => [
-                'required',
-                'integer',
-                \Illuminate\Validation\Rule::exists('lab_delivery_reps', 'id')->where(fn ($query) => $query->where('lab_id', auth()->user()?->lab_id)),
-            ],
-            'notification_method' => ['required', 'string', 'in:system,whatsapp'],
-            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
-            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
-            'delivery_address' => ['nullable', 'string', 'max:255'],
-            'delivery_notes' => ['nullable', 'string', 'max:1000'],
-        ], [
-            'delivery_rep_id.exists' => 'The selected delivery representative id must exist in lab_delivery_reps for your lab.',
-        ]);
-
-        $result = $this->caseService->acceptOrder($id, $data);
+        $result = $this->caseService->acceptOrder($id, $request->all());
 
         if (! $result['success']) {
             return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
@@ -121,18 +111,7 @@ class CaseController extends Controller
         $case = $this->case($id);
         $this->authorize('update', $case);
 
-        $data = $request->validate([
-            'technician_id' => [
-                'required',
-                'integer',
-                \Illuminate\Validation\Rule::exists('users', 'id')->where(fn ($query) => $query->where('lab_id', auth()->user()?->lab_id)),
-            ],
-            'notes' => ['nullable', 'string', 'max:1000'],
-        ], [
-            'technician_id.exists' => 'The selected technician id must exist in users for your lab and have the lab_technician role.',
-        ]);
-
-        $result = $this->caseService->startOrder($id, $data);
+        $result = $this->caseService->startOrder($id, $request->all());
 
         if (! $result['success']) {
             return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
@@ -170,12 +149,12 @@ class CaseController extends Controller
         return ApiResponse::success($result['data'], $result['message'], $result['code']);
     }
 
-    public function storeMessage(StoreCaseMessageRequest $request, int $id)
+    public function storeMessage(Request $request, int $id)
     {
         $case = $this->case($id);
         $this->authorize('update', $case);
 
-        $result = $this->communicationService->sendMessage($id, $request->validated());
+        $result = $this->communicationService->sendMessage($id, $request->all());
 
         if (! $result['success']) {
             return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
@@ -199,16 +178,7 @@ class CaseController extends Controller
         $case = $this->case($id);
         $this->authorize('update', $case);
 
-        $data = $request->validate([
-            'generate_invoice' => ['sometimes', 'boolean'],
-            'assign_for_delivery' => ['sometimes', 'boolean'],
-            'notes' => ['nullable', 'string', 'max:1000'],
-        ]);
-
-        $data['generate_invoice'] = $data['generate_invoice'] ?? true;
-        $data['assign_for_delivery'] = $data['assign_for_delivery'] ?? true;
-
-        $result = $this->caseService->completeCase($id, $data);
+        $result = $this->caseService->completeCase($id, $request->all());
 
         if (! $result['success']) {
             return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
@@ -273,12 +243,17 @@ class CaseController extends Controller
             ->header('Content-Disposition', 'attachment; filename="lab-order-' . $data['case_number'] . '.html"');
     }
 
-    public function storeAttachment(StoreCaseMessageRequest $request, int $id)
+    public function storeAttachment(Request $request, int $id)
     {
         $case = $this->case($id);
         $this->authorize('update', $case);
 
-        $result = $this->communicationService->addAttachment($id, $request->validated());
+        $data = $request->all();
+        if ($request->hasFile('attachment')) {
+            $data['attachment'] = $request->file('attachment');
+        }
+
+        $result = $this->communicationService->addAttachment($id, $data);
 
         if (! $result['success']) {
             return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
@@ -292,7 +267,7 @@ class CaseController extends Controller
         $case = $this->case($id);
         $this->authorize('view', $case);
 
-        $range = $request->query('range', 'all');
+        $range = $request->query('filter', $request->query('range', 'all'));
         $result = $this->communicationService->listActivityLogs($id, $range === 'all' ? null : $range);
 
         if (! $result['success']) {

@@ -39,12 +39,6 @@ class DeliveryTrackingService
                 ->first();
 
             if ($existingTask) {
-                if ($existingTask->status === DeliveryTask::STATUS_DELIVERED) {
-                    throw ValidationException::withMessages([
-                        'delivery_rep_user_id' => ['Cannot reassign a task that has already been delivered.']
-                    ]);
-                }
-
                 $existingTask->update([
                     'delivery_rep_user_id' => $deliveryRep->id,
                     'scheduled_for' => $data['scheduled_for'] ?? $existingTask->scheduled_for,

@@ -29,10 +29,20 @@ class CaseResource extends JsonResource
             'deliveredAt' => optional($this->delivered_at)->toISOString(),
             'createdAt' => optional($this->created_at)->toISOString(),
             'updatedAt' => optional($this->updated_at)->toISOString(),
+            'progressTracker' => [
+                ['key' => 'pending', 'label' => 'Pending', 'active' => $this->status === 'Pending'],
+                ['key' => 'accepted', 'label' => 'Accepted', 'active' => $this->status === 'Accepted'],
+                ['key' => 'in_progress', 'label' => 'In Progress', 'active' => $this->status === 'In Progress'],
+                ['key' => 'completed', 'label' => 'Completed', 'active' => $this->status === 'Completed'],
+                ['key' => 'delivered', 'label' => 'Delivered', 'active' => $this->status === 'Delivered'],
+            ],
 
             'clinic' => $this->whenLoaded('clinic', fn () => [
                 'id' => $this->clinic?->id,
                 'name' => $this->clinic?->name,
+                'contact' => $this->clinic?->phone,
+                'email' => $this->clinic?->email,
+                'address' => $this->clinic?->address,
             ]),
             'lab' => $this->whenLoaded('lab', fn () => [
                 'id' => $this->lab?->id,
@@ -41,6 +51,8 @@ class CaseResource extends JsonResource
             'patient' => $this->whenLoaded('patient', fn () => [
                 'id' => $this->patient?->id,
                 'name' => $this->patient?->user?->name,
+                'age' => $this->patient?->age,
+                'gender' => $this->patient?->gender,
             ]),
             'dentist' => $this->whenLoaded('dentist', fn () => [
                 'id' => $this->dentist?->id,
@@ -57,6 +69,23 @@ class CaseResource extends JsonResource
                 'name' => $this->deliveryRep?->name,
             ]),
             'attachments' => $this->whenLoaded('attachments', fn () => CaseAttachmentResource::collection($this->attachments)),
+            'patientInfo' => $this->whenLoaded('patient', fn () => [
+                'name' => $this->patient?->user?->name,
+                'age' => $this->patient?->age,
+                'gender' => $this->patient?->gender,
+            ]),
+            'originatingClinic' => $this->whenLoaded('clinic', fn () => [
+                'name' => $this->clinic?->name,
+                'contact' => $this->clinic?->phone,
+                'email' => $this->clinic?->email,
+            ]),
+            'caseVitals' => [
+                'caseType' => $this->case_type,
+                'toothNumber' => $this->tooth_numbers,
+                'dueDate' => optional($this->due_date)->toDateString(),
+                'priority' => $this->priority,
+                'assignedTo' => $this->technician?->name,
+            ],
             'toothChart3d' => $this->tooth_chart_3d,
             'activityLogs' => $this->whenLoaded('activityLogs', fn () => $this->activityLogs->map(fn ($log) => [
                 'id' => $log->id,

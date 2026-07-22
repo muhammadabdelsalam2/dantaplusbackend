@@ -23,7 +23,9 @@
       "name": "Orders",
       "item": [
         { "name": "List Orders", "request": { "method": "GET", "url": "{{base_url}}/lab/orders?clinic=All Clinics&status=All Statuses&priority=All Priorities&search=&per_page=15" } },
-        { "name": "Show Order", "request": { "method": "GET", "url": "{{base_url}}/lab/orders/{{order_id}}" } },
+        { "name": "Show Order Details", "request": { "method": "GET", "url": "{{base_url}}/lab/orders/{{order_id}}" }, "response": [
+          { "name": "Success", "status": "OK", "code": 200, "body": "{\"success\":true,\"data\":{\"patientInfo\":{\"name\":\"Patient Name\",\"age\":32,\"gender\":\"Male\"},\"progressTracker\":[{\"label\":\"Pending\"},{\"label\":\"Accepted\"},{\"label\":\"In Progress\"},{\"label\":\"Completed\"},{\"label\":\"Delivered\"}],\"originatingClinic\":{\"name\":\"Clinic Name\",\"contact\":\"01000000000\",\"email\":\"clinic@example.com\"},\"caseVitals\":{\"caseType\":\"Crown\",\"toothNumber\":[12],\"dueDate\":\"2026-07-30\",\"priority\":\"Normal\",\"assignedTo\":\"Technician\"}}}" }
+        ] },
         {
           "name": "Change Status",
           "request": {
@@ -35,8 +37,7 @@
             "url": "{{base_url}}/lab/orders/{{order_id}}/status"
           },
           "response": [
-            { "name": "Success", "originalRequest": { "method": "POST", "url": "{{base_url}}/lab/orders/{{order_id}}/status" }, "status": "OK", "code": 200, "body": "{\"success\":true,\"message\":\"Case status updated successfully\"}" },
-            { "name": "Validation Error", "originalRequest": { "method": "POST", "url": "{{base_url}}/lab/orders/{{order_id}}/status" }, "status": "Unprocessable Entity", "code": 422, "body": "{\"success\":false,\"message\":\"Validation failed\",\"errors\":{\"status\":[\"The status field is required.\"]}}" }
+            { "name": "Success", "originalRequest": { "method": "POST", "url": "{{base_url}}/lab/orders/{{order_id}}/status" }, "status": "OK", "code": 200, "body": "{\"success\":true,\"message\":\"Case status updated successfully\"}" }
           ]
         },
         {
@@ -45,7 +46,9 @@
             "method": "POST",
             "body": { "mode": "formdata", "formdata": [
               { "key": "delivery_rep_id", "value": "{{delivery_rep_id}}", "type": "text" },
+              { "key": "mandoub_id", "value": "{{delivery_rep_id}}", "type": "text" },
               { "key": "notification_method", "value": "system", "type": "text" },
+              { "key": "message", "value": "Please handle delivery.", "type": "text" },
               { "key": "latitude", "value": "30.0444", "type": "text" },
               { "key": "longitude", "value": "31.2357", "type": "text" },
               { "key": "delivery_address", "value": "Clinic address", "type": "text" },
@@ -54,8 +57,7 @@
             "url": "{{base_url}}/lab/orders/{{order_id}}/accept"
           },
           "response": [
-            { "name": "Success", "originalRequest": { "method": "POST", "url": "{{base_url}}/lab/orders/{{order_id}}/accept" }, "status": "OK", "code": 200, "body": "{\"success\":true,\"message\":\"Order accepted and delivery representative assigned successfully\"}" },
-            { "name": "Validation Error", "originalRequest": { "method": "POST", "url": "{{base_url}}/lab/orders/{{order_id}}/accept" }, "status": "Unprocessable Entity", "code": 422, "body": "{\"success\":false,\"message\":\"Validation failed\",\"errors\":{\"delivery_rep_id\":[\"The selected delivery representative id must exist in lab_delivery_reps for your lab.\"]}}" }
+            { "name": "Success", "originalRequest": { "method": "POST", "url": "{{base_url}}/lab/orders/{{order_id}}/accept" }, "status": "OK", "code": 200, "body": "{\"success\":true,\"message\":\"Order accepted and delivery representative assigned successfully\",\"data\":{\"order\":{\"status\":\"Accepted\"}}}" }
           ]
         },
         {
@@ -67,6 +69,32 @@
               { "key": "notes", "value": "Work instructions.", "type": "text" }
             ] },
             "url": "{{base_url}}/lab/orders/{{order_id}}/start"
+          }
+        },
+        { "name": "List Notes", "request": { "method": "GET", "url": "{{base_url}}/lab/orders/{{order_id}}/notes?per_page=30" } },
+        {
+          "name": "Send Note",
+          "request": {
+            "method": "POST",
+            "body": { "mode": "formdata", "formdata": [
+              { "key": "message", "value": "Internal lab note.", "type": "text" },
+              { "key": "internal", "value": "true", "type": "text" }
+            ] },
+            "url": "{{base_url}}/lab/orders/{{order_id}}/notes"
+          },
+          "response": [
+            { "name": "Success", "status": "Created", "code": 201, "body": "{\"success\":true,\"message\":\"Message sent successfully\"}" }
+          ]
+        },
+        {
+          "name": "Upload Attachment",
+          "request": {
+            "method": "POST",
+            "body": { "mode": "formdata", "formdata": [
+              { "key": "attachment", "type": "file", "src": "" },
+              { "key": "attachment_type", "value": "STL", "type": "text" }
+            ] },
+            "url": "{{base_url}}/lab/orders/{{order_id}}/attachments"
           }
         },
         {
@@ -81,7 +109,10 @@
             "url": "{{base_url}}/lab/orders/{{order_id}}/complete"
           }
         },
-        { "name": "Activity Log", "request": { "method": "GET", "url": "{{base_url}}/lab/orders/{{order_id}}/activity-log?range=all" } },
+        { "name": "Activity Log - All", "request": { "method": "GET", "url": "{{base_url}}/lab/orders/{{order_id}}/activity-log?filter=all" } },
+        { "name": "Activity Log - Today", "request": { "method": "GET", "url": "{{base_url}}/lab/orders/{{order_id}}/activity-log?filter=today" } },
+        { "name": "Activity Log - Week", "request": { "method": "GET", "url": "{{base_url}}/lab/orders/{{order_id}}/activity-log?filter=week" } },
+        { "name": "Activity Log - Month", "request": { "method": "GET", "url": "{{base_url}}/lab/orders/{{order_id}}/activity-log?filter=month" } },
         { "name": "Received By Lab", "request": { "method": "GET", "url": "{{base_url}}/lab/orders/{{order_id}}/received-by-lab" } },
         { "name": "Lab Order JSON", "request": { "method": "GET", "url": "{{base_url}}/lab/orders/{{order_id}}/lab-order" } },
         { "name": "Lab Order PDF", "request": { "method": "GET", "url": "{{base_url}}/lab/orders/{{order_id}}/lab-order-pdf" } },
@@ -97,8 +128,30 @@
     {
       "name": "Delivery",
       "item": [
-        { "name": "List Delivery Reps", "request": { "method": "GET", "url": "{{base_url}}/lab/delivery-reps?search=&status=Active&per_page=15" } },
+        { "name": "List Delivery Reps", "request": { "method": "GET", "url": "{{base_url}}/lab/delivery-reps?search=&status=Active&per_page=15" }, "response": [
+          { "name": "Success", "status": "OK", "code": 200, "body": "{\"success\":true,\"data\":{\"items\":[{\"mandoub_name\":\"John Express\",\"phone\":\"01000000000\",\"status\":\"Active\",\"deliveries_month_count\":12,\"expenses_month_total\":300,\"joined_date\":\"2026-01-01\"}]}}" }
+        ] },
+        { "name": "Show Delivery Rep Report", "request": { "method": "GET", "url": "{{base_url}}/lab/delivery-reps/{{delivery_rep_id}}/report?start_date=2026-07-01&end_date=2026-07-31" }, "response": [
+          { "name": "Success", "status": "OK", "code": 200, "body": "{\"success\":true,\"data\":{\"rep\":{\"name\":\"John Express\",\"area\":\"Cairo\",\"phone\":\"01000000000\"},\"summary\":{\"total_deliveries\":10,\"total_expenses\":250,\"on_time_rate\":90},\"deliveries\":[{\"date\":\"2026-07-22\",\"case_id\":\"LO-M-002\",\"clinic\":\"Clinic\",\"expense\":25,\"status\":\"delivered\"}]}}" }
+        ] },
+        { "name": "Export Delivery Rep Report Excel", "request": { "method": "GET", "url": "{{base_url}}/lab/delivery-reps/{{delivery_rep_id}}/report?start_date=2026-07-01&end_date=2026-07-31&export=excel" } },
         { "name": "Login As Mandoub", "request": { "method": "POST", "url": "{{base_url}}/lab/delivery-reps/{{delivery_rep_id}}/login-as" } }
+      ]
+    },
+    {
+      "name": "Partnered Clinics",
+      "item": [
+        { "name": "List Partnered Clinics", "request": { "method": "GET", "url": "{{base_url}}/lab/partnered-clinics?type=internal&status=Active&per_page=15" } },
+        {
+          "name": "Invite Clinic",
+          "request": {
+            "method": "POST",
+            "body": { "mode": "formdata", "formdata": [
+              { "key": "email", "value": "clinic@example.com", "type": "text" }
+            ] },
+            "url": "{{base_url}}/lab/partnered-clinics/invite"
+          }
+        }
       ]
     },
     {

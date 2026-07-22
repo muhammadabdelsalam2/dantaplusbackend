@@ -3,6 +3,7 @@
 namespace App\Services\Lab;
 
 use App\Models\LabDeliveryRep;
+use App\Models\DeliveryTask;
 use App\Models\User;
 use App\Models\ImpersonationAudit;
 use App\Repositories\LabDeliveryRepRepository;
@@ -277,17 +278,24 @@ class DeliveryRepService
 
     private function mapListItem(LabDeliveryRep $rep): array
     {
+        $monthTasks = DeliveryTask::query()
+            ->where('lab_id', $rep->lab_id)
+            ->where('delivery_rep_user_id', $rep->user_id)
+            ->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()]);
+
         return [
             'id' => $rep->id,
+            'mandoub_name' => $rep->user?->name,
             'full_name' => $rep->user?->name,
             'phone' => $rep->user?->phone,
             'email' => $this->normalizeEmailForOutput($rep->user?->email),
             'whatsapp_number' => $rep->whatsapp_number,
             'assigned_region_city' => $rep->assigned_region_city,
+            'area' => $rep->assigned_region_city,
             'profile_photo_url' => $rep->profile_photo_url,
             'status' => $rep->status,
-            'deliveries_month_count' => 0,
-            'expenses_month_total' => 0,
+            'deliveries_month_count' => (clone $monthTasks)->count(),
+            'expenses_month_total' => round((float) (clone $monthTasks)->sum('trip_expense'), 2),
             'joined_date' => optional($rep->user?->created_at)->format('Y-m-d'),
         ];
     }
@@ -298,8 +306,18 @@ class DeliveryRepService
             return null;
         }
 
+        $monthTasks = DeliveryTask::query()
+            ->where('lab_id', $rep->lab_id)
+            ->where('delivery_rep_user_id', $rep->user_id)
+            ->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()]);
+
+        $allTasks = DeliveryTask::query()
+            ->where('lab_id', $rep->lab_id)
+            ->where('delivery_rep_user_id', $rep->user_id);
+
         return [
             'id' => $rep->id,
+            'mandoub_name' => $rep->user?->name,
             'full_name' => $rep->user?->name,
             'login_phone' => $rep->user?->phone,
             'email' => $this->normalizeEmailForOutput($rep->user?->email),
@@ -309,10 +327,10 @@ class DeliveryRepService
             'status' => $rep->status,
             'joined_date' => optional($rep->user?->created_at)->format('Y-m-d'),
             'stats' => [
-                'deliveries_month_count' => 0,
-                'expenses_month_total' => 0,
-                'deliveries_total_count' => 0,
-                'expenses_total' => 0,
+                'deliveries_month_count' => (clone $monthTasks)->count(),
+                'expenses_month_total' => round((float) (clone $monthTasks)->sum('trip_expense'), 2),
+                'deliveries_total_count' => (clone $allTasks)->count(),
+                'expenses_total' => round((float) (clone $allTasks)->sum('trip_expense'), 2),
             ],
         ];
     }
