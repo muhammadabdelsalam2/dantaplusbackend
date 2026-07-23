@@ -16,18 +16,18 @@ class StoreUserRequest extends FormRequest
     public function rules(): array
     {
         $labId = auth()->user()?->lab_id;
-        $assignableRoles = \App\Support\UserRoleManager::labAssignableRoles();
+        $assignableRoles = \App\Support\UserRoleManager::labRoles();
 
         return [
-            'full_name' => ['required', 'string', 'min:2', 'max:120'],
+            'full_name' => ['nullable', 'string', 'max:120'],
             'email' => [
-                'required',
+                'nullable',
                 'email',
                 Rule::unique('users', 'email')->where(fn ($q) => $q->where('lab_id', $labId)),
             ],
-            'password' => ['required', 'string', 'min:8'],
-            'role' => ['required', 'string', Rule::in($assignableRoles)],
-            'commission_rates' => ['required_if:role,' . LabRole::LabTechnician->value, 'array'],
+            'password' => ['nullable', 'string', 'min:8'],
+            'role' => ['nullable', 'string', Rule::in($assignableRoles)],
+            'commission_rates' => ['nullable', 'array'],
             'commission_rates.*' => ['numeric', 'min:0', 'max:100'],
         ];
     }

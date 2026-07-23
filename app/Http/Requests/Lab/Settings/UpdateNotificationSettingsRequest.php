@@ -14,12 +14,12 @@ class UpdateNotificationSettingsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'new_case_alerts' => ['required', 'array'],
-            'new_case_alerts.in_app_notification' => ['required', 'boolean'],
-            'new_case_alerts.email_notification' => ['required', 'boolean'],
-            'case_update_alerts' => ['required', 'array'],
-            'case_update_alerts.in_app_notification' => ['required', 'boolean'],
-            'case_update_alerts.email_notification' => ['required', 'boolean'],
+            'new_case_alerts' => ['nullable', 'array'],
+            'new_case_alerts.in_app_notification' => ['nullable', 'boolean'],
+            'new_case_alerts.email_notification' => ['nullable', 'boolean'],
+            'case_update_alerts' => ['nullable', 'array'],
+            'case_update_alerts.in_app_notification' => ['nullable', 'boolean'],
+            'case_update_alerts.email_notification' => ['nullable', 'boolean'],
         ];
     }
 }

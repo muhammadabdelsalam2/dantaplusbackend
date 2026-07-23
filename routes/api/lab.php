@@ -58,6 +58,7 @@ Route::prefix('lab')
             Route::get('/invoices/{invoice}/csv', [LabAccountingController::class, 'invoiceCsv']);
             Route::get('/invoices/{invoice}/whatsapp-preview', [LabAccountingController::class, 'invoiceWhatsAppPreview']);
             Route::get('/invoices/{invoice}/payment-link', [LabAccountingController::class, 'paymentLink']);
+            Route::get('/invoices/{invoice}/payment-summary', [LabAccountingController::class, 'paymentSummary']);
             Route::get('/expenses', [LabAccountingController::class, 'expenses']);
             Route::get('/expense-categories', [LabAccountingController::class, 'categories']);
             Route::get('/technician-earnings', [LabAccountingController::class, 'technicianEarnings']);
@@ -84,6 +85,14 @@ Route::prefix('lab')
         });
         Route::middleware(['role:lab_admin|lab_receptionist'])->group(function () {
             Route::get('/analytics', [AnalyticsController::class, 'overview']);
+            Route::get('/analytics/filters/clinics', [AnalyticsController::class, 'clinics']);
+            Route::get('/analytics/filters/doctors', [AnalyticsController::class, 'doctors']);
+            Route::get('/analytics/filters/case-types', [AnalyticsController::class, 'caseTypes']);
+            Route::get('/analytics/stats', [AnalyticsController::class, 'stats']);
+            Route::get('/analytics/case-type-breakdown', [AnalyticsController::class, 'caseTypeBreakdown']);
+            Route::get('/analytics/monthly-completed-cases', [AnalyticsController::class, 'monthlyCompletedCases']);
+            Route::get('/analytics/performance-overview', [AnalyticsController::class, 'performanceOverview']);
+            Route::get('/analytics/detailed-cases', [AnalyticsController::class, 'detailedCases']);
             Route::get('/notifications', [UserNotificationCenterController::class, 'index']);
             Route::get('/notifications/unread', [UserNotificationCenterController::class, 'unread']);
             Route::post('/notifications/{id}/read', [UserNotificationCenterController::class, 'markRead']);
@@ -221,20 +230,38 @@ Route::prefix('lab')
             Route::post('/delivery-tasks/{taskId}/confirm-receipt', [DeliveryTaskController::class, 'confirmReceipt']);
         });
 
+        Route::middleware(['role:delivery_representative'])->group(function () {
+            Route::get('/my-deliveries', [DeliveryRepController::class, 'myDeliveries']);
+            Route::get('/my-reports', [DeliveryRepController::class, 'myReports']);
+            Route::get('/my-deliveries/{taskId}', [DeliveryRepController::class, 'myDeliveryDetails']);
+            Route::post('/my-deliveries/{taskId}/confirm-pickup', [DeliveryRepController::class, 'confirmPickup']);
+            Route::post('/my-location', [DeliveryRepController::class, 'updateLiveLocation'])
+                ->middleware('throttle:60,1');
+            Route::post('/live-tracking/location', [DeliveryRepController::class, 'updateLiveLocation'])
+                ->middleware('throttle:60,1');
+        });
+
+        Route::middleware(['role:lab_admin|lab_receptionist'])->group(function () {
+            Route::get('/live-tracking', [DeliveryRepController::class, 'liveTracking']);
+        });
+
         // Lab Settings
         Route::middleware(['role:lab_admin'])->prefix('settings')->group(function () {
             Route::get('users', [UserController::class, 'index']);
             Route::post('users', [UserController::class, 'store']);
             Route::patch('users/{user}', [UserController::class, 'update']);
+            Route::post('users/{user}', [UserController::class, 'update']);
             Route::patch('users/{user}/status', [UserController::class, 'updateStatus']);
 
             Route::get('services', [ServiceController::class, 'index']);
             Route::post('services', [ServiceController::class, 'store']);
             Route::patch('services/{service}', [ServiceController::class, 'update']);
+            Route::post('services/{service}', [ServiceController::class, 'update']);
             Route::delete('services/{service}', [ServiceController::class, 'destroy']);
 
             Route::get('profile', [LabProfileController::class, 'show']);
             Route::patch('profile', [LabProfileController::class, 'update']);
+            Route::post('profile', [LabProfileController::class, 'update']);
 
             Route::get('gallery', [GalleryController::class, 'index']);
             Route::post('gallery', [GalleryController::class, 'store']);
@@ -242,11 +269,13 @@ Route::prefix('lab')
 
             Route::get('whatsapp', [WhatsAppSettingsController::class, 'show']);
             Route::patch('whatsapp', [WhatsAppSettingsController::class, 'update']);
+            Route::post('whatsapp', [WhatsAppSettingsController::class, 'update']);
             Route::post('whatsapp/test', [WhatsAppSettingsController::class, 'test']);
             Route::get('whatsapp/logs', [WhatsAppSettingsController::class, 'logs']);
 
             Route::get('notifications', [NotificationSettingsController::class, 'show']);
             Route::patch('notifications', [NotificationSettingsController::class, 'update']);
+            Route::post('notifications', [NotificationSettingsController::class, 'update']);
         });
     });
 

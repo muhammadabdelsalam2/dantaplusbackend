@@ -16,7 +16,7 @@ class UpdateUserStatusRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'status' => ['required', Rule::enum(UserStatus::class)],
+            'status' => ['nullable', Rule::enum(UserStatus::class)],
         ];
     }
 }

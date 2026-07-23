@@ -35,7 +35,7 @@ class GalleryService
         return ServiceResult::error('Lab account is not linked to a dental lab', null, null, 403);
     }
 
-    $type = $data['type'];
+    $type = $data['type'] ?? 'before';
     $images = $data['images'] ?? [];   // ← كان $data['files']
 
     $uploaded = [];

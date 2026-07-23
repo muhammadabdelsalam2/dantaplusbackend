@@ -48,7 +48,11 @@ class NotificationSettingsService
         ]);
 
         $updated = $this->settingsRepository->updateSettings($settings, [
-            'notifications_json' => $data,
+            'notifications_json' => array_replace_recursive(
+                self::DEFAULT_NOTIFICATIONS,
+                $settings->notifications_json ?? [],
+                $data
+            ),
         ]);
 
         return ServiceResult::success($updated->notifications_json, 'Notification settings updated.');

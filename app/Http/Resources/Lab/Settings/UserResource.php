@@ -25,13 +25,20 @@ class UserResource extends JsonResource
         $commissionRates = $role === LabRole::LabTechnician->value
             ? ($this->commission_rates ?? [])
             : null;
+        $displayRole = $role === LabRole::DeliveryRepresentative->value ? 'delivery_rep' : $role;
 
         return [
             'id' => $this->id,
+            'user' => [
+                'name' => $this->name ?? '',
+                'email' => $this->email ?? '',
+                'identifier' => $this->email ?? $username ?? '',
+            ],
             'full_name' => $this->name ?? '',
             'username' => $username ?? '',
             'email' => $this->email ?? '',
-            'role' => $role ?? '',
+            'role' => $displayRole ?? '',
+            'role_value' => $role ?? '',
             'roles' => $this->getRoleNames()->values()->all(),
             'lab_id' => $this->lab_id,
             'status' => $status ?? '',

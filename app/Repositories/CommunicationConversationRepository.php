@@ -12,11 +12,14 @@ class CommunicationConversationRepository
     public function paginateConversations(array $filters, int $perPage = 15): LengthAwarePaginator
     {
         return CommunicationConversation::query()
-            ->with(['clinic:id,name', 'lab:id,name'])
+            ->with(['clinic:id,name,email,phone,address', 'lab:id,name'])
             ->withCount([
                 'messages as unread_count' => fn ($q) => $q
                     ->where('is_read', false)
-                    ->where('sender_type', '!=', 'super-admin'),
+                    ->where('sender_type', '!=', 'super-admin')
+                    ->when(auth()->id(), fn ($messages, $viewerId) => $messages->where(function ($incoming) use ($viewerId) {
+                        $incoming->whereNull('sender_id')->orWhere('sender_id', '!=', $viewerId);
+                    })),
             ])
             ->when($filters['tab'] ?? null, fn (Builder $query, $tab) => $this->applyTabFilter($query, $tab))
             ->when($filters['clinic_id'] ?? null, fn (Builder $query, $clinicId) => $query->where('clinic_id', $clinicId))
@@ -45,7 +48,7 @@ class CommunicationConversationRepository
     public function findConversationById(int $id): ?CommunicationConversation
     {
         return CommunicationConversation::query()
-            ->with(['clinic:id,name', 'lab:id,name'])
+            ->with(['clinic:id,name,email,phone,address', 'lab:id,name'])
             ->find($id);
     }
 

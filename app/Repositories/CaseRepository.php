@@ -5,6 +5,7 @@ namespace App\Repositories;
 use App\Models\CaseActivityLog;
 use App\Models\CaseAttachment;
 use App\Models\CaseModel;
+use App\Models\ClinicLabPartnership;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -12,6 +13,8 @@ class CaseRepository
 {
     public function paginateForLab(int $labId, array $filters, int $perPage = 15): LengthAwarePaginator
     {
+        $partnerClinicFilter = $this->partnerClinicFilter($labId, $filters);
+
         return CaseModel::query()
             ->with([
                 'clinic:id,name,email,phone,address',
@@ -33,11 +36,15 @@ class CaseRepository
                 fn (Builder $q, $priority) => $q->where('priority', $priority)
             )
 
-            ->when($filters['clinic_id'] ?? $filters['clinic'] ?? null,
+            ->when($partnerClinicFilter !== null,
+                fn (Builder $q) => $partnerClinicFilter === 0
+                    ? $q->whereRaw('1 = 0')
+                    : $q->where('clinic_id', $partnerClinicFilter)
+            )
+
+            ->when($partnerClinicFilter === null && ($filters['clinic_id'] ?? $filters['clinic'] ?? null),
                 function (Builder $q, $clinic) {
-                    if (is_numeric($clinic)) {
-                        $q->where('clinic_id', $clinic);
-                    } elseif (! in_array($clinic, ['All Clinics', 'all', 'All'], true)) {
+                    if (! is_numeric($clinic) && ! in_array($clinic, ['All Clinics', 'all', 'All'], true)) {
                         $q->whereHas('clinic', fn (Builder $clinicQuery) => $clinicQuery->where('name', 'like', "%{$clinic}%"));
                     }
                 }
@@ -99,6 +106,13 @@ class CaseRepository
     public function statsForLab(int $labId, array $filters = []): array
     {
         $base = CaseModel::query()->where('lab_id', $labId);
+
+        $partnerClinicFilter = $this->partnerClinicFilter($labId, $filters);
+        if ($partnerClinicFilter !== null) {
+            $partnerClinicFilter === 0
+                ? $base->whereRaw('1 = 0')
+                : $base->where('clinic_id', $partnerClinicFilter);
+        }
 
         if ($restrictedUserId = $filters['restricted_user_id'] ?? null) {
             $base->where(function (Builder $restricted) use ($restrictedUserId) {
@@ -174,5 +188,27 @@ class CaseRepository
         }
 
         return in_array($value, $emptyValues, true) ? null : $value;
+    }
+
+    private function partnerClinicFilter(int $labId, array $filters): ?int
+    {
+        $clinic = $filters['clinic_id'] ?? $filters['clinic'] ?? null;
+
+        if ($clinic === null || $clinic === '' || in_array($clinic, ['All Clinics', 'all', 'All'], true)) {
+            return null;
+        }
+
+        if (! is_numeric($clinic)) {
+            return null;
+        }
+
+        $clinicId = (int) $clinic;
+
+        return ClinicLabPartnership::query()
+            ->where('lab_id', $labId)
+            ->where('clinic_id', $clinicId)
+            ->exists()
+                ? $clinicId
+                : 0;
     }
 }

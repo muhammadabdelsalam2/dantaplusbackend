@@ -22,7 +22,20 @@ class LabDeliveryRep extends Model
         'whatsapp_number',
         'profile_photo',
         'status',
+        'last_latitude',
+        'last_longitude',
+        'tracking_status',
+        'last_location_at',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'last_latitude' => 'decimal:7',
+            'last_longitude' => 'decimal:7',
+            'last_location_at' => 'datetime',
+        ];
+    }
 
     protected function profilePhotoUrl(): Attribute
     {

@@ -21,6 +21,12 @@ class UpdateLabProfileRequest extends FormRequest
             'address' => ['nullable', 'string', 'max:500'],
             'working_hours' => ['nullable', 'string', 'max:100'],
             'logo_url' => ['nullable', 'file','image','mimes:jpg,jpeg,png,webp', 'max:4096'],
+            'before_images' => ['nullable', 'array'],
+            'before_images.*' => ['nullable', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
+            'after_images' => ['nullable', 'array'],
+            'after_images.*' => ['nullable', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
+            'before' => ['nullable'],
+            'after' => ['nullable'],
         ];
     }
 }

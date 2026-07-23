@@ -260,6 +260,7 @@ class DeliveryRepService
         ]);
 
         $token = $rep->user->createToken('delivery-rep-impersonation')->plainTextToken;
+        $portalPayload = $this->deliveryPortalPayloadForUser($rep->user);
 
         return ServiceResult::success([
             'token' => $token,
@@ -272,8 +273,352 @@ class DeliveryRepService
                 'role' => 'delivery_representative',
                 'lab_id' => $rep->user->lab_id,
             ],
+            'delivery_rep' => $this->mapDetails($rep),
+            'my_deliveries' => $portalPayload['my_deliveries'],
+            'my_reports' => $portalPayload['my_reports'],
             'redirect_to' => '/delivery/dashboard',
         ], 'Delivery representative impersonation token created successfully');
+    }
+
+    public function myDeliveries(?User $user = null, array $filters = []): array
+    {
+        $user ??= auth()->user();
+        $rep = $this->deliveryRepForUser($user);
+
+        if (! $rep) {
+            return ServiceResult::error('Delivery representative profile not found.', null, null, 404);
+        }
+
+        $tasks = $this->deliveryTasksQuery($rep)
+            ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
+            ->latest('id')
+            ->paginate(max(1, min((int) ($filters['per_page'] ?? 15), 100)));
+
+        return ServiceResult::success([
+            'delivery_rep' => $this->mapDetails($rep),
+            'items' => collect($tasks->items())->map(fn (DeliveryTask $task) => $this->mapDeliveryCard($task))->values()->all(),
+            'pagination' => [
+                'current_page' => $tasks->currentPage(),
+                'last_page' => $tasks->lastPage(),
+                'per_page' => $tasks->perPage(),
+                'total' => $tasks->total(),
+            ],
+        ], 'Delivery representative deliveries fetched successfully');
+    }
+
+    public function myReports(?User $user = null, array $filters = []): array
+    {
+        $user ??= auth()->user();
+        $rep = $this->deliveryRepForUser($user);
+
+        if (! $rep) {
+            return ServiceResult::error('Delivery representative profile not found.', null, null, 404);
+        }
+
+        $tasks = $this->deliveryTasksQuery($rep)
+            ->when($filters['start_date'] ?? null, fn ($query, $date) => $query->whereDate('created_at', '>=', $date))
+            ->when($filters['end_date'] ?? null, fn ($query, $date) => $query->whereDate('created_at', '<=', $date))
+            ->latest('id')
+            ->get();
+
+        $deliveredCount = $tasks->where('status', DeliveryTask::STATUS_DELIVERED)->count();
+        $completedCount = $tasks->whereIn('status', [DeliveryTask::STATUS_DELIVERED, DeliveryTask::STATUS_PICKED_UP, DeliveryTask::STATUS_IN_TRANSIT])->count();
+
+        return ServiceResult::success([
+            'delivery_rep' => $this->mapDetails($rep),
+            'summary' => [
+                'on_time_rate' => $completedCount > 0 ? 100 : 0,
+                'total_expenses' => round((float) $tasks->sum('trip_expense'), 2),
+                'total_deliveries' => $tasks->count(),
+                'delivered_count' => $deliveredCount,
+            ],
+            'history' => $tasks->map(fn (DeliveryTask $task) => [
+                'status' => $this->displayTaskStatus($task->status),
+                'expense' => round((float) ($task->trip_expense ?? 0), 2),
+                'clinic' => $task->case?->clinic?->name,
+                'case_id' => $task->case?->case_number,
+                'date' => optional($task->created_at)->format('d/m/Y'),
+            ])->values()->all(),
+        ], 'Delivery representative reports fetched successfully');
+    }
+
+    public function deliveryTaskDetails(int $taskId, ?User $user = null): array
+    {
+        $user ??= auth()->user();
+        $rep = $this->deliveryRepForUser($user);
+
+        if (! $rep) {
+            return ServiceResult::error('Delivery representative profile not found.', null, null, 404);
+        }
+
+        $task = $this->deliveryTasksQuery($rep)->find($taskId);
+
+        if (! $task) {
+            return ServiceResult::error('Delivery task not found.', null, null, 404);
+        }
+
+        return ServiceResult::success($this->mapDeliveryDetails($task), 'Delivery task details fetched successfully');
+    }
+
+    public function confirmPickup(int $taskId, array $data, ?User $user = null): array
+    {
+        $user ??= auth()->user();
+        $rep = $this->deliveryRepForUser($user);
+
+        if (! $rep) {
+            return ServiceResult::error('Delivery representative profile not found.', null, null, 404);
+        }
+
+        $task = $this->deliveryTasksQuery($rep)->find($taskId);
+
+        if (! $task) {
+            return ServiceResult::error('Delivery task not found.', null, null, 404);
+        }
+
+        $photoPath = $this->storePickupPhoto($data['photo']);
+
+        try {
+            return DB::transaction(function () use ($task, $data, $photoPath, $user) {
+                $tripCost = $data['trip_cost'] ?? $data['expenses'] ?? 0;
+                $tripCost = is_numeric($tripCost) ? (float) $tripCost : 0.0;
+
+                $task->update([
+                    'status' => DeliveryTask::STATUS_PICKED_UP,
+                    'picked_up_at' => now(),
+                    'receipt_proof_path' => $photoPath,
+                    'receipt_proof_original_name' => $data['photo']->getClientOriginalName(),
+                    'receipt_proof_mime_type' => $data['photo']->getClientMimeType(),
+                    'receipt_proof_size' => $data['photo']->getSize(),
+                    'trip_expense' => $tripCost,
+                    'receipt_confirmed_at' => now(),
+                    'receipt_confirmed_by' => $user?->id,
+                ]);
+
+                if ($task->case) {
+                    app(\App\Repositories\CaseRepository::class)->createActivityLog($task->case, [
+                        'actor_id' => $user?->id,
+                        'actor_name' => $user?->name,
+                        'action' => 'pickup_confirmed',
+                        'payload' => [
+                            'task_id' => $task->id,
+                            'trip_cost' => $tripCost,
+                            'photo_path' => $photoPath,
+                        ],
+                    ]);
+                }
+
+                return ServiceResult::success($this->mapDeliveryDetails($task->fresh(['case.clinic', 'case.patient.user', 'deliveryRep'])), 'Pickup confirmed successfully');
+            });
+        } catch (\Throwable $e) {
+            $this->deletePublicFile($photoPath);
+            throw $e;
+        }
+    }
+
+    public function updateLiveLocation(array $data, ?User $user = null): array
+    {
+        $user ??= auth()->user();
+        $rep = $this->deliveryRepForUser($user);
+
+        if (! $rep) {
+            return ServiceResult::error('Delivery representative profile not found.', null, null, 404);
+        }
+
+        $rep->update([
+            'last_latitude' => $data['latitude'],
+            'last_longitude' => $data['longitude'],
+            'tracking_status' => $data['status'] ?? $rep->tracking_status ?? 'In Transit',
+            'last_location_at' => now(),
+        ]);
+
+        $activeTask = $this->deliveryTasksQuery($rep)
+            ->whereIn('status', [DeliveryTask::STATUS_ASSIGNED, DeliveryTask::STATUS_PICKED_UP, DeliveryTask::STATUS_IN_TRANSIT])
+            ->latest('id')
+            ->first();
+
+        if ($activeTask) {
+            $activeTask->update([
+                'last_location_lat' => $data['latitude'],
+                'last_location_lng' => $data['longitude'],
+                'last_location_at' => now(),
+            ]);
+        }
+
+        return ServiceResult::success([
+            'delivery_rep' => $this->mapLiveRep($rep->fresh('user'), $activeTask?->fresh(['case.clinic', 'case.patient.user'])),
+        ], 'Delivery representative location updated successfully');
+    }
+
+    public function liveTracking(array $filters = []): array
+    {
+        $authUser = auth()->user();
+
+        if (! $authUser?->lab_id) {
+            return ServiceResult::error('Authenticated lab account is required.', null, null, 403);
+        }
+
+        $reps = LabDeliveryRep::query()
+            ->with('user')
+            ->where('lab_id', $authUser->lab_id)
+            ->where('status', LabDeliveryRep::STATUS_ACTIVE)
+            ->whereNotNull('last_latitude')
+            ->whereNotNull('last_longitude')
+            ->get();
+
+        return ServiceResult::success([
+            'items' => $reps->map(function (LabDeliveryRep $rep) {
+                $task = $this->deliveryTasksQuery($rep)
+                    ->whereIn('status', [DeliveryTask::STATUS_ASSIGNED, DeliveryTask::STATUS_PICKED_UP, DeliveryTask::STATUS_IN_TRANSIT])
+                    ->latest('id')
+                    ->first();
+
+                return $this->mapLiveRep($rep, $task);
+            })->values()->all(),
+        ], 'Live delivery tracking fetched successfully');
+    }
+
+    private function deliveryPortalPayloadForUser(User $user): array
+    {
+        $deliveries = $this->myDeliveries($user);
+        $reports = $this->myReports($user);
+
+        return [
+            'my_deliveries' => $deliveries['data'] ?? null,
+            'my_reports' => $reports['data'] ?? null,
+        ];
+    }
+
+    private function deliveryRepForUser(?User $user): ?LabDeliveryRep
+    {
+        if (! $user?->lab_id || ! $user->hasRole('delivery_representative')) {
+            return null;
+        }
+
+        return LabDeliveryRep::query()
+            ->with('user')
+            ->where('lab_id', $user->lab_id)
+            ->where('user_id', $user->id)
+            ->first();
+    }
+
+    private function deliveryTasksQuery(LabDeliveryRep $rep)
+    {
+        return DeliveryTask::query()
+            ->with(['deliveryRep:id,name,phone,avatar_url', 'case:id,case_number,status,clinic_id,patient_id,due_date,case_type', 'case.clinic:id,name,email,phone,address', 'case.patient.user:id,name'])
+            ->where('lab_id', $rep->lab_id)
+            ->where('delivery_rep_user_id', $rep->user_id);
+    }
+
+    private function mapDeliveryCard(DeliveryTask $task): array
+    {
+        return [
+            'id' => $task->id,
+            'task_id' => $task->id,
+            'status' => $task->status,
+            'status_label' => $this->displayTaskStatus($task->status),
+            'case_id' => $task->case?->case_number,
+            'case_type' => $task->case?->case_type,
+            'clinic_name' => $task->case?->clinic?->name,
+            'patient_name' => $task->case?->patient?->user?->name,
+            'pickup_address' => $task->pickup_address ?: $task->case?->clinic?->address,
+            'delivery_address' => $task->delivery_address,
+            'scheduled_for' => optional($task->scheduled_for)->toISOString(),
+            'trip_cost' => round((float) ($task->trip_expense ?? 0), 2),
+        ];
+    }
+
+    private function mapDeliveryDetails(DeliveryTask $task): array
+    {
+        $clinic = $task->case?->clinic;
+
+        return array_merge($this->mapDeliveryCard($task), [
+            'case' => [
+                'id' => $task->case?->id,
+                'case_number' => $task->case?->case_number,
+                'status' => $task->case?->status,
+                'case_type' => $task->case?->case_type,
+                'due_date' => optional($task->case?->due_date)->format('d/m/Y'),
+            ],
+            'clinic' => $clinic ? [
+                'id' => $clinic->id,
+                'name' => $clinic->name,
+                'email' => $clinic->email,
+                'phone' => $clinic->phone,
+                'address' => $clinic->address,
+                'contact' => $clinic->phone,
+            ] : null,
+            'pickup' => [
+                'address' => $task->pickup_address ?: $clinic?->address,
+                'latitude' => $task->last_location_lat,
+                'longitude' => $task->last_location_lng,
+                'contact' => $clinic?->phone,
+            ],
+            'location' => [
+                'latitude' => $task->last_location_lat,
+                'longitude' => $task->last_location_lng,
+                'updated_at' => optional($task->last_location_at)->toISOString(),
+            ],
+            'proof_photo_url' => $task->receipt_proof_path ? asset('storage/' . $task->receipt_proof_path) : null,
+        ]);
+    }
+
+    private function mapLiveRep(LabDeliveryRep $rep, ?DeliveryTask $task): array
+    {
+        return [
+            'delivery_rep_id' => $rep->id,
+            'user_id' => $rep->user_id,
+            'name' => $rep->user?->name,
+            'phone' => $rep->user?->phone,
+            'status' => $rep->tracking_status ?: $this->mapTrackingStatus($task?->status),
+            'latitude' => $rep->last_latitude,
+            'longitude' => $rep->last_longitude,
+            'last_location_at' => optional($rep->last_location_at)->toISOString(),
+            'case' => $task?->case ? [
+                'id' => $task->case->id,
+                'case_id' => $task->case->case_number,
+                'case_number' => $task->case->case_number,
+                'status' => $task->case->status,
+                'clinic_name' => $task->case?->clinic?->name,
+                'patient_name' => $task->case?->patient?->user?->name,
+            ] : null,
+            'task' => $task ? [
+                'id' => $task->id,
+                'status' => $task->status,
+                'status_label' => $this->displayTaskStatus($task->status),
+            ] : null,
+        ];
+    }
+
+    private function mapTrackingStatus(?string $taskStatus): string
+    {
+        return match ($taskStatus) {
+            DeliveryTask::STATUS_DELIVERED => 'Delivered',
+            DeliveryTask::STATUS_PICKED_UP,
+            DeliveryTask::STATUS_IN_TRANSIT => 'In Transit',
+            default => 'Delivering',
+        };
+    }
+
+    private function displayTaskStatus(?string $status): string
+    {
+        return match ($status) {
+            DeliveryTask::STATUS_ASSIGNED => 'Assigned',
+            DeliveryTask::STATUS_PICKED_UP => 'Picked Up',
+            DeliveryTask::STATUS_IN_TRANSIT => 'In Transit',
+            DeliveryTask::STATUS_DELIVERED => 'Delivered',
+            DeliveryTask::STATUS_CANCELLED => 'Cancelled',
+            default => (string) $status,
+        };
+    }
+
+    private function storePickupPhoto(UploadedFile $file): string
+    {
+        $extension = $file->getClientOriginalExtension() ?: $file->extension();
+        $filename = (string) Str::uuid() . '.' . $extension;
+
+        Storage::disk('public')->putFileAs('delivery-pickups', $file, $filename);
+
+        return 'delivery-pickups/' . $filename;
     }
 
     private function mapListItem(LabDeliveryRep $rep): array
@@ -294,6 +639,12 @@ class DeliveryRepService
             'area' => $rep->assigned_region_city,
             'profile_photo_url' => $rep->profile_photo_url,
             'status' => $rep->status,
+            'location' => [
+                'latitude' => $rep->last_latitude,
+                'longitude' => $rep->last_longitude,
+                'status' => $rep->tracking_status,
+                'updated_at' => optional($rep->last_location_at)->toISOString(),
+            ],
             'deliveries_month_count' => (clone $monthTasks)->count(),
             'expenses_month_total' => round((float) (clone $monthTasks)->sum('trip_expense'), 2),
             'joined_date' => optional($rep->user?->created_at)->format('Y-m-d'),
@@ -325,6 +676,12 @@ class DeliveryRepService
             'assigned_region_city' => $rep->assigned_region_city,
             'profile_photo_url' => $rep->profile_photo_url,
             'status' => $rep->status,
+            'location' => [
+                'latitude' => $rep->last_latitude,
+                'longitude' => $rep->last_longitude,
+                'status' => $rep->tracking_status,
+                'updated_at' => optional($rep->last_location_at)->toISOString(),
+            ],
             'joined_date' => optional($rep->user?->created_at)->format('Y-m-d'),
             'stats' => [
                 'deliveries_month_count' => (clone $monthTasks)->count(),

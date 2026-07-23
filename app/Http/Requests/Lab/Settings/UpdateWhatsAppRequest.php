@@ -16,16 +16,20 @@ class UpdateWhatsAppRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'provider' => ['required', Rule::enum(WhatsAppProvider::class)],
-            'meta' => ['required_if:provider,' . WhatsAppProvider::MetaCloudApi->value, 'array'],
-            'meta.whatsapp_business_account_id' => ['required_if:provider,' . WhatsAppProvider::MetaCloudApi->value, 'string'],
-            'meta.business_phone_number_id' => ['required_if:provider,' . WhatsAppProvider::MetaCloudApi->value, 'string'],
-            'meta.access_token' => ['required_if:provider,' . WhatsAppProvider::MetaCloudApi->value, 'string'],
-            'meta.verify_token' => ['required_if:provider,' . WhatsAppProvider::MetaCloudApi->value, 'string'],
-            'twilio' => ['required_if:provider,' . WhatsAppProvider::TwilioWhatsAppApi->value, 'array'],
-            'twilio.account_sid' => ['required_if:provider,' . WhatsAppProvider::TwilioWhatsAppApi->value, 'string'],
-            'twilio.auth_token' => ['required_if:provider,' . WhatsAppProvider::TwilioWhatsAppApi->value, 'string'],
-            'twilio.phone_number' => ['required_if:provider,' . WhatsAppProvider::TwilioWhatsAppApi->value, 'string'],
+            'provider' => ['nullable'],
+            'business_phone_number_id' => ['nullable', 'string'],
+            'whatsapp_business_account_id' => ['nullable', 'string'],
+            'access_token' => ['nullable', 'string'],
+            'verify_token' => ['nullable', 'string'],
+            'meta' => ['nullable', 'array'],
+            'meta.whatsapp_business_account_id' => ['nullable', 'string'],
+            'meta.business_phone_number_id' => ['nullable', 'string'],
+            'meta.access_token' => ['nullable', 'string'],
+            'meta.verify_token' => ['nullable', 'string'],
+            'twilio' => ['nullable', 'array'],
+            'twilio.account_sid' => ['nullable', 'string'],
+            'twilio.auth_token' => ['nullable', 'string'],
+            'twilio.phone_number' => ['nullable', 'string'],
         ];
     }
 }

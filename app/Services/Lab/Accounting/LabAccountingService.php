@@ -111,6 +111,9 @@ class LabAccountingService
             return ServiceResult::error('Lab invoice not found.', null, null, 404);
         }
 
+        $this->recalculateInvoice($invoice);
+        $invoice = $invoice->fresh($this->invoiceRelations());
+
         return ServiceResult::success($this->invoiceDetails($invoice, $options), 'Lab invoice fetched successfully');
     }
 
@@ -339,6 +342,9 @@ class LabAccountingService
         if (! $invoice) {
             return ServiceResult::error('Lab invoice not found.', null, null, 404);
         }
+
+        $this->recalculateInvoice($invoice);
+        $invoice = $invoice->fresh($this->invoiceRelations());
 
         if ((float) $invoice->remaining_amount <= 0) {
             return ServiceResult::error('Invoice is already fully paid.', null, ['amount' => ['Invoice is already fully paid.']], 422);
@@ -573,6 +579,7 @@ class LabAccountingService
         }
 
         $filters = $this->applyPeriodFilters($filters);
+        $materialType = $this->normalizeMaterialType($filters['material_type'] ?? null);
 
         $rows = LabInvoiceItem::query()
             ->with(['technician:id,name,commission_rates', 'materials'])
@@ -583,6 +590,7 @@ class LabAccountingService
                     ->when($filters['date_to'] ?? null, fn (Builder $q, string $date) => $q->whereDate('issue_date', '<=', $date));
             })
             ->when($filters['technician_id'] ?? null, fn (Builder $q, int $technicianId) => $q->where('technician_id', $technicianId))
+            ->when($materialType, fn (Builder $q, string $type) => $q->whereHas('materials', fn (Builder $material) => $material->where('material_type', $type)))
             ->whereNotNull('technician_id')
             ->get()
             ->groupBy('technician_id')
@@ -658,13 +666,15 @@ class LabAccountingService
         }
 
         $labId = $this->currentLabId();
+        $materialType = $this->normalizeMaterialType($filters['material_type'] ?? null);
+
         $materialRows = LabInvoiceItemMaterial::query()
             ->whereHas('item.invoice', function (Builder $q) use ($labId, $filters) {
                 $q->where('lab_id', $labId)
                     ->when($filters['date_from'] ?? null, fn (Builder $q, string $date) => $q->whereDate('issue_date', '>=', $date))
                     ->when($filters['date_to'] ?? null, fn (Builder $q, string $date) => $q->whereDate('issue_date', '<=', $date));
             })
-            ->when(($filters['material_type'] ?? 'All Materials') !== 'All Materials', fn (Builder $q) => $q->where('material_type', $filters['material_type']))
+            ->when($materialType, fn (Builder $q, string $type) => $q->where('material_type', $type))
             ->get()
             ->groupBy(fn (LabInvoiceItemMaterial $material) => $material->material_type ?: 'Other')
             ->map(fn (Collection $items, string $type) => [
@@ -756,6 +766,31 @@ class LabAccountingService
         }
 
         return ServiceResult::success($this->paymentLinkPayload($invoice), 'Invoice payment link fetched successfully');
+    }
+
+    public function paymentSummary(int $invoiceId): array
+    {
+        $invoice = $this->findInvoiceForCurrentLab($invoiceId);
+        if (! $invoice) {
+            return ServiceResult::error('Lab invoice not found.', null, null, 404);
+        }
+
+        $this->recalculateInvoice($invoice);
+        $invoice = $invoice->fresh($this->invoiceRelations());
+
+        return ServiceResult::success([
+            'invoice_id' => $invoice->invoice_number,
+            'clinic' => [
+                'id' => $invoice->clinic_id,
+                'name' => $invoice->clinic?->name,
+            ],
+            'total_due' => (float) $invoice->total_amount,
+            'paid_amount' => (float) $invoice->paid_amount,
+            'remaining_amount' => (float) $invoice->remaining_amount,
+            'amount' => (float) $invoice->remaining_amount,
+            'status' => $this->displayInvoiceStatus($invoice->status),
+            'payment_methods' => self::PAYMENT_METHODS,
+        ], 'Invoice payment summary fetched successfully');
     }
 
     public function sendPaymentLink(int $invoiceId): array
@@ -1245,6 +1280,22 @@ class LabAccountingService
         }
 
         return $filters;
+    }
+
+    private function normalizeMaterialType(?string $materialType): ?string
+    {
+        if (! $materialType) {
+            return null;
+        }
+
+        return match (strtolower(str_replace([' ', '-'], ['_', '_'], $materialType))) {
+            'all', 'all_materials' => null,
+            'zirconia' => 'Zirconia',
+            'e_max', 'emax' => 'E-Max',
+            'pfm' => 'PFM',
+            'pmma' => 'PMMA',
+            default => $materialType,
+        };
     }
 
     private function displayInvoiceStatus(?string $status): string

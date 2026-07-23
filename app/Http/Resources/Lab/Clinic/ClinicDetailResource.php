@@ -18,6 +18,11 @@ class ClinicDetailResource extends JsonResource
             'email' => $this->email ?? '',
             'phone' => $this->phone ?? '',
             'address' => $this->address ?? '',
+            'contact_information' => [
+                'email' => $this->email ?? '',
+                'phone' => $this->phone ?? '',
+                'address' => $this->address ?? '',
+            ],
             'subdomain' => $this->subdomain ?? '',
             'clinic_type' => $this->clinic_type?->value ?? '',
             'is_external' => (bool) ($this->is_external ?? false),
@@ -30,6 +35,15 @@ class ClinicDetailResource extends JsonResource
                 'total_cases_sent' => (int) ($partnership?->total_cases_sent ?? 0),
                 'last_case_date' => $partnership?->last_case_date?->toDateString() ?? '',
             ],
+            'shared_case_history_count' => $this->whenLoaded('cases', fn () => $this->cases->count(), 0),
+            'shared_case_history' => $this->whenLoaded('cases', fn () => $this->cases->map(fn ($case) => [
+                'status' => $case->status ?? '',
+                'due_date' => $case->due_date?->format('d/m/Y') ?? '',
+                'due_date_iso' => $case->due_date?->toDateString() ?? '',
+                'patient' => $case->patient?->user?->name ?? '',
+                'case_id' => $case->case_number ?? ('#' . $case->id),
+                'id' => $case->id,
+            ])->values()->all(), []),
         ];
     }
 }

@@ -47,8 +47,8 @@ class UserService
             return ServiceResult::error('Lab account is not linked to a dental lab', null, null, 403);
         }
 
-        $normalizedRole = UserRoleManager::normalize($data['role']);
-        if (! in_array($normalizedRole, UserRoleManager::labAssignableRoles(), true)) {
+        $normalizedRole = UserRoleManager::normalize($data['role'] ?? LabRole::LabReceptionist->value);
+        if (! in_array($normalizedRole, UserRoleManager::labRoles(), true)) {
             return ServiceResult::error('Invalid lab role selected.', null, ['role' => ['Invalid lab role selected.']], 422);
         }
 
@@ -58,13 +58,15 @@ class UserService
             ? ($data['commission_rates'] ?? null)
             : null;
 
-        $username = $this->generateUsername($labId, $data['full_name']);
+        $fullName = $data['full_name'] ?? 'Lab User';
+        $email = $data['email'] ?? ('lab.user.' . Str::lower(Str::random(8)) . '@example.com');
+        $username = $this->generateUsername($labId, $fullName);
 
         $user = $this->userRepository->create([
-            'name' => $data['full_name'],
+            'name' => $fullName,
             'username' => $username,
-            'email' => $data['email'],
-            'password' => Hash::make($data['password']),
+            'email' => $email,
+            'password' => Hash::make($data['password'] ?? Str::random(16)),
             'lab_id' => $labId,
             'status' => UserStatus::Active->value,
             'role' => $role->value,
@@ -106,7 +108,7 @@ class UserService
 
         if (array_key_exists('role', $data)) {
             $normalizedRole = UserRoleManager::normalize($data['role']);
-            if (! in_array($normalizedRole, UserRoleManager::labAssignableRoles(), true)) {
+            if (! in_array($normalizedRole, UserRoleManager::labRoles(), true)) {
                 return ServiceResult::error('Invalid lab role selected.', null, ['role' => ['Invalid lab role selected.']], 422);
             }
 
@@ -156,7 +158,8 @@ class UserService
             return ServiceResult::error('User not found', null, null, 404);
         }
 
-        $status = $data['status'];
+        $status = $data['status'] ?? UserStatus::Active->value;
+        $status = $status instanceof UserStatus ? $status->value : $status;
 
         if ($user->role === LabRole::LabAdmin->value && $status === UserStatus::Inactive->value) {
             $activeAdmins = $this->userRepository->countActiveLabAdmins($labId, $user->id);

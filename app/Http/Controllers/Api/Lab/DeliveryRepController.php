@@ -128,4 +128,93 @@ class DeliveryRepController extends Controller
 
         return ApiResponse::success($result['data'] ?? null, $result['message'], $result['code']);
     }
+
+    public function myDeliveries(\Illuminate\Http\Request $request)
+    {
+        $filters = $request->validate([
+            'status' => ['sometimes', 'nullable', 'string', 'in:assigned,picked_up,in_transit,delivered,cancelled'],
+            'per_page' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        $result = $this->deliveryRepService->myDeliveries($request->user(), $filters);
+
+        if (! $result['success']) {
+            return ApiResponse::error($result['message'], $result['code']);
+        }
+
+        return ApiResponse::success($result['data'] ?? null, $result['message'], $result['code']);
+    }
+
+    public function myReports(\Illuminate\Http\Request $request)
+    {
+        $filters = $request->validate([
+            'start_date' => ['sometimes', 'nullable', 'date'],
+            'end_date' => ['sometimes', 'nullable', 'date'],
+        ]);
+
+        $result = $this->deliveryRepService->myReports($request->user(), $filters);
+
+        if (! $result['success']) {
+            return ApiResponse::error($result['message'], $result['code']);
+        }
+
+        return ApiResponse::success($result['data'] ?? null, $result['message'], $result['code']);
+    }
+
+    public function myDeliveryDetails(\Illuminate\Http\Request $request, int $taskId)
+    {
+        $result = $this->deliveryRepService->deliveryTaskDetails($taskId, $request->user());
+
+        if (! $result['success']) {
+            return ApiResponse::error($result['message'], $result['code']);
+        }
+
+        return ApiResponse::success($result['data'] ?? null, $result['message'], $result['code']);
+    }
+
+    public function confirmPickup(\Illuminate\Http\Request $request, int $taskId)
+    {
+        $payload = $request->validate([
+            'photo' => ['required', 'file', 'max:10240', 'mimes:jpg,jpeg,png,webp,pdf'],
+            'trip_cost' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+            'expenses' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+        ]);
+        $payload['photo'] = $request->file('photo');
+
+        $result = $this->deliveryRepService->confirmPickup($taskId, $payload, $request->user());
+
+        if (! $result['success']) {
+            return ApiResponse::error($result['message'], $result['code']);
+        }
+
+        return ApiResponse::success($result['data'] ?? null, $result['message'], $result['code']);
+    }
+
+    public function updateLiveLocation(\Illuminate\Http\Request $request)
+    {
+        $payload = $request->validate([
+            'latitude' => ['required', 'numeric', 'between:-90,90'],
+            'longitude' => ['required', 'numeric', 'between:-180,180'],
+            'status' => ['sometimes', 'nullable', 'string', 'max:50'],
+        ]);
+
+        $result = $this->deliveryRepService->updateLiveLocation($payload, $request->user());
+
+        if (! $result['success']) {
+            return ApiResponse::error($result['message'], $result['code']);
+        }
+
+        return ApiResponse::success($result['data'] ?? null, $result['message'], $result['code']);
+    }
+
+    public function liveTracking(\Illuminate\Http\Request $request)
+    {
+        $result = $this->deliveryRepService->liveTracking($request->all());
+
+        if (! $result['success']) {
+            return ApiResponse::error($result['message'], $result['code']);
+        }
+
+        return ApiResponse::success($result['data'] ?? null, $result['message'], $result['code']);
+    }
 }

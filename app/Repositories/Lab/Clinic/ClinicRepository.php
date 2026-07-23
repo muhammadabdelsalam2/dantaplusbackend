@@ -72,6 +72,11 @@ class ClinicRepository implements ClinicRepositoryInterface
         ->whereHas('labPartnerships', fn ($q) => $q->where('lab_id', $labId))
         ->with([
             'labPartnerships' => fn ($q) => $q->where('lab_id', $labId),
+            'cases' => fn ($q) => $q
+                ->where('lab_id', $labId)
+                ->with(['patient.user:id,name'])
+                ->select(['id', 'case_number', 'clinic_id', 'lab_id', 'patient_id', 'status', 'due_date'])
+                ->latest('id'),
         ])
         ->first();
 }

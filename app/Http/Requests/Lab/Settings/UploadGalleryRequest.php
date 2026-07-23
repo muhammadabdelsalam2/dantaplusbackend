@@ -21,12 +21,12 @@ class UploadGalleryRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'type' => ['required', 'string', 'in:before,after'],
+            'type' => ['nullable', 'string', 'in:before,after'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
 
-            'images' => ['required', 'array', 'min:1'],
+            'images' => ['nullable', 'array'],
             'images.*' => [
-                'required',
+                'nullable',
                 'file',
                 'image',
                 'mimes:jpg,jpeg,png,webp',

@@ -27,7 +27,7 @@ class IndexLabAccountingRequest extends FormRequest
             'year' => ['nullable', 'integer', 'min:2000', 'max:2100'],
             'group_by' => ['nullable', Rule::in(['clinic', 'doctor'])],
             'period' => ['nullable', Rule::in(['all_time', 'this_month', 'this_week'])],
-            'material_type' => ['nullable', Rule::in(['All Materials', 'Zirconia', 'E-Max', 'PFM', 'PMMA'])],
+            'material_type' => ['nullable', Rule::in(['All Materials', 'Zirconia', 'E-Max', 'PFM', 'PMMA', 'all', 'all_materials', 'zirconia', 'e_max', 'pfm', 'pmma'])],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ];
     }

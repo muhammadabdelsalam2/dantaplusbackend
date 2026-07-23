@@ -3,6 +3,7 @@
 namespace App\Services\Lab\Settings;
 
 use App\Http\Resources\Lab\Settings\LabProfileResource;
+use App\Models\LabGalleryImage;
 use App\Repositories\Lab\Settings\SettingsRepositoryInterface;
 use App\Support\ServiceResult;
 use Illuminate\Http\Request;
@@ -20,7 +21,7 @@ class LabProfileService
             return ServiceResult::error('Lab account is not linked to a dental lab', null, null, 403);
         }
 
-        $lab = $this->settingsRepository->findLabById($labId);
+        $lab = $this->settingsRepository->findLabById($labId)?->load('galleryImages');
         if (! $lab) {
             return ServiceResult::error('Lab not found', null, null, 404);
         }
@@ -75,14 +76,46 @@ class LabProfileService
             $payload['logo_url'] = asset('storage/' . $path);
         }
 
+        $this->storeGalleryUploads($request, $labId, 'before_images', 'before');
+        $this->storeGalleryUploads($request, $labId, 'after_images', 'after');
+        $this->storeGalleryUploads($request, $labId, 'before', 'before');
+        $this->storeGalleryUploads($request, $labId, 'after', 'after');
+
         $updated = ! empty($payload)
             ? $this->settingsRepository->updateLab($lab, $payload)
             : $lab->refresh();
 
         return ServiceResult::success(
-            (new LabProfileResource($updated))->resolve(),
+            (new LabProfileResource($updated->load('galleryImages')))->resolve(),
             'Lab profile updated.'
         );
+    }
+
+    private function storeGalleryUploads(Request $request, int $labId, string $field, string $type): void
+    {
+        if (! $request->hasFile($field)) {
+            return;
+        }
+
+        $files = $request->file($field);
+        $files = is_array($files) ? $files : [$files];
+
+        foreach ($files as $index => $file) {
+            if (! $file) {
+                continue;
+            }
+
+            $path = $file->store('labs/gallery/' . $type, 'public');
+            LabGalleryImage::query()->create([
+                'lab_id' => $labId,
+                'type' => $type,
+                'url' => asset('storage/' . $path),
+                'disk' => 'public',
+                'sort_order' => $index,
+                'uploaded_by' => auth()->id(),
+                'created_at' => now(),
+            ]);
+        }
     }
 
     private function currentLabId(): ?int

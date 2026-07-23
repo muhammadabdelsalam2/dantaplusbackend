@@ -33,9 +33,9 @@ class ServiceService
 
         $service = $this->serviceRepository->create([
             'lab_id' => $labId,
-            'service_name' => $data['service_name'],
-            'price' => $data['price'],
-            'turnaround_time_days' => $data['turnaround_time_days'],
+            'service_name' => $data['service_name'] ?? 'New Service',
+            'price' => $data['price'] ?? 0,
+            'turnaround_time_days' => $data['turnaround_time_days'] ?? 0,
         ]);
 
         return ServiceResult::success(

@@ -17,10 +17,10 @@ class UpdateUserRequest extends FormRequest
     {
         $userId = (int) $this->route('user');
         $labId = auth()->user()?->lab_id;
-        $assignableRoles = \App\Support\UserRoleManager::labAssignableRoles();
+        $assignableRoles = \App\Support\UserRoleManager::labRoles();
 
         return [
-            'full_name' => ['sometimes', 'string', 'min:2', 'max:120'],
+            'full_name' => ['sometimes', 'nullable', 'string', 'max:120'],
             'email' => [
                 'sometimes',
                 'email',

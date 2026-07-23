@@ -39,6 +39,7 @@ class WhatsAppSettingsService
 
         $meta = $this->decryptJson($settings->whatsapp_meta_json);
         $twilio = $this->decryptJson($settings->whatsapp_twilio_json);
+        $provider = $this->providerValue($settings->whatsapp_provider);
 
         $metaMasked = $this->maskTokens($meta, ['access_token']);
         $twilioMasked = $this->maskTokens($twilio, ['auth_token']);
@@ -52,13 +53,29 @@ class WhatsAppSettingsService
         })->count();
 
         return ServiceResult::success([
-            'provider' => $settings->whatsapp_provider,
-            'webhook_url' => url('/api/lab/api/whatsapp/webhook'),
-            'connection_status' => $settings->whatsapp_provider ? 'Connected' : 'Not Connected',
+            'provider' => $provider,
+            'provider_label' => $this->providerLabel($provider),
+            'providers' => [
+                ['value' => WhatsAppProvider::MetaCloudApi->value, 'label' => 'Meta WhatsApp Cloud API (Recommended)'],
+                ['value' => WhatsAppProvider::TwilioWhatsAppApi->value, 'label' => 'Twilio WhatsApp API'],
+            ],
+            'business_phone_number_id' => $metaMasked['business_phone_number_id'] ?? null,
+            'whatsapp_business_account_id' => $metaMasked['whatsapp_business_account_id'] ?? null,
+            'access_token' => $metaMasked['access_token'] ?? null,
+            'verify_token' => $metaMasked['verify_token'] ?? null,
+            'webhook_url' => '/lab/api/whatsapp/webhook',
+            'connection_status' => [
+                'provider' => $this->providerLabel($provider),
+                'status' => $provider ? 'Connected' : 'Disconnected',
+                'last_message' => $lastMessageAt,
+                'total_sent_24h' => $totalSent24h,
+            ],
+            'status' => $provider ? 'Connected' : 'Disconnected',
             'last_message_at' => $lastMessageAt,
             'total_sent_24h' => $totalSent24h,
-            'meta' => $settings->whatsapp_provider === WhatsAppProvider::MetaCloudApi->value ? $metaMasked : null,
-            'twilio' => $settings->whatsapp_provider === WhatsAppProvider::TwilioWhatsAppApi->value ? $twilioMasked : null,
+            'api_logs' => $this->formatLogs($logs),
+            'meta' => $provider === WhatsAppProvider::MetaCloudApi->value ? $metaMasked : null,
+            'twilio' => $provider === WhatsAppProvider::TwilioWhatsAppApi->value ? $twilioMasked : null,
         ], 'WhatsApp settings fetched successfully');
     }
 
@@ -73,9 +90,16 @@ class WhatsAppSettingsService
             'notifications_json' => self::DEFAULT_NOTIFICATIONS,
         ]);
 
-        $provider = $data['provider'];
-        $meta = $data['meta'] ?? null;
-        $twilio = $data['twilio'] ?? null;
+        $provider = $this->normalizeProvider($data['provider'] ?? $this->providerValue($settings->whatsapp_provider) ?? WhatsAppProvider::MetaCloudApi->value);
+        $existingMeta = $this->decryptJson($settings->whatsapp_meta_json) ?? [];
+        $existingTwilio = $this->decryptJson($settings->whatsapp_twilio_json) ?? [];
+        $meta = array_filter(array_merge($existingMeta, $data['meta'] ?? [], [
+            'whatsapp_business_account_id' => $data['whatsapp_business_account_id'] ?? null,
+            'business_phone_number_id' => $data['business_phone_number_id'] ?? null,
+            'access_token' => $data['access_token'] ?? null,
+            'verify_token' => $data['verify_token'] ?? null,
+        ]), fn ($value) => $value !== null);
+        $twilio = array_filter(array_merge($existingTwilio, $data['twilio'] ?? []), fn ($value) => $value !== null);
 
         if (is_array($meta) && isset($meta['access_token'])) {
             $meta['access_token'] = Crypt::encryptString((string) $meta['access_token']);
@@ -85,8 +109,8 @@ class WhatsAppSettingsService
             $twilio['auth_token'] = Crypt::encryptString((string) $twilio['auth_token']);
         }
 
-        $metaEncrypted = $meta ? Crypt::encryptString(json_encode($meta, JSON_UNESCAPED_SLASHES)) : null;
-        $twilioEncrypted = $twilio ? Crypt::encryptString(json_encode($twilio, JSON_UNESCAPED_SLASHES)) : null;
+        $metaEncrypted = ! empty($meta) ? Crypt::encryptString(json_encode($meta, JSON_UNESCAPED_SLASHES)) : $settings->whatsapp_meta_json;
+        $twilioEncrypted = ! empty($twilio) ? Crypt::encryptString(json_encode($twilio, JSON_UNESCAPED_SLASHES)) : $settings->whatsapp_twilio_json;
 
         $updated = $this->settingsRepository->updateSettings($settings, [
             'whatsapp_provider' => $provider,
@@ -107,10 +131,11 @@ class WhatsAppSettingsService
         $twilioMasked = $this->maskTokens($this->decryptJson($updated->whatsapp_twilio_json), ['auth_token']);
 
         return ServiceResult::success([
-            'provider' => $updated->whatsapp_provider,
-            'webhook_url' => url('/api/lab/api/whatsapp/webhook'),
-            'meta' => $updated->whatsapp_provider === WhatsAppProvider::MetaCloudApi->value ? $metaMasked : null,
-            'twilio' => $updated->whatsapp_provider === WhatsAppProvider::TwilioWhatsAppApi->value ? $twilioMasked : null,
+            'provider' => $this->providerValue($updated->whatsapp_provider),
+            'provider_label' => $this->providerLabel($this->providerValue($updated->whatsapp_provider)),
+            'webhook_url' => '/lab/api/whatsapp/webhook',
+            'meta' => $this->providerValue($updated->whatsapp_provider) === WhatsAppProvider::MetaCloudApi->value ? $metaMasked : null,
+            'twilio' => $this->providerValue($updated->whatsapp_provider) === WhatsAppProvider::TwilioWhatsAppApi->value ? $twilioMasked : null,
         ], 'WhatsApp settings updated.');
     }
 
@@ -122,22 +147,28 @@ class WhatsAppSettingsService
         }
 
         $settings = $this->settingsRepository->findSettingsByLab($labId);
-        if (!$settings || !$settings->whatsapp_provider) {
-            return ServiceResult::error('WhatsApp integration is not configured.', null, null, 422);
-        }
+        $provider = $this->providerValue($settings?->whatsapp_provider);
+        $meta = $this->decryptJson($settings?->whatsapp_meta_json);
+        $missingMeta = $provider === WhatsAppProvider::MetaCloudApi->value
+            && empty($meta['business_phone_number_id'])
+            && empty($meta['whatsapp_business_account_id'])
+            && empty($meta['access_token']);
+        $success = $provider && ! $missingMeta;
 
         $log = $this->settingsRepository->createWhatsappLog([
             'lab_id' => $labId,
-            'provider' => $settings->whatsapp_provider,
+            'provider' => $provider,
             'action' => WhatsAppLogAction::TestSent->value,
-            'details' => 'Sent test to lab admin via ' . $settings->whatsapp_provider . '.',
-            'status' => 'Success',
+            'details' => $success
+                ? 'Connection successful using ' . $provider . '.'
+                : 'Connection Failed - Failed to connect using ' . ($provider ?: 'whatsapp') . '. Credentials might be missing.',
+            'status' => $success ? 'Success' : 'Failed',
             'created_at' => now(),
         ]);
 
         return ServiceResult::success([
-            'connection_status' => 'Success',
-            'message' => 'Connection successful! Test message sent to lab admin.',
+            'connection_status' => $success ? 'Connected' : 'Connection Failed',
+            'message' => $log->details,
             'log_id' => (string) $log->id,
         ], 'WhatsApp test completed');
     }
@@ -151,14 +182,7 @@ class WhatsAppSettingsService
 
         $logs = $this->settingsRepository->listWhatsappLogs($labId, 100);
 
-        $items = $logs->map(fn ($log) => [
-            'id' => $log->id,
-            'timestamp' => optional($log->created_at)->toISOString(),
-            'action' => $log->action,
-            'details' => $log->details,
-            'status' => $log->status,
-            'provider' => $log->provider,
-        ])->values()->all();
+        $items = $this->formatLogs($logs);
 
         return ServiceResult::success($items, 'WhatsApp logs fetched successfully');
     }
@@ -267,6 +291,43 @@ class WhatsAppSettingsService
         }
 
         return $data;
+    }
+
+    private function providerValue(mixed $provider): ?string
+    {
+        return $provider instanceof WhatsAppProvider ? $provider->value : ($provider ?: null);
+    }
+
+    private function normalizeProvider(string $provider): string
+    {
+        return match (strtolower($provider)) {
+            'meta', 'meta cloud api', 'meta whatsapp cloud api', 'meta whatsapp cloud api (recommended)' => WhatsAppProvider::MetaCloudApi->value,
+            'twilio', 'twilio whatsapp api' => WhatsAppProvider::TwilioWhatsAppApi->value,
+            default => $provider,
+        };
+    }
+
+    private function providerLabel(?string $provider): ?string
+    {
+        return match ($provider) {
+            WhatsAppProvider::MetaCloudApi->value => 'Meta WhatsApp Cloud API',
+            WhatsAppProvider::TwilioWhatsAppApi->value => 'Twilio WhatsApp API',
+            default => $provider,
+        };
+    }
+
+    private function formatLogs($logs): array
+    {
+        return $logs->map(fn ($log) => [
+            'id' => $log->id,
+            'time' => optional($log->created_at)?->format('H:i:s'),
+            'timestamp' => optional($log->created_at)->toISOString(),
+            'action' => $log->action,
+            'message' => trim($log->action . ' - ' . $log->details),
+            'details' => $log->details,
+            'status' => $log->status,
+            'provider' => $log->provider,
+        ])->values()->all();
     }
 
     private function currentLabId(): ?int

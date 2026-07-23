@@ -14,9 +14,9 @@ class UpdateServiceRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'service_name' => ['sometimes', 'string', 'min:2', 'max:255'],
+            'service_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'price' => ['sometimes', 'numeric', 'min:0'],
-            'turnaround_time_days' => ['sometimes', 'integer', 'min:1', 'max:365'],
+            'turnaround_time_days' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:365'],
         ];
     }
 }

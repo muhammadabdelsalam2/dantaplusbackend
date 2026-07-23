@@ -241,6 +241,11 @@ class LabAccountingController extends Controller
         return $this->respond($this->service->paymentLink($invoice));
     }
 
+    public function paymentSummary(int $invoice): JsonResponse
+    {
+        return $this->respond($this->service->paymentSummary($invoice));
+    }
+
     public function sendPaymentLink(int $invoice): JsonResponse
     {
         return $this->respond($this->service->sendPaymentLink($invoice));
