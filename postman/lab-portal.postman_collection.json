@@ -352,6 +352,1033 @@
       ]
     },
     {
+      "name": "Accounting",
+      "item": [
+        {
+          "name": "Overview Summary",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/lab/accounting/summary?from=&to=&period=this_month"
+          },
+          "response": [
+            {
+              "name": "Example Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\r\n  \"status\": \"success\",\r\n  \"success\": true,\r\n  \"message\": \"Accounting summary fetched successfully\",\r\n  \"data\": {\r\n    \"monthly_income\": 403.5,\r\n    \"monthly_expenses\": 4200.0,\r\n    \"monthly_profit\": -3796.5,\r\n    \"total_outstanding\": 666.0\r\n  },\r\n  \"code\": 200\r\n}"
+            }
+          ]
+        },
+        {
+          "name": "Income vs Expenses Chart",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/lab/accounting/chart/income-vs-expenses?year=2026"
+          },
+          "response": [
+            {
+              "name": "Example Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\r\n  \"status\": \"success\",\r\n  \"success\": true,\r\n  \"message\": \"Income vs expenses chart fetched successfully\",\r\n  \"data\": {\r\n    \"labels\": [\r\n      \"Jan\",\r\n      \"Feb\",\r\n      \"Mar\",\r\n      \"Apr\",\r\n      \"May\",\r\n      \"Jun\",\r\n      \"Jul\",\r\n      \"Aug\",\r\n      \"Sep\",\r\n      \"Oct\",\r\n      \"Nov\",\r\n      \"Dec\"\r\n    ],\r\n    \"income\": [\r\n      0,\r\n      0,\r\n      0,\r\n      0,\r\n      0,\r\n      0,\r\n      403.5,\r\n      0,\r\n      0,\r\n      0,\r\n      0,\r\n      0\r\n    ],\r\n    \"expenses\": [\r\n      0,\r\n      0,\r\n      0,\r\n      0,\r\n      0,\r\n      0,\r\n      4200,\r\n      0,\r\n      0,\r\n      0,\r\n      0,\r\n      0\r\n    ]\r\n  },\r\n  \"code\": 200\r\n}"
+            }
+          ]
+        },
+        {
+          "name": "List Invoices",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/lab/accounting/invoices?status=All Statuses&search=&from=&to=&per_page=15"
+          },
+          "response": [
+            {
+              "name": "Example Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\r\n  \"status\": \"success\",\r\n  \"success\": true,\r\n  \"message\": \"Invoices fetched successfully\",\r\n  \"data\": {\r\n    \"items\": [\r\n      {\r\n        \"id\": 101,\r\n        \"invoice_id\": \"LI-M-001\",\r\n        \"clinic\": \"Bright Smiles Dental\",\r\n        \"amount\": 283.5,\r\n        \"paid_amount\": 0,\r\n        \"remaining_amount\": 283.5,\r\n        \"status\": \"Pending\"\r\n      }\r\n    ],\r\n    \"pagination\": {\r\n      \"current_page\": 1,\r\n      \"last_page\": 1,\r\n      \"per_page\": 15,\r\n      \"total\": 1\r\n    }\r\n  },\r\n  \"code\": 200\r\n}"
+            }
+          ]
+        },
+        {
+          "name": "Generate Monthly Invoice Preview",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/lab/accounting/invoices/monthly-preview?month=2026-07&group_by=clinic"
+          },
+          "response": [
+            {
+              "name": "Example Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\r\n  \"status\": \"success\",\r\n  \"success\": true,\r\n  \"message\": \"Monthly invoice preview fetched successfully\",\r\n  \"data\": {\r\n    \"month\": \"2026-07\",\r\n    \"group_by\": \"clinic\",\r\n    \"groups\": [\r\n      {\r\n        \"clinic_id\": 23,\r\n        \"clinic\": \"Bright Smiles Dental\",\r\n        \"completed_cases\": 2,\r\n        \"amount\": 283.5\r\n      }\r\n    ]\r\n  },\r\n  \"code\": 200\r\n}"
+            }
+          ]
+        },
+        {
+          "name": "Generate Monthly Invoices",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/lab/accounting/invoices/generate-monthly",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "month",
+                  "value": "2026-07",
+                  "type": "text",
+                  "description": "sometimes|nullable|date_format:Y-m"
+                },
+                {
+                  "key": "group_by",
+                  "value": "clinic",
+                  "type": "text",
+                  "description": "sometimes|nullable|in:clinic,doctor"
+                },
+                {
+                  "key": "clinic_ids[]",
+                  "value": "23",
+                  "type": "text",
+                  "description": "sometimes|nullable|array"
+                },
+                {
+                  "key": "doctor_ids[]",
+                  "value": "",
+                  "type": "text",
+                  "description": "sometimes|nullable|array"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Example Response",
+              "status": "Created",
+              "code": 201,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\r\n  \"status\": \"success\",\r\n  \"success\": true,\r\n  \"message\": \"Monthly invoices generated successfully\",\r\n  \"data\": {\r\n    \"created\": [\r\n      {\r\n        \"id\": 101,\r\n        \"invoice_id\": \"LI-M-001\",\r\n        \"clinic\": \"Bright Smiles Dental\",\r\n        \"amount\": 283.5,\r\n        \"paid_amount\": 0,\r\n        \"remaining_amount\": 283.5,\r\n        \"status\": \"Pending\"\r\n      }\r\n    ],\r\n    \"skipped\": [],\r\n    \"created_count\": 1,\r\n    \"skipped_count\": 0\r\n  },\r\n  \"code\": 200\r\n}"
+            }
+          ]
+        },
+        {
+          "name": "Create Invoice",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/lab/accounting/invoices",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "clinic_id",
+                  "value": "23",
+                  "type": "text",
+                  "description": "sometimes|nullable"
+                },
+                {
+                  "key": "doctor_id",
+                  "value": "5",
+                  "type": "text",
+                  "description": "sometimes|nullable"
+                },
+                {
+                  "key": "issue_date",
+                  "value": "2026-07-23",
+                  "type": "text",
+                  "description": "sometimes|nullable"
+                },
+                {
+                  "key": "due_date",
+                  "value": "2026-08-22",
+                  "type": "text",
+                  "description": "sometimes|nullable"
+                },
+                {
+                  "key": "notes",
+                  "value": "Manual invoice",
+                  "type": "text",
+                  "description": "sometimes|nullable"
+                },
+                {
+                  "key": "items[0][case_id]",
+                  "value": "43",
+                  "type": "text",
+                  "description": "sometimes|nullable"
+                },
+                {
+                  "key": "items[0][service_name]",
+                  "value": "Zirconia Crown",
+                  "type": "text",
+                  "description": "sometimes|nullable"
+                },
+                {
+                  "key": "items[0][quantity]",
+                  "value": "1",
+                  "type": "text",
+                  "description": "sometimes|nullable"
+                },
+                {
+                  "key": "items[0][unit_price]",
+                  "value": "120.00",
+                  "type": "text",
+                  "description": "sometimes|nullable"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Example Response",
+              "status": "Created",
+              "code": 201,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\r\n  \"status\": \"success\",\r\n  \"success\": true,\r\n  \"message\": \"Invoice created successfully\",\r\n  \"data\": {\r\n    \"id\": 101,\r\n    \"invoice_id\": \"LI-M-001\",\r\n    \"clinic\": \"Bright Smiles Dental\",\r\n    \"amount\": 283.5,\r\n    \"paid_amount\": 0,\r\n    \"remaining_amount\": 283.5,\r\n    \"status\": \"Pending\"\r\n  },\r\n  \"code\": 200\r\n}"
+            }
+          ]
+        },
+        {
+          "name": "Invoice Details",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/lab/accounting/invoices/{{invoice_id}}?show_dental_chart=1&show_tooth_numbers=1"
+          },
+          "response": [
+            {
+              "name": "Example Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\r\n  \"status\": \"success\",\r\n  \"success\": true,\r\n  \"message\": \"Invoice details fetched successfully\",\r\n  \"data\": {\r\n    \"invoice\": {\r\n      \"id\": 101,\r\n      \"invoice_id\": \"LI-M-001\",\r\n      \"clinic\": \"Bright Smiles Dental\",\r\n      \"amount\": 283.5,\r\n      \"paid_amount\": 0,\r\n      \"remaining_amount\": 283.5,\r\n      \"status\": \"Pending\"\r\n    },\r\n    \"items\": [\r\n      {\r\n        \"case_id\": \"LO-001\",\r\n        \"patient\": \"Olivia Johnson\",\r\n        \"service\": \"Zirconia Crown\",\r\n        \"teeth\": \"26\",\r\n        \"amount\": 120.0\r\n      }\r\n    ],\r\n    \"totals\": {\r\n      \"subtotal\": 270.0,\r\n      \"tax\": 13.5,\r\n      \"discount\": 0,\r\n      \"total_due\": 283.5\r\n    }\r\n  },\r\n  \"code\": 200\r\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Invoice",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/lab/accounting/invoices/{{invoice_id}}",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "issue_date",
+                  "value": "2026-07-23",
+                  "type": "text",
+                  "description": "sometimes|nullable"
+                },
+                {
+                  "key": "due_date",
+                  "value": "2026-08-22",
+                  "type": "text",
+                  "description": "sometimes|nullable"
+                },
+                {
+                  "key": "status",
+                  "value": "Pending",
+                  "type": "text",
+                  "description": "sometimes|nullable"
+                },
+                {
+                  "key": "notes",
+                  "value": "Updated notes",
+                  "type": "text",
+                  "description": "sometimes|nullable"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Example Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\r\n  \"status\": \"success\",\r\n  \"success\": true,\r\n  \"message\": \"Invoice updated successfully\",\r\n  \"data\": {\r\n    \"id\": 101,\r\n    \"invoice_id\": \"LI-M-001\",\r\n    \"clinic\": \"Bright Smiles Dental\",\r\n    \"amount\": 283.5,\r\n    \"paid_amount\": 0,\r\n    \"remaining_amount\": 283.5,\r\n    \"status\": \"Pending\"\r\n  },\r\n  \"code\": 200\r\n}"
+            }
+          ]
+        },
+        {
+          "name": "Invoice Export Link",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/lab/accounting/invoices/{{invoice_id}}/export?format=csv"
+          },
+          "response": [
+            {
+              "name": "Example Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\r\n  \"status\": \"success\",\r\n  \"success\": true,\r\n  \"message\": \"Invoice export prepared successfully\",\r\n  \"data\": {\r\n    \"format\": \"csv\",\r\n    \"download_url\": \"{{base_url}}/lab/accounting/invoices/{{invoice_id}}/csv\"\r\n  },\r\n  \"code\": 200\r\n}"
+            }
+          ]
+        },
+        {
+          "name": "Invoice PDF",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/lab/accounting/invoices/{{invoice_id}}/pdf?show_dental_chart=1&show_tooth_numbers=1"
+          },
+          "response": [
+            {
+              "name": "Example Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\r\n  \"note\": \"Binary PDF download response\",\r\n  \"filename\": \"invoice-LI-M-001.pdf\"\r\n}"
+            }
+          ]
+        },
+        {
+          "name": "Invoice CSV",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/lab/accounting/invoices/{{invoice_id}}/csv"
+          },
+          "response": [
+            {
+              "name": "Example Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\r\n  \"note\": \"CSV download response\",\r\n  \"filename\": \"invoice-LI-M-001.csv\"\r\n}"
+            }
+          ]
+        },
+        {
+          "name": "Signed Invoice Download",
+          "request": {
+            "method": "GET",
+            "url": "{{signed_invoice_download_url}}"
+          },
+          "response": [
+            {
+              "name": "Example Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\r\n  \"note\": \"Signed CSV/PDF download. Use URL generated by export/payment response.\"\r\n}"
+            }
+          ]
+        },
+        {
+          "name": "WhatsApp Preview",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/lab/accounting/invoices/{{invoice_id}}/whatsapp-preview"
+          },
+          "response": [
+            {
+              "name": "Example Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\r\n  \"status\": \"success\",\r\n  \"success\": true,\r\n  \"message\": \"WhatsApp preview fetched successfully\",\r\n  \"data\": {\r\n    \"recipient\": \"Bright Smiles Dental (555-0111)\",\r\n    \"message\": \"Dear Bright Smiles Dental, please find attached your invoice LI-M-001. Total: $283.50\",\r\n    \"attachment\": \"LI-M-001.pdf\"\r\n  },\r\n  \"code\": 200\r\n}"
+            }
+          ]
+        },
+        {
+          "name": "Send Invoice WhatsApp",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/lab/accounting/invoices/{{invoice_id}}/whatsapp",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "message",
+                  "value": "",
+                  "type": "text",
+                  "description": "sometimes|nullable|string"
+                },
+                {
+                  "key": "recipient_phone",
+                  "value": "",
+                  "type": "text",
+                  "description": "sometimes|nullable|string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Example Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\r\n  \"status\": \"success\",\r\n  \"success\": true,\r\n  \"message\": \"Invoice sent via WhatsApp successfully\",\r\n  \"data\": {\r\n    \"sent\": true,\r\n    \"provider\": \"meta\",\r\n    \"invoice_id\": \"LI-M-001\"\r\n  },\r\n  \"code\": 200\r\n}"
+            }
+          ]
+        },
+        {
+          "name": "Payment Link",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/lab/accounting/invoices/{{invoice_id}}/payment-link"
+          },
+          "response": [
+            {
+              "name": "Example Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\r\n  \"status\": \"success\",\r\n  \"success\": true,\r\n  \"message\": \"Payment link fetched successfully\",\r\n  \"data\": {\r\n    \"invoice_id\": \"LI-M-001\",\r\n    \"amount_due\": 283.5,\r\n    \"payment_url\": \"{{base_url}}/pay/invoice/LI-M-001\"\r\n  },\r\n  \"code\": 200\r\n}"
+            }
+          ]
+        },
+        {
+          "name": "Invoice Payment Summary",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/lab/accounting/invoices/{{invoice_id}}/payment-summary"
+          },
+          "response": [
+            {
+              "name": "Example Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\r\n  \"status\": \"success\",\r\n  \"success\": true,\r\n  \"message\": \"Invoice payment summary fetched successfully\",\r\n  \"data\": {\r\n    \"clinic\": \"Bright Smiles Dental\",\r\n    \"invoice_id\": \"LI-M-001\",\r\n    \"amount_due\": 283.5,\r\n    \"paid_amount\": 0,\r\n    \"remaining_amount\": 283.5,\r\n    \"status\": \"Pending\"\r\n  },\r\n  \"code\": 200\r\n}"
+            }
+          ]
+        },
+        {
+          "name": "Send Payment Link",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/lab/accounting/invoices/{{invoice_id}}/send-payment-link",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "channel",
+                  "value": "whatsapp",
+                  "type": "text",
+                  "description": "sometimes|nullable|in:whatsapp,email"
+                },
+                {
+                  "key": "recipient",
+                  "value": "",
+                  "type": "text",
+                  "description": "sometimes|nullable|string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Example Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\r\n  \"status\": \"success\",\r\n  \"success\": true,\r\n  \"message\": \"Payment link sent successfully\",\r\n  \"data\": {\r\n    \"sent\": true,\r\n    \"channel\": \"whatsapp\",\r\n    \"payment_url\": \"{{base_url}}/pay/invoice/LI-M-001\"\r\n  },\r\n  \"code\": 200\r\n}"
+            }
+          ]
+        },
+        {
+          "name": "Pay With Stripe",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/lab/accounting/invoices/{{invoice_id}}/pay/stripe",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "amount",
+                  "value": "283.50",
+                  "type": "text",
+                  "description": "sometimes|nullable"
+                },
+                {
+                  "key": "return_url",
+                  "value": "",
+                  "type": "text",
+                  "description": "sometimes|nullable|url"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Example Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\r\n  \"status\": \"success\",\r\n  \"success\": true,\r\n  \"message\": \"Stripe payment initialized successfully\",\r\n  \"data\": {\r\n    \"provider\": \"Stripe\",\r\n    \"status\": \"pending\",\r\n    \"checkout_url\": \"https://checkout.stripe.example/session\"\r\n  },\r\n  \"code\": 200\r\n}"
+            }
+          ]
+        },
+        {
+          "name": "Pay With PayPal",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/lab/accounting/invoices/{{invoice_id}}/pay/paypal",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "amount",
+                  "value": "283.50",
+                  "type": "text",
+                  "description": "sometimes|nullable"
+                },
+                {
+                  "key": "return_url",
+                  "value": "",
+                  "type": "text",
+                  "description": "sometimes|nullable|url"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Example Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\r\n  \"status\": \"success\",\r\n  \"success\": true,\r\n  \"message\": \"PayPal payment initialized successfully\",\r\n  \"data\": {\r\n    \"provider\": \"PayPal\",\r\n    \"status\": \"pending\",\r\n    \"checkout_url\": \"https://paypal.example/checkout\"\r\n  },\r\n  \"code\": 200\r\n}"
+            }
+          ]
+        },
+        {
+          "name": "Record Payment",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/lab/accounting/invoices/{{invoice_id}}/payments",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "amount",
+                  "value": "126.00",
+                  "type": "text",
+                  "description": "sometimes|nullable|numeric|min:0"
+                },
+                {
+                  "key": "payment_method",
+                  "value": "Bank Transfer",
+                  "type": "text",
+                  "description": "sometimes|nullable|string"
+                },
+                {
+                  "key": "paid_at",
+                  "value": "2026-07-23",
+                  "type": "text",
+                  "description": "sometimes|nullable|date"
+                },
+                {
+                  "key": "notes",
+                  "value": "",
+                  "type": "text",
+                  "description": "sometimes|nullable|string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Example Response",
+              "status": "Created",
+              "code": 201,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\r\n  \"status\": \"success\",\r\n  \"success\": true,\r\n  \"message\": \"Payment recorded successfully\",\r\n  \"data\": {\r\n    \"id\": 5,\r\n    \"invoice_id\": 101,\r\n    \"amount\": 126.0,\r\n    \"payment_method\": \"Bank Transfer\",\r\n    \"paid_at\": \"2026-07-23T12:00:00Z\"\r\n  },\r\n  \"code\": 200\r\n}"
+            }
+          ]
+        },
+        {
+          "name": "Send To Clinic System",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/lab/accounting/invoices/{{invoice_id}}/send-to-clinic-system",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "note",
+                  "value": "",
+                  "type": "text",
+                  "description": "sometimes|nullable|string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Example Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\r\n  \"status\": \"success\",\r\n  \"success\": true,\r\n  \"message\": \"Invoice sent to clinic system successfully\",\r\n  \"data\": {\r\n    \"invoice_id\": \"LI-M-001\",\r\n    \"sent_to_clinic_system\": true\r\n  },\r\n  \"code\": 200\r\n}"
+            }
+          ]
+        },
+        {
+          "name": "List Expenses",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/lab/accounting/expenses?category=&from=&to=&per_page=15"
+          },
+          "response": [
+            {
+              "name": "Example Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\r\n  \"status\": \"success\",\r\n  \"success\": true,\r\n  \"message\": \"Expenses fetched successfully\",\r\n  \"data\": {\r\n    \"items\": [\r\n      {\r\n        \"id\": 11,\r\n        \"date\": \"2026-07-23\",\r\n        \"type\": \"Materials\",\r\n        \"description\": \"Bulk order of Zirconia pucks\",\r\n        \"amount\": 850.0\r\n      }\r\n    ],\r\n    \"pagination\": {\r\n      \"current_page\": 1,\r\n      \"last_page\": 1,\r\n      \"per_page\": 15,\r\n      \"total\": 1\r\n    }\r\n  },\r\n  \"code\": 200\r\n}"
+            }
+          ]
+        },
+        {
+          "name": "Add Expense",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/lab/accounting/expenses",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "date",
+                  "value": "2026-07-23",
+                  "type": "text",
+                  "description": "sometimes|nullable|date"
+                },
+                {
+                  "key": "expense_type",
+                  "value": "Materials",
+                  "type": "text",
+                  "description": "sometimes|nullable|string"
+                },
+                {
+                  "key": "amount",
+                  "value": "850.00",
+                  "type": "text",
+                  "description": "sometimes|nullable|numeric|min:0"
+                },
+                {
+                  "key": "description",
+                  "value": "Bulk order of Zirconia pucks",
+                  "type": "text",
+                  "description": "sometimes|nullable|string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Example Response",
+              "status": "Created",
+              "code": 201,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\r\n  \"status\": \"success\",\r\n  \"success\": true,\r\n  \"message\": \"Expense created successfully\",\r\n  \"data\": {\r\n    \"id\": 11,\r\n    \"date\": \"2026-07-23\",\r\n    \"type\": \"Materials\",\r\n    \"description\": \"Bulk order of Zirconia pucks\",\r\n    \"amount\": 850.0\r\n  },\r\n  \"code\": 200\r\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Expense",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/lab/accounting/expenses/{{expense_id}}",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "date",
+                  "value": "2026-07-23",
+                  "type": "text",
+                  "description": "sometimes|nullable"
+                },
+                {
+                  "key": "expense_type",
+                  "value": "Materials",
+                  "type": "text",
+                  "description": "sometimes|nullable"
+                },
+                {
+                  "key": "amount",
+                  "value": "850.00",
+                  "type": "text",
+                  "description": "sometimes|nullable"
+                },
+                {
+                  "key": "description",
+                  "value": "Updated expense",
+                  "type": "text",
+                  "description": "sometimes|nullable"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Example Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\r\n  \"status\": \"success\",\r\n  \"success\": true,\r\n  \"message\": \"Expense updated successfully\",\r\n  \"data\": {\r\n    \"id\": 11,\r\n    \"date\": \"2026-07-23\",\r\n    \"type\": \"Materials\",\r\n    \"description\": \"Bulk order of Zirconia pucks\",\r\n    \"amount\": 850.0\r\n  },\r\n  \"code\": 200\r\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete Expense",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/lab/accounting/expenses/{{expense_id}}"
+          },
+          "response": [
+            {
+              "name": "Example Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\r\n  \"status\": \"success\",\r\n  \"success\": true,\r\n  \"message\": \"Expense deleted successfully\",\r\n  \"data\": null,\r\n  \"code\": 200\r\n}"
+            }
+          ]
+        },
+        {
+          "name": "List Expense Categories",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/lab/accounting/expense-categories"
+          },
+          "response": [
+            {
+              "name": "Example Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\r\n  \"status\": \"success\",\r\n  \"success\": true,\r\n  \"message\": \"Expense categories fetched successfully\",\r\n  \"data\": [\r\n    {\r\n      \"id\": 3,\r\n      \"name\": \"Materials\",\r\n      \"description\": \"Material purchases\",\r\n      \"is_active\": true\r\n    }\r\n  ],\r\n  \"code\": 200\r\n}"
+            }
+          ]
+        },
+        {
+          "name": "Add Expense Category",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/lab/accounting/expense-categories",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Materials",
+                  "type": "text",
+                  "description": "sometimes|nullable|string"
+                },
+                {
+                  "key": "description",
+                  "value": "Material purchases",
+                  "type": "text",
+                  "description": "sometimes|nullable|string"
+                },
+                {
+                  "key": "is_active",
+                  "value": "1",
+                  "type": "text",
+                  "description": "sometimes|nullable|boolean"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Example Response",
+              "status": "Created",
+              "code": 201,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\r\n  \"status\": \"success\",\r\n  \"success\": true,\r\n  \"message\": \"Expense category created successfully\",\r\n  \"data\": {\r\n    \"id\": 3,\r\n    \"name\": \"Materials\",\r\n    \"description\": \"Material purchases\",\r\n    \"is_active\": true\r\n  },\r\n  \"code\": 200\r\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Expense Category",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/lab/accounting/expense-categories/{{category_id}}",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Materials",
+                  "type": "text",
+                  "description": "sometimes|nullable"
+                },
+                {
+                  "key": "description",
+                  "value": "Updated description",
+                  "type": "text",
+                  "description": "sometimes|nullable"
+                },
+                {
+                  "key": "is_active",
+                  "value": "1",
+                  "type": "text",
+                  "description": "sometimes|nullable"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Example Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\r\n  \"status\": \"success\",\r\n  \"success\": true,\r\n  \"message\": \"Expense category updated successfully\",\r\n  \"data\": {\r\n    \"id\": 3,\r\n    \"name\": \"Materials\",\r\n    \"description\": \"Material purchases\",\r\n    \"is_active\": true\r\n  },\r\n  \"code\": 200\r\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete Expense Category",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/lab/accounting/expense-categories/{{category_id}}"
+          },
+          "response": [
+            {
+              "name": "Example Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\r\n  \"status\": \"success\",\r\n  \"success\": true,\r\n  \"message\": \"Expense category deleted successfully\",\r\n  \"data\": null,\r\n  \"code\": 200\r\n}"
+            }
+          ]
+        },
+        {
+          "name": "Technician Earnings Reports",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/lab/accounting/technician-earnings?period=all_time&technician_id=all&material_type=all"
+          },
+          "response": [
+            {
+              "name": "Example Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\r\n  \"status\": \"success\",\r\n  \"success\": true,\r\n  \"message\": \"Technician earnings fetched successfully\",\r\n  \"data\": [\r\n    {\r\n      \"technician_id\": 35,\r\n      \"technician_name\": \"Techie Tom\",\r\n      \"materials\": [\r\n        \"zirconia\",\r\n        \"pfm\",\r\n        \"emax\"\r\n      ],\r\n      \"total_cases\": 5,\r\n      \"total_value\": 600.0,\r\n      \"total_earnings\": 180.0\r\n    }\r\n  ],\r\n  \"code\": 200\r\n}"
+            }
+          ]
+        },
+        {
+          "name": "Technician Earnings Reports With Materials",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/lab/accounting/technician-earnings?period=all_time&technician_id=all&material_type=zirconia"
+          },
+          "response": [
+            {
+              "name": "Example Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\r\n  \"status\": \"success\",\r\n  \"success\": true,\r\n  \"message\": \"Technician earnings fetched successfully\",\r\n  \"data\": [\r\n    {\r\n      \"technician_id\": 35,\r\n      \"technician_name\": \"Techie Tom\",\r\n      \"material_type\": \"zirconia\",\r\n      \"total_cases\": 3,\r\n      \"total_value\": 360.0,\r\n      \"total_earnings\": 108.0\r\n    }\r\n  ],\r\n  \"code\": 200\r\n}"
+            }
+          ]
+        },
+        {
+          "name": "Accounting Analytics",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/lab/accounting/analytics?period=this_month"
+          },
+          "response": [
+            {
+              "name": "Example Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\r\n  \"status\": \"success\",\r\n  \"success\": true,\r\n  \"message\": \"Accounting analytics fetched successfully\",\r\n  \"data\": {\r\n    \"revenue\": 403.5,\r\n    \"expenses\": 4200.0,\r\n    \"profit\": -3796.5,\r\n    \"outstanding\": 666.0\r\n  },\r\n  \"code\": 200\r\n}"
+            }
+          ]
+        },
+        {
+          "name": "Top Paying Clinics Report",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/lab/accounting/reports/top-paying-clinics?period=all_time&limit=5"
+          },
+          "response": [
+            {
+              "name": "Example Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\r\n  \"status\": \"success\",\r\n  \"success\": true,\r\n  \"message\": \"Top paying clinics fetched successfully\",\r\n  \"data\": [\r\n    {\r\n      \"clinic_id\": 23,\r\n      \"clinic_name\": \"Bright Smiles Dental\",\r\n      \"total_paid\": 403.5\r\n    }\r\n  ],\r\n  \"code\": 200\r\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "Technicians",
       "item": [
         {
@@ -856,6 +1883,404 @@
             "method": "GET",
             "url": "{{base_url}}/lab/live-tracking"
           }
+        }
+      ]
+    },
+    {
+      "name": "Analytics",
+      "item": [
+        {
+          "name": "Filter Clinics",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/lab/analytics/filters/clinics"
+          },
+          "response": []
+        },
+        {
+          "name": "Filter Doctors",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/lab/analytics/filters/doctors?clinic_id=all"
+          },
+          "response": []
+        },
+        {
+          "name": "Filter Case Types",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/lab/analytics/filters/case-types"
+          },
+          "response": []
+        },
+        {
+          "name": "Stats Cards",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/lab/analytics/stats?from=&to=&clinic_id=all&doctor_id=all&case_type_id=all"
+          },
+          "response": []
+        },
+        {
+          "name": "Case Type Breakdown",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/lab/analytics/case-type-breakdown?from=&to=&clinic_id=all&doctor_id=all&case_type_id=all"
+          },
+          "response": []
+        },
+        {
+          "name": "Monthly Completed Cases",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/lab/analytics/monthly-completed-cases?from=&to=&clinic_id=all&doctor_id=all&case_type_id=all"
+          },
+          "response": []
+        },
+        {
+          "name": "Performance Overview",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/lab/analytics/performance-overview?from=&to=&clinic_id=all&doctor_id=all&case_type_id=all&sort_by=total_cases&sort_direction=desc"
+          },
+          "response": []
+        },
+        {
+          "name": "Detailed Case List",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/lab/analytics/detailed-cases?from=&to=&clinic_id=all&doctor_id=all&case_type_id=all&sort_by=due_date&sort_direction=asc"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Settings",
+      "item": [
+        {
+          "name": "Lab Profile",
+          "item": [
+            {
+              "name": "Get Lab Profile",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/lab/settings/profile"
+              },
+              "response": []
+            },
+            {
+              "name": "Save Lab Profile",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/lab/settings/profile",
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "lab_name",
+                      "value": "Precision Dental Labs",
+                      "type": "text"
+                    },
+                    {
+                      "key": "contact_person",
+                      "value": "Mike Ross",
+                      "type": "text"
+                    },
+                    {
+                      "key": "email",
+                      "value": "contact@precisionlabs.com",
+                      "type": "text"
+                    },
+                    {
+                      "key": "phone",
+                      "value": "555-0201",
+                      "type": "text"
+                    },
+                    {
+                      "key": "address",
+                      "value": "789 Tech Park, Metropolis",
+                      "type": "text"
+                    },
+                    {
+                      "key": "working_hours",
+                      "value": "9am - 6pm, Mon-Fri",
+                      "type": "text"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Services & Pricing",
+          "item": [
+            {
+              "name": "List Services",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/lab/settings/services"
+              },
+              "response": []
+            },
+            {
+              "name": "Add Service",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/lab/settings/services",
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "service_name",
+                      "value": "Zirconia Crown",
+                      "type": "text"
+                    },
+                    {
+                      "key": "price",
+                      "value": "120",
+                      "type": "text"
+                    },
+                    {
+                      "key": "turnaround_time_days",
+                      "value": "4",
+                      "type": "text"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Edit Service",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/lab/settings/services/{{service_id}}",
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "service_name",
+                      "value": "Zirconia Crown",
+                      "type": "text"
+                    },
+                    {
+                      "key": "price",
+                      "value": "120",
+                      "type": "text"
+                    },
+                    {
+                      "key": "turnaround_time_days",
+                      "value": "4",
+                      "type": "text"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Service",
+              "request": {
+                "method": "DELETE",
+                "url": "{{base_url}}/lab/settings/services/{{service_id}}"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Users & Roles",
+          "item": [
+            {
+              "name": "List Users",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/lab/settings/users"
+              },
+              "response": []
+            },
+            {
+              "name": "Add User",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/lab/settings/users",
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "full_name",
+                      "value": "Lab Reception",
+                      "type": "text"
+                    },
+                    {
+                      "key": "email",
+                      "value": "lab.reception@example.com",
+                      "type": "text"
+                    },
+                    {
+                      "key": "password",
+                      "value": "password123",
+                      "type": "text"
+                    },
+                    {
+                      "key": "role",
+                      "value": "lab_receptionist",
+                      "type": "text"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Edit User",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/lab/settings/users/{{user_id}}",
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "full_name",
+                      "value": "Lab Admin (Precision)",
+                      "type": "text"
+                    },
+                    {
+                      "key": "email",
+                      "value": "lab.precision@example.com",
+                      "type": "text"
+                    },
+                    {
+                      "key": "role",
+                      "value": "lab_admin",
+                      "type": "text"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Notifications",
+          "item": [
+            {
+              "name": "Get Notifications",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/lab/settings/notifications"
+              },
+              "response": []
+            },
+            {
+              "name": "Save Notifications",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/lab/settings/notifications",
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "new_case_alerts[in_app_notification]",
+                      "value": "true",
+                      "type": "text"
+                    },
+                    {
+                      "key": "new_case_alerts[email_notification]",
+                      "value": "false",
+                      "type": "text"
+                    },
+                    {
+                      "key": "case_update_alerts[in_app_notification]",
+                      "value": "true",
+                      "type": "text"
+                    },
+                    {
+                      "key": "case_update_alerts[email_notification]",
+                      "value": "true",
+                      "type": "text"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Communication",
+          "item": [
+            {
+              "name": "Get WhatsApp Settings",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/lab/settings/whatsapp"
+              },
+              "response": []
+            },
+            {
+              "name": "Save WhatsApp Settings",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/lab/settings/whatsapp",
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "provider",
+                      "value": "meta_cloud_api",
+                      "type": "text"
+                    },
+                    {
+                      "key": "business_phone_number_id",
+                      "value": "",
+                      "type": "text"
+                    },
+                    {
+                      "key": "whatsapp_business_account_id",
+                      "value": "",
+                      "type": "text"
+                    },
+                    {
+                      "key": "access_token",
+                      "value": "",
+                      "type": "text"
+                    },
+                    {
+                      "key": "verify_token",
+                      "value": "",
+                      "type": "text"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Test Connection",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/lab/settings/whatsapp/test",
+                "body": {
+                  "mode": "formdata",
+                  "formdata": []
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "API Logs",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/lab/settings/whatsapp/logs"
+              },
+              "response": []
+            }
+          ]
         }
       ]
     }
