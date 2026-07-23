@@ -16,8 +16,9 @@ class StoreLabPaymentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'amount' => ['required', 'numeric', 'min:0.01'],
-            'method' => ['required', Rule::in(LabPayment::METHODS)],
+            'amount' => ['nullable', 'numeric', 'min:0.01'],
+            'method' => ['nullable', Rule::in(LabPayment::METHODS)],
+            'payment_method' => ['nullable', Rule::in(['Stripe', 'PayPal', 'Bank Transfer', 'Cash'])],
             'transaction_reference' => ['nullable', 'string', 'max:255'],
             'paid_at' => ['nullable', 'date'],
             'notes' => ['nullable', 'string'],

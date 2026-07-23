@@ -19,7 +19,7 @@ class UpdateLabInvoiceRequest extends FormRequest
             'due_date' => ['sometimes', 'nullable', 'date'],
             'tax' => ['sometimes', 'numeric', 'min:0'],
             'discount' => ['sometimes', 'numeric', 'min:0'],
-            'status' => ['sometimes', Rule::in(['pending', 'partial', 'paid', 'overdue', 'cancelled'])],
+            'status' => ['sometimes', Rule::in(['Paid', 'Pending', 'Overdue', 'Disputed', 'pending', 'partial', 'paid', 'overdue', 'cancelled', 'disputed'])],
             'notes' => ['sometimes', 'nullable', 'string'],
         ];
     }

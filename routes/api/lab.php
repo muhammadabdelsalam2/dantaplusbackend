@@ -29,6 +29,11 @@ use Illuminate\Support\Facades\Route;
 Route::get('lab/orders/lab-order/{token}/download', [CaseController::class, 'publicLabOrder'])
     ->name('lab.orders.lab-order.public');
 
+Route::get('lab/accounting/invoices/{invoice}/download/{format}', [LabAccountingController::class, 'downloadInvoice'])
+    ->whereIn('format', ['csv', 'pdf'])
+    ->middleware('signed')
+    ->name('lab.accounting.invoices.download');
+
 Route::prefix('lab')
     ->middleware(['auth:sanctum'])
     ->group(function () {
@@ -44,9 +49,15 @@ Route::prefix('lab')
 });
         Route::middleware(['role:lab_admin|lab_receptionist'])->prefix('accounting')->group(function () {
             Route::get('/summary', [LabAccountingController::class, 'summary']);
+            Route::get('/chart/income-vs-expenses', [LabAccountingController::class, 'incomeVsExpensesChart']);
             Route::get('/invoices', [LabAccountingController::class, 'invoices']);
+            Route::get('/invoices/monthly-preview', [LabAccountingController::class, 'monthlyInvoicePreview']);
             Route::get('/invoices/{invoice}', [LabAccountingController::class, 'showInvoice']);
             Route::get('/invoices/{invoice}/export', [LabAccountingController::class, 'exportInvoice']);
+            Route::get('/invoices/{invoice}/pdf', [LabAccountingController::class, 'invoicePdf']);
+            Route::get('/invoices/{invoice}/csv', [LabAccountingController::class, 'invoiceCsv']);
+            Route::get('/invoices/{invoice}/whatsapp-preview', [LabAccountingController::class, 'invoiceWhatsAppPreview']);
+            Route::get('/invoices/{invoice}/payment-link', [LabAccountingController::class, 'paymentLink']);
             Route::get('/expenses', [LabAccountingController::class, 'expenses']);
             Route::get('/expense-categories', [LabAccountingController::class, 'categories']);
             Route::get('/technician-earnings', [LabAccountingController::class, 'technicianEarnings']);
@@ -57,6 +68,10 @@ Route::prefix('lab')
             Route::post('/invoices/generate-monthly', [LabAccountingController::class, 'generateMonthlyInvoices']);
             Route::post('/invoices/{invoice}/payments', [LabAccountingController::class, 'recordPayment']);
             Route::post('/invoices/{invoice}/whatsapp', [LabAccountingController::class, 'sendInvoiceWhatsApp']);
+            Route::post('/invoices/{invoice}/send-payment-link', [LabAccountingController::class, 'sendPaymentLink']);
+            Route::post('/invoices/{invoice}/pay/stripe', [LabAccountingController::class, 'payWithStripe']);
+            Route::post('/invoices/{invoice}/pay/paypal', [LabAccountingController::class, 'payWithPayPal']);
+            Route::post('/invoices/{invoice}/send-to-clinic-system', [LabAccountingController::class, 'sendToClinicSystem']);
             Route::post('/expenses', [LabAccountingController::class, 'storeExpense']);
             Route::post('/expense-categories', [LabAccountingController::class, 'storeCategory']);
 

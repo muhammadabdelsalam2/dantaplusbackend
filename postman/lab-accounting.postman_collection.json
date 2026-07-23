@@ -1,0 +1,119 @@
+{
+  "info": {
+    "name": "Lab Accounting",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://127.0.0.1:8000/api" },
+    { "key": "token", "value": "" },
+    { "key": "invoice_id", "value": "1" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "Overview",
+      "item": [
+        {
+          "name": "Stats Cards",
+          "request": { "method": "GET", "url": "{{base_url}}/lab/accounting/summary?month=2026-07" },
+          "response": [{ "name": "Example", "body": "{\"success\":true,\"data\":{\"monthly_income\":403.5,\"monthly_expenses\":4200,\"monthly_profit\":-3796.5,\"total_outstanding\":666,\"cards\":[{\"label\":\"Monthly Income\",\"value\":403.5},{\"label\":\"Monthly Expenses\",\"value\":4200},{\"label\":\"Monthly Profit\",\"value\":-3796.5},{\"label\":\"Total Outstanding\",\"value\":666}]}}" }]
+        },
+        {
+          "name": "Income vs Expenses Chart",
+          "request": { "method": "GET", "url": "{{base_url}}/lab/accounting/chart/income-vs-expenses?year=2026" },
+          "response": [{ "name": "Example", "body": "{\"success\":true,\"data\":[{\"month\":1,\"month_label\":\"Jan\",\"income\":0,\"expenses\":0},{\"month\":7,\"month_label\":\"Jul\",\"income\":403.5,\"expenses\":4200}]}" }]
+        }
+      ]
+    },
+    {
+      "name": "Invoices",
+      "item": [
+        { "name": "List Invoices", "request": { "method": "GET", "url": "{{base_url}}/lab/accounting/invoices?search=Bright&status=Pending" } },
+        { "name": "Monthly Preview", "request": { "method": "GET", "url": "{{base_url}}/lab/accounting/invoices/monthly-preview?month=2026-07&group_by=clinic" } },
+        {
+          "name": "Generate Monthly Invoices",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/lab/accounting/invoices/generate-monthly",
+            "body": { "mode": "formdata", "formdata": [
+              { "key": "month", "value": "2026-07", "type": "text" },
+              { "key": "group_by", "value": "clinic", "type": "text" },
+              { "key": "clinic_ids[]", "value": "1", "type": "text" }
+            ] }
+          }
+        },
+        { "name": "Invoice Details", "request": { "method": "GET", "url": "{{base_url}}/lab/accounting/invoices/{{invoice_id}}?show_dental_chart=true&show_tooth_numbers=true" } },
+        { "name": "PDF / Print", "request": { "method": "GET", "url": "{{base_url}}/lab/accounting/invoices/{{invoice_id}}/pdf?show_dental_chart=true&show_tooth_numbers=true" } },
+        { "name": "CSV Export", "request": { "method": "GET", "url": "{{base_url}}/lab/accounting/invoices/{{invoice_id}}/csv" } },
+        { "name": "WhatsApp Preview", "request": { "method": "GET", "url": "{{base_url}}/lab/accounting/invoices/{{invoice_id}}/whatsapp-preview" } },
+        {
+          "name": "Send WhatsApp",
+          "request": { "method": "POST", "url": "{{base_url}}/lab/accounting/invoices/{{invoice_id}}/whatsapp", "body": { "mode": "formdata", "formdata": [] } }
+        },
+        { "name": "Payment Link", "request": { "method": "GET", "url": "{{base_url}}/lab/accounting/invoices/{{invoice_id}}/payment-link" } },
+        {
+          "name": "Pay with Stripe",
+          "request": { "method": "POST", "url": "{{base_url}}/lab/accounting/invoices/{{invoice_id}}/pay/stripe", "body": { "mode": "formdata", "formdata": [] } }
+        },
+        {
+          "name": "Pay with PayPal",
+          "request": { "method": "POST", "url": "{{base_url}}/lab/accounting/invoices/{{invoice_id}}/pay/paypal", "body": { "mode": "formdata", "formdata": [] } }
+        },
+        {
+          "name": "Send Payment Link",
+          "request": { "method": "POST", "url": "{{base_url}}/lab/accounting/invoices/{{invoice_id}}/send-payment-link", "body": { "mode": "formdata", "formdata": [] } }
+        },
+        {
+          "name": "Record Payment",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/lab/accounting/invoices/{{invoice_id}}/payments",
+            "body": { "mode": "formdata", "formdata": [
+              { "key": "amount", "value": "126.00", "type": "text" },
+              { "key": "payment_method", "value": "Bank Transfer", "type": "text" }
+            ] }
+          }
+        },
+        {
+          "name": "Send to Clinic System",
+          "request": { "method": "POST", "url": "{{base_url}}/lab/accounting/invoices/{{invoice_id}}/send-to-clinic-system", "body": { "mode": "formdata", "formdata": [] } }
+        }
+      ]
+    },
+    {
+      "name": "Expenses",
+      "item": [
+        { "name": "List Expenses", "request": { "method": "GET", "url": "{{base_url}}/lab/accounting/expenses" } },
+        {
+          "name": "Add Expense",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/lab/accounting/expenses",
+            "body": { "mode": "formdata", "formdata": [
+              { "key": "date", "value": "2026-07-23", "type": "text" },
+              { "key": "expense_type", "value": "Materials", "type": "text" },
+              { "key": "amount", "value": "850", "type": "text" },
+              { "key": "description", "value": "Bulk order of Zirconia pucks", "type": "text" }
+            ] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Technician Earnings",
+      "item": [
+        { "name": "Reports", "request": { "method": "GET", "url": "{{base_url}}/lab/accounting/technician-earnings?period=all_time&technician_id=all" } },
+        { "name": "Analytics", "request": { "method": "GET", "url": "{{base_url}}/lab/accounting/analytics?period=all_time&technician_id=all&material_type=All%20Materials" } }
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        { "name": "Top 5 Paying Clinics", "request": { "method": "GET", "url": "{{base_url}}/lab/accounting/reports/top-paying-clinics" } }
+      ]
+    }
+  ]
+}

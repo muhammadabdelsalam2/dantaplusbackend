@@ -20,6 +20,7 @@ use App\Services\Lab\Accounting\LabAccountingService;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 class LabAccountingController extends Controller
 {
@@ -32,6 +33,11 @@ class LabAccountingController extends Controller
     public function summary(IndexLabAccountingRequest $request): JsonResponse
     {
         return $this->respond($this->service->summary($request->validated()));
+    }
+
+    public function incomeVsExpensesChart(IndexLabAccountingRequest $request): JsonResponse
+    {
+        return $this->respond($this->service->incomeVsExpensesChart($request->validated()));
     }
 
     public function invoices(IndexLabAccountingRequest $request): JsonResponse
@@ -49,12 +55,17 @@ class LabAccountingController extends Controller
 
     public function showInvoice(int $invoice): JsonResponse
     {
-        $result = $this->service->showInvoice($invoice);
+        $result = $this->service->showInvoice($invoice, request()->query());
         if (! $result['success']) {
             return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
         }
 
-        return ApiResponse::success((new LabInvoiceResource($result['data']))->resolve(), $result['message'], $result['code']);
+        return ApiResponse::success($result['data'], $result['message'], $result['code']);
+    }
+
+    public function monthlyInvoicePreview(IndexLabAccountingRequest $request): JsonResponse
+    {
+        return $this->respond($this->service->monthlyInvoicePreview($request->validated()));
     }
 
     public function storeInvoice(StoreLabInvoiceRequest $request): JsonResponse
@@ -203,6 +214,51 @@ class LabAccountingController extends Controller
     public function sendInvoiceWhatsApp(int $invoice): JsonResponse
     {
         return $this->respond($this->service->sendInvoiceWhatsApp($invoice));
+    }
+
+    public function invoicePdf(Request $request, int $invoice): Response
+    {
+        return $this->service->downloadInvoice($invoice, 'pdf', $request->query());
+    }
+
+    public function invoiceCsv(Request $request, int $invoice): Response
+    {
+        return $this->service->downloadInvoice($invoice, 'csv', $request->query());
+    }
+
+    public function downloadInvoice(Request $request, int $invoice, string $format): Response
+    {
+        return $this->service->downloadInvoice($invoice, $format, $request->query(), false);
+    }
+
+    public function invoiceWhatsAppPreview(int $invoice): JsonResponse
+    {
+        return $this->respond($this->service->invoiceWhatsAppPreview($invoice));
+    }
+
+    public function paymentLink(int $invoice): JsonResponse
+    {
+        return $this->respond($this->service->paymentLink($invoice));
+    }
+
+    public function sendPaymentLink(int $invoice): JsonResponse
+    {
+        return $this->respond($this->service->sendPaymentLink($invoice));
+    }
+
+    public function payWithStripe(int $invoice): JsonResponse
+    {
+        return $this->respond($this->service->placeholderPaymentAttempt($invoice, 'Stripe'));
+    }
+
+    public function payWithPayPal(int $invoice): JsonResponse
+    {
+        return $this->respond($this->service->placeholderPaymentAttempt($invoice, 'PayPal'));
+    }
+
+    public function sendToClinicSystem(int $invoice): JsonResponse
+    {
+        return $this->respond($this->service->sendToClinicSystem($invoice));
     }
 
     private function respond(array $result): JsonResponse

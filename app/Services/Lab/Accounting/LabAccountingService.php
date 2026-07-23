@@ -3,6 +3,8 @@
 namespace App\Services\Lab\Accounting;
 
 use App\Models\CaseModel;
+use App\Models\Clinic;
+use App\Models\DentalLab;
 use App\Models\LabExpense;
 use App\Models\LabExpenseCategory;
 use App\Models\LabInvoice;
@@ -20,11 +22,19 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
 class LabAccountingService
 {
+    private const INVOICE_STATUSES = ['Paid', 'Pending', 'Overdue', 'Disputed'];
+    private const EXPENSE_TYPES = ['Materials', 'Salaries', 'Utilities', 'Maintenance', 'Delivery', 'Other'];
+    private const PAYMENT_METHODS = ['Stripe', 'PayPal', 'Bank Transfer', 'Cash'];
+    private const MATERIAL_TYPES = ['All Materials', 'Zirconia', 'E-Max', 'PFM', 'PMMA'];
+    private const DEFAULT_TAX_RATE = 5.0;
+
     public function summary(array $filters = []): array
     {
         $labId = $this->currentLabId();
@@ -55,7 +65,26 @@ class LabAccountingService
             'monthly_expenses' => round($expenses, 2),
             'monthly_profit' => round($income - $expenses, 2),
             'total_outstanding' => round($outstanding, 2),
+            'cards' => [
+                ['label' => 'Monthly Income', 'value' => round($income, 2)],
+                ['label' => 'Monthly Expenses', 'value' => round($expenses, 2)],
+                ['label' => 'Monthly Profit', 'value' => round($income - $expenses, 2)],
+                ['label' => 'Total Outstanding', 'value' => round($outstanding, 2)],
+            ],
         ], 'Lab accounting summary fetched successfully');
+    }
+
+    public function incomeVsExpensesChart(array $filters = []): array
+    {
+        $labId = $this->currentLabId();
+        if (! $labId) {
+            return ServiceResult::error('Lab account is not linked to a dental lab.', null, null, 403);
+        }
+
+        return ServiceResult::success(
+            $this->dashboardCharts($labId, (int) ($filters['year'] ?? now()->year))['income_vs_expenses'],
+            'Income vs expenses chart fetched successfully'
+        );
     }
 
     public function invoices(array $filters = []): array
@@ -75,14 +104,53 @@ class LabAccountingService
         ], 'Lab invoices fetched successfully');
     }
 
-    public function showInvoice(int $invoiceId): array
+    public function showInvoice(int $invoiceId, array $options = []): array
     {
         $invoice = $this->findInvoiceForCurrentLab($invoiceId);
         if (! $invoice) {
             return ServiceResult::error('Lab invoice not found.', null, null, 404);
         }
 
-        return ServiceResult::success($invoice, 'Lab invoice fetched successfully');
+        return ServiceResult::success($this->invoiceDetails($invoice, $options), 'Lab invoice fetched successfully');
+    }
+
+    public function monthlyInvoicePreview(array $data): array
+    {
+        $labId = $this->currentLabId();
+        if (! $labId) {
+            return ServiceResult::error('Lab account is not linked to a dental lab.', null, null, 403);
+        }
+
+        [$from, $to] = $this->monthRange($data['month'] ?? now()->format('Y-m'));
+        $groupBy = $data['group_by'] ?? 'clinic';
+
+        $items = $this->completedUninvoicedCasesQuery($labId, $from, $to)
+            ->with(['clinic:id,name', 'dentist.user:id,name'])
+            ->get()
+            ->groupBy(fn (CaseModel $case) => $groupBy === 'doctor' ? (string) $case->dentist_id : (string) $case->clinic_id)
+            ->filter(fn (Collection $group, string $key) => $key !== '' && $key !== '0')
+            ->map(function (Collection $group, string $id) use ($groupBy) {
+                $first = $group->first();
+
+                return [
+                    'id' => (int) $id,
+                    'group_by' => $groupBy,
+                    'label' => $groupBy === 'doctor' ? ($first?->dentist?->user?->name ?? 'Unknown Doctor') : ($first?->clinic?->name ?? 'Unknown Clinic'),
+                    'clinic_id' => $first?->clinic_id,
+                    'doctor_id' => $groupBy === 'doctor' ? $first?->dentist_id : null,
+                    'completed_cases' => $group->count(),
+                ];
+            })
+            ->sortBy('label')
+            ->values()
+            ->all();
+
+        return ServiceResult::success([
+            'month' => $from->format('F Y'),
+            'month_value' => $from->format('Y-m'),
+            'group_by' => $groupBy,
+            'items' => $items,
+        ], 'Monthly invoice preview fetched successfully');
     }
 
     public function createInvoice(array $data): array
@@ -93,21 +161,26 @@ class LabAccountingService
         }
 
         return DB::transaction(function () use ($data, $labId) {
+            $clinicId = $data['clinic_id'] ?? CaseModel::query()->where('lab_id', $labId)->value('clinic_id') ?? Clinic::query()->value('id');
+            if (! $clinicId) {
+                return ServiceResult::error('No clinic is available to create a lab invoice.', null, null, 422);
+            }
+
             $invoice = LabInvoice::query()->create([
                 'lab_id' => $labId,
-                'clinic_id' => $data['clinic_id'],
+                'clinic_id' => $clinicId,
                 'doctor_id' => $data['doctor_id'] ?? null,
                 'invoice_number' => $this->generateInvoiceNumber($labId),
                 'group_by' => 'manual',
                 'group_key' => 'manual-' . Str::uuid()->toString(),
-                'issue_date' => $data['issue_date'],
-                'due_date' => $data['due_date'] ?? null,
+                'issue_date' => $data['issue_date'] ?? now()->toDateString(),
+                'due_date' => $data['due_date'] ?? now()->addDays(30)->toDateString(),
                 'tax' => round((float) ($data['tax'] ?? 0), 2),
                 'discount' => round((float) ($data['discount'] ?? 0), 2),
                 'notes' => $data['notes'] ?? null,
             ]);
 
-            foreach ($data['items'] as $item) {
+            foreach (($data['items'] ?? []) as $item) {
                 $this->createInvoiceItem($invoice, $item);
             }
 
@@ -128,6 +201,10 @@ class LabAccountingService
             return ServiceResult::error('Lab invoice not found.', null, null, 404);
         }
 
+        if (isset($data['status'])) {
+            $data['status'] = $this->normalizeInvoiceStatus($data['status']) ?? $invoice->status;
+        }
+
         $invoice->update($data);
         $this->syncInvoiceStatus($invoice->fresh());
 
@@ -144,18 +221,29 @@ class LabAccountingService
             return ServiceResult::error('Lab account is not linked to a dental lab.', null, null, 403);
         }
 
-        [$from, $to] = $this->monthRange($data['month']);
-        $groupBy = $data['group_by'];
-        $taxRate = (float) ($data['tax_rate'] ?? 0);
+        [$from, $to] = $this->monthRange($data['month'] ?? now()->format('Y-m'));
+        $groupBy = $data['group_by'] ?? 'clinic';
+        $taxRate = (float) ($data['tax_rate'] ?? self::DEFAULT_TAX_RATE);
         $discountRate = (float) ($data['discount_rate'] ?? 0);
+        $selectedIds = collect($groupBy === 'doctor'
+            ? ($data['doctor_ids'] ?? (isset($data['doctor_id']) ? [$data['doctor_id']] : []))
+            : ($data['clinic_ids'] ?? (isset($data['clinic_id']) ? [$data['clinic_id']] : [])))
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->values();
 
-        $cases = CaseModel::query()
+        if ($selectedIds->isEmpty()) {
+            return ServiceResult::success([
+                'created' => [],
+                'skipped' => [],
+                'created_count' => 0,
+                'skipped_count' => 0,
+            ], 'Monthly lab invoices generated successfully', 201);
+        }
+
+        $cases = $this->completedUninvoicedCasesQuery($labId, $from, $to)
             ->with(['clinic:id,name,email,phone', 'patient.user:id,name', 'dentist.user:id,name', 'technician:id,name,commission_rates'])
-            ->where('lab_id', $labId)
-            ->whereIn('status', [CaseModel::STATUS_COMPLETED, CaseModel::STATUS_DELIVERED])
-            ->whereBetween('completed_at', [$from, $to])
-            ->when($data['clinic_id'] ?? null, fn (Builder $q, int $clinicId) => $q->where('clinic_id', $clinicId))
-            ->when($data['doctor_id'] ?? null, fn (Builder $q, int $doctorId) => $q->where('dentist_id', $doctorId))
+            ->whereIn($groupBy === 'doctor' ? 'dentist_id' : 'clinic_id', $selectedIds->all())
             ->get();
 
         $groups = $cases->groupBy(function (CaseModel $case) use ($groupBy) {
@@ -176,7 +264,7 @@ class LabAccountingService
                 }
 
                 $doctorId = $groupBy === 'doctor' ? $first->dentist_id : null;
-                $groupKey = $groupBy === 'doctor' ? ('doctor:' . $doctorId) : 'clinic';
+                $groupKey = $groupBy === 'doctor' ? ('doctor:' . $doctorId) : ('clinic:' . $first->clinic_id);
 
                 $exists = LabInvoice::query()
                     ->where('lab_id', $labId)
@@ -205,7 +293,7 @@ class LabAccountingService
                     'group_by' => $groupBy,
                     'group_key' => $groupKey,
                     'issue_date' => $data['issue_date'] ?? now()->toDateString(),
-                    'due_date' => $data['due_date'] ?? now()->addDays(15)->toDateString(),
+                    'due_date' => $data['due_date'] ?? now()->addDays(30)->toDateString(),
                     'notes' => $data['notes'] ?? null,
                 ]);
 
@@ -256,17 +344,20 @@ class LabAccountingService
             return ServiceResult::error('Invoice is already fully paid.', null, ['amount' => ['Invoice is already fully paid.']], 422);
         }
 
-        if ((float) $data['amount'] > (float) $invoice->remaining_amount) {
+        $amount = (float) ($data['amount'] ?? $invoice->remaining_amount);
+        $method = $data['payment_method'] ?? $data['method'] ?? 'Bank Transfer';
+
+        if ($amount > (float) $invoice->remaining_amount) {
             return ServiceResult::error('Payment amount exceeds outstanding balance.', null, ['amount' => ['Payment amount exceeds outstanding balance.']], 422);
         }
 
-        return DB::transaction(function () use ($invoice, $data) {
+        return DB::transaction(function () use ($invoice, $data, $amount, $method) {
             $payment = LabPayment::query()->create([
                 'lab_invoice_id' => $invoice->id,
                 'lab_id' => $invoice->lab_id,
                 'recorded_by' => auth()->id(),
-                'amount' => $data['amount'],
-                'method' => $data['method'],
+                'amount' => $amount,
+                'method' => $method,
                 'status' => 'paid',
                 'transaction_reference' => $data['transaction_reference'] ?? null,
                 'paid_at' => $data['paid_at'] ?? now(),
@@ -277,9 +368,9 @@ class LabAccountingService
                 'lab_payment_id' => $payment->id,
                 'lab_invoice_id' => $invoice->id,
                 'lab_id' => $invoice->lab_id,
-                'provider' => $data['method'],
+                'provider' => $method,
                 'transaction_reference' => $data['transaction_reference'] ?? null,
-                'amount' => $data['amount'],
+                'amount' => $amount,
                 'status' => 'paid',
                 'payload' => ['source' => 'lab_accounting_api'],
                 'processed_at' => $payment->paid_at,
@@ -332,6 +423,26 @@ class LabAccountingService
             return ServiceResult::error('Lab account is not linked to a dental lab.', null, null, 403);
         }
 
+        $expenseType = $data['expense_type'] ?? $data['type'] ?? null;
+        if (empty($data['lab_expense_category_id']) && $expenseType) {
+            $data['lab_expense_category_id'] = LabExpenseCategory::query()->firstOrCreate(
+                ['lab_id' => $labId, 'name' => $expenseType],
+                ['status' => 'active']
+            )->id;
+        }
+
+        if (empty($data['lab_expense_category_id'])) {
+            $data['lab_expense_category_id'] = LabExpenseCategory::query()->firstOrCreate(
+                ['lab_id' => $labId, 'name' => 'Other'],
+                ['status' => 'active']
+            )->id;
+        }
+
+        $data['title'] = $data['title'] ?? $data['description'] ?? $expenseType ?? 'Lab Expense';
+        $data['notes'] = $data['notes'] ?? $data['description'] ?? null;
+        $data['expense_date'] = $data['expense_date'] ?? $data['date'] ?? now()->toDateString();
+        $data['amount'] = $data['amount'] ?? 0;
+
         $category = LabExpenseCategory::query()->where('lab_id', $labId)->find($data['lab_expense_category_id']);
         if (! $category) {
             return ServiceResult::error('Expense category not found.', null, ['lab_expense_category_id' => ['Expense category not found.']], 422);
@@ -342,7 +453,9 @@ class LabAccountingService
         }
         unset($data['attachment']);
 
-        $expense = LabExpense::query()->create($data + ['lab_id' => $labId]);
+        $expense = LabExpense::query()->create(collect($data)
+            ->only(['lab_expense_category_id', 'title', 'amount', 'payment_method', 'expense_date', 'vendor', 'notes', 'attachment_path'])
+            ->all() + ['lab_id' => $labId]);
 
         return ServiceResult::success($expense->fresh('category:id,name'), 'Lab expense created successfully', 201);
     }
@@ -412,7 +525,7 @@ class LabAccountingService
         try {
             $category = LabExpenseCategory::query()->create([
                 'lab_id' => $labId,
-                'name' => $data['name'],
+                'name' => $data['name'] ?? 'Other',
                 'status' => $data['status'] ?? 'active',
             ]);
         } catch (Throwable) {
@@ -459,8 +572,10 @@ class LabAccountingService
             return ServiceResult::error('Lab account is not linked to a dental lab.', null, null, 403);
         }
 
+        $filters = $this->applyPeriodFilters($filters);
+
         $rows = LabInvoiceItem::query()
-            ->with('technician:id,name,commission_rates')
+            ->with(['technician:id,name,commission_rates', 'materials'])
             ->whereHas('invoice', function (Builder $q) use ($labId, $filters) {
                 $q->where('lab_id', $labId)
                     ->whereNotIn('status', [LabInvoice::STATUS_CANCELLED])
@@ -481,6 +596,8 @@ class LabAccountingService
                 return [
                     'technician_id' => $technician?->id,
                     'technician_name' => $technician?->name,
+                    'technician' => $technician?->name,
+                    'materials' => $items->flatMap(fn (LabInvoiceItem $item) => $item->materials->pluck('material_type'))->filter()->unique()->values()->all(),
                     'total_cases' => $items->pluck('case_id')->filter()->unique()->count(),
                     'total_value' => round($totalValue, 2),
                     'materials_cost' => round($materials, 2),
@@ -520,6 +637,7 @@ class LabAccountingService
                     'clinic_id' => (int) $clinicId,
                     'clinic_name' => $clinic?->name,
                     'paid_amount' => round((float) $group->sum('amount'), 2),
+                    'total_paid' => round((float) $group->sum('amount'), 2),
                     'payments_count' => $group->count(),
                 ];
             })
@@ -533,6 +651,7 @@ class LabAccountingService
 
     public function analytics(array $filters = []): array
     {
+        $filters = $this->applyPeriodFilters($filters);
         $earnings = $this->technicianEarnings($filters);
         if (! $earnings['success']) {
             return $earnings;
@@ -545,6 +664,7 @@ class LabAccountingService
                     ->when($filters['date_from'] ?? null, fn (Builder $q, string $date) => $q->whereDate('issue_date', '>=', $date))
                     ->when($filters['date_to'] ?? null, fn (Builder $q, string $date) => $q->whereDate('issue_date', '<=', $date));
             })
+            ->when(($filters['material_type'] ?? 'All Materials') !== 'All Materials', fn (Builder $q) => $q->where('material_type', $filters['material_type']))
             ->get()
             ->groupBy(fn (LabInvoiceItemMaterial $material) => $material->material_type ?: 'Other')
             ->map(fn (Collection $items, string $type) => [
@@ -558,6 +678,7 @@ class LabAccountingService
         return ServiceResult::success([
             'monthly_earnings_by_technician' => $earnings['data'],
             'earnings_by_material_type' => $materialRows,
+            'empty_message' => empty($earnings['data']) && empty($materialRows) ? 'No earnings data found for the selected filters.' : null,
         ], 'Lab accounting analytics fetched successfully');
     }
 
@@ -568,25 +689,44 @@ class LabAccountingService
             return ServiceResult::error('Lab invoice not found.', null, null, 404);
         }
 
-        $rows = $invoice->items->map(fn (LabInvoiceItem $item) => [
-            $item->case_number,
-            $item->patient_name,
-            $item->service_name,
-            implode('|', $item->fdi_teeth_numbers ?? []),
-            (string) $item->subtotal,
-            (string) $item->tax,
-            (string) $item->discount,
-            (string) $item->total,
-        ])->all();
-
-        $content = $this->csvContent(['Case Number', 'Patient', 'Service', 'FDI Teeth', 'Subtotal', 'Tax', 'Discount', 'Total'], $rows);
-        $extension = $format === 'excel' ? 'xlsx' : $format;
+        $downloadFormat = $format === 'excel' ? 'csv' : $format;
+        $content = $downloadFormat === 'pdf' ? $this->invoicePdfContent($invoice) : $this->invoiceCsvContent($invoice);
 
         return ServiceResult::success([
-            'filename' => $invoice->invoice_number . '.' . $extension,
-            'content_type' => $format === 'pdf' ? 'application/pdf' : 'text/csv',
-            'content' => base64_encode($format === 'pdf' ? $this->simplePdfFallback($invoice) : $content),
+            'filename' => $invoice->invoice_number . '.' . $downloadFormat,
+            'content_type' => $downloadFormat === 'pdf' ? 'application/pdf' : 'text/csv',
+            'content' => base64_encode($content),
+            'signed_download_url' => URL::temporarySignedRoute(
+                'lab.accounting.invoices.download',
+                now()->addMinutes(60),
+                ['invoice' => $invoice->id, 'format' => $downloadFormat]
+            ),
         ], 'Lab invoice export prepared successfully');
+    }
+
+    public function downloadInvoice(int $invoiceId, string $format, array $options = [], bool $authScoped = true): Response
+    {
+        $invoice = $authScoped ? $this->findInvoiceForCurrentLab($invoiceId) : $this->findInvoice($invoiceId);
+        abort_if(! $invoice, 404, 'Lab invoice not found.');
+
+        $content = $format === 'pdf'
+            ? $this->invoicePdfContent($invoice, $options)
+            : $this->invoiceCsvContent($invoice);
+
+        return response($content, 200, [
+            'Content-Type' => $format === 'pdf' ? 'application/pdf' : 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $invoice->invoice_number . '.' . $format . '"',
+        ]);
+    }
+
+    public function invoiceWhatsAppPreview(int $invoiceId): array
+    {
+        $invoice = $this->findInvoiceForCurrentLab($invoiceId);
+        if (! $invoice) {
+            return ServiceResult::error('Lab invoice not found.', null, null, 404);
+        }
+
+        return ServiceResult::success($this->whatsAppPayload($invoice), 'Invoice WhatsApp preview fetched successfully');
     }
 
     public function sendInvoiceWhatsApp(int $invoiceId): array
@@ -596,17 +736,80 @@ class LabAccountingService
             return ServiceResult::error('Lab invoice not found.', null, null, 404);
         }
 
+        $payload = $this->whatsAppPayload($invoice);
+
         Log::info('Lab invoice WhatsApp message queued.', [
             'invoice_id' => $invoice->id,
             'lab_id' => $invoice->lab_id,
             'clinic_id' => $invoice->clinic_id,
+            'message' => $payload['message'],
+        ]);
+
+        return ServiceResult::success($payload + ['provider' => 'lab_whatsapp_settings', 'sent' => true], 'Lab invoice WhatsApp message queued successfully');
+    }
+
+    public function paymentLink(int $invoiceId): array
+    {
+        $invoice = $this->findInvoiceForCurrentLab($invoiceId);
+        if (! $invoice) {
+            return ServiceResult::error('Lab invoice not found.', null, null, 404);
+        }
+
+        return ServiceResult::success($this->paymentLinkPayload($invoice), 'Invoice payment link fetched successfully');
+    }
+
+    public function sendPaymentLink(int $invoiceId): array
+    {
+        $invoice = $this->findInvoiceForCurrentLab($invoiceId);
+        if (! $invoice) {
+            return ServiceResult::error('Lab invoice not found.', null, null, 404);
+        }
+
+        $payload = $this->paymentLinkPayload($invoice);
+        Log::info('Lab invoice payment link sent.', ['invoice_id' => $invoice->id, 'clinic_id' => $invoice->clinic_id, 'url' => $payload['payment_url']]);
+
+        return ServiceResult::success($payload + ['sent' => true], 'Invoice payment link sent successfully');
+    }
+
+    public function placeholderPaymentAttempt(int $invoiceId, string $provider): array
+    {
+        $invoice = $this->findInvoiceForCurrentLab($invoiceId);
+        if (! $invoice) {
+            return ServiceResult::error('Lab invoice not found.', null, null, 404);
+        }
+
+        LabPaymentTransaction::query()->create([
+            'lab_invoice_id' => $invoice->id,
+            'lab_id' => $invoice->lab_id,
+            'provider' => $provider,
+            'transaction_reference' => strtoupper($provider) . '-' . Str::upper(Str::random(10)),
+            'amount' => $invoice->remaining_amount,
+            'status' => 'pending',
+            'payload' => ['source' => 'placeholder_payment_link'],
         ]);
 
         return ServiceResult::success([
-            'invoice_id' => $invoice->id,
-            'provider' => 'lab_whatsapp_settings',
-            'queued' => true,
-        ], 'Lab invoice WhatsApp message queued successfully');
+            'provider' => $provider,
+            'payment_url' => url('/lab/accounting/payments/' . $invoice->invoice_number . '/' . Str::slug($provider)),
+            'invoice_id' => $invoice->invoice_number,
+            'amount_due' => (float) $invoice->remaining_amount,
+        ], $provider . ' payment attempt created successfully');
+    }
+
+    public function sendToClinicSystem(int $invoiceId): array
+    {
+        $invoice = $this->findInvoiceForCurrentLab($invoiceId);
+        if (! $invoice) {
+            return ServiceResult::error('Lab invoice not found.', null, null, 404);
+        }
+
+        Log::info('Lab invoice sent to clinic system.', ['invoice_id' => $invoice->id, 'clinic_id' => $invoice->clinic_id]);
+
+        return ServiceResult::success([
+            'invoice_id' => $invoice->invoice_number,
+            'clinic_id' => $invoice->clinic_id,
+            'sent' => true,
+        ], 'Invoice sent to clinic system successfully');
     }
 
     public function dashboardSummary(int $labId, ?string $month = null): array
@@ -653,6 +856,7 @@ class LabAccountingService
         $incomeVsExpenses = collect(range(1, 12))->map(function (int $month) use ($payments, $expenses) {
             return [
                 'month' => $month,
+                'month_label' => Carbon::create(null, $month, 1)->format('M'),
                 'income' => round((float) $payments->filter(fn (LabPayment $payment) => (int) optional($payment->paid_at)->month === $month)->sum('amount'), 2),
                 'expenses' => round((float) $expenses->filter(fn (LabExpense $expense) => (int) optional($expense->expense_date)->month === $month)->sum('amount'), 2),
             ];
@@ -684,6 +888,8 @@ class LabAccountingService
 
     private function invoiceQuery(int $labId, array $filters): Builder
     {
+        $status = isset($filters['status']) ? $this->normalizeInvoiceStatus($filters['status']) : null;
+
         return LabInvoice::query()
             ->with($this->invoiceRelations())
             ->where('lab_id', $labId)
@@ -695,7 +901,7 @@ class LabAccountingService
                             ->orWhere('patient_name', 'like', "%{$search}%"));
                 });
             })
-            ->when($filters['status'] ?? null, fn (Builder $q, string $status) => $q->where('status', $status))
+            ->when($status, fn (Builder $q, string $status) => $q->where('status', $status))
             ->when($filters['clinic_id'] ?? null, fn (Builder $q, int $clinicId) => $q->where('clinic_id', $clinicId))
             ->when($filters['doctor_id'] ?? null, fn (Builder $q, int $doctorId) => $q->where('doctor_id', $doctorId))
             ->when($filters['date_from'] ?? null, fn (Builder $q, string $date) => $q->whereDate('issue_date', '>=', $date))
@@ -798,8 +1004,8 @@ class LabAccountingService
 
     private function resolveStatus(float $total, float $paid, ?string $dueDate, ?string $currentStatus = null): string
     {
-        if ($currentStatus === LabInvoice::STATUS_CANCELLED) {
-            return LabInvoice::STATUS_CANCELLED;
+        if (in_array($currentStatus, [LabInvoice::STATUS_CANCELLED, 'disputed'], true)) {
+            return $currentStatus;
         }
 
         if ($total > 0 && $paid >= $total) {
@@ -830,6 +1036,13 @@ class LabAccountingService
             ->find($invoiceId);
     }
 
+    private function findInvoice(int $invoiceId): ?LabInvoice
+    {
+        return LabInvoice::query()
+            ->with($this->invoiceRelations() + ['lab'])
+            ->find($invoiceId);
+    }
+
     private function findExpenseForCurrentLab(int $expenseId): ?LabExpense
     {
         $labId = $this->currentLabId();
@@ -843,8 +1056,10 @@ class LabAccountingService
     private function invoiceRelations(): array
     {
         return [
-            'clinic:id,name,email,phone',
+            'lab',
+            'clinic:id,name,email,phone,address',
             'doctor.user:id,name',
+            'items.case:id,completed_at',
             'items.materials',
             'items.technician:id,name,commission_rates',
             'payments.recorder:id,name',
@@ -854,10 +1069,205 @@ class LabAccountingService
     private function generateInvoiceNumber(int $labId): string
     {
         do {
-            $number = 'LAB-INV-' . $labId . '-' . now()->format('Ymd') . '-' . Str::upper(Str::random(5));
+            $number = 'LI-' . now()->timestamp . '-' . Str::lower(Str::random(5));
         } while (LabInvoice::query()->where('invoice_number', $number)->exists());
 
         return $number;
+    }
+
+    private function completedUninvoicedCasesQuery(int $labId, Carbon $from, Carbon $to): Builder
+    {
+        return CaseModel::query()
+            ->where('lab_id', $labId)
+            ->whereIn('status', [CaseModel::STATUS_COMPLETED, CaseModel::STATUS_DELIVERED])
+            ->whereBetween('completed_at', [$from, $to])
+            ->whereNotIn('id', LabInvoiceItem::query()
+                ->whereNotNull('case_id')
+                ->whereHas('invoice', fn (Builder $q) => $q->where('lab_id', $labId)->whereNotIn('status', [LabInvoice::STATUS_CANCELLED]))
+                ->select('case_id'));
+    }
+
+    private function invoiceDetails(LabInvoice $invoice, array $options = []): array
+    {
+        $showDentalChart = filter_var($options['show_dental_chart'] ?? true, FILTER_VALIDATE_BOOLEAN);
+        $showToothNumbers = filter_var($options['show_tooth_numbers'] ?? true, FILTER_VALIDATE_BOOLEAN);
+        $lab = $invoice->lab ?: DentalLab::query()->find($invoice->lab_id);
+        $taxRate = $invoice->subtotal > 0 ? round(((float) $invoice->tax / (float) $invoice->subtotal) * 100, 2) : self::DEFAULT_TAX_RATE;
+
+        return [
+            'id' => $invoice->id,
+            'invoice_id' => $invoice->invoice_number,
+            'invoice_number' => $invoice->invoice_number,
+            'date' => optional($invoice->issue_date)?->format('d/m/Y'),
+            'issue_date' => optional($invoice->issue_date)?->toDateString(),
+            'due_date' => optional($invoice->due_date)?->toDateString(),
+            'status' => $this->displayInvoiceStatus($invoice->status),
+            'lab_info' => [
+                'name' => $lab?->name ?? 'Precision Dental Labs',
+                'address' => $lab?->address ?? '789 Tech Park, Metropolis',
+                'phone' => $lab?->phone ?? '555-0201',
+                'email' => $lab?->email ?? 'contact@precisionlabs.com',
+            ],
+            'bill_to' => [
+                'clinic_id' => $invoice->clinic_id,
+                'clinic_code' => 'c' . $invoice->clinic_id,
+                'name' => $invoice->clinic?->name,
+                'email' => $invoice->clinic?->email,
+                'phone' => $invoice->clinic?->phone,
+                'address' => $invoice->clinic?->address,
+            ],
+            'cases' => $invoice->items->map(fn (LabInvoiceItem $item) => [
+                'case_id' => $item->case_number,
+                'patient' => $item->patient_name,
+                'service' => $item->service_name,
+                'teeth' => $showToothNumbers ? implode(', ', $item->fdi_teeth_numbers ?? []) : null,
+                'tooth_number' => $showToothNumbers ? implode(', ', $item->fdi_teeth_numbers ?? []) : null,
+                'completion_date' => optional($item->case?->completed_at)?->toDateString(),
+                'amount' => (float) $item->total,
+                'dental_chart' => $showDentalChart ? ($item->dental_chart ?? []) : [],
+            ])->values()->all(),
+            'subtotal' => (float) $invoice->subtotal,
+            'tax_rate' => $taxRate,
+            'tax' => (float) $invoice->tax,
+            'discount' => (float) $invoice->discount,
+            'total_due' => (float) $invoice->total_amount,
+            'amount_due' => (float) $invoice->remaining_amount,
+            'flags' => [
+                'show_dental_chart' => $showDentalChart,
+                'show_tooth_numbers' => $showToothNumbers,
+            ],
+            'download_links' => [
+                'csv' => URL::temporarySignedRoute('lab.accounting.invoices.download', now()->addMinutes(60), ['invoice' => $invoice->id, 'format' => 'csv']),
+                'pdf' => URL::temporarySignedRoute('lab.accounting.invoices.download', now()->addMinutes(60), ['invoice' => $invoice->id, 'format' => 'pdf']),
+            ],
+        ];
+    }
+
+    private function invoiceCsvContent(LabInvoice $invoice): string
+    {
+        $rows = [
+            ['Invoice Summary'],
+            ['Invoice ID', $invoice->invoice_number],
+            ['Clinic', $invoice->clinic?->name],
+            ['Issue Date', optional($invoice->issue_date)?->toDateString()],
+            ['Due Date', optional($invoice->due_date)?->toDateString()],
+            ['Total Amount', '$' . number_format((float) $invoice->total_amount, 2)],
+            [],
+            ['Included Cases'],
+            ['Case ID', 'Patient', 'Service', 'Tooth Number', 'Completion Date', 'Amount'],
+        ];
+
+        foreach ($invoice->items as $item) {
+            $rows[] = [
+                $item->case_number,
+                $item->patient_name,
+                $item->service_name,
+                implode(', ', $item->fdi_teeth_numbers ?? []),
+                optional($item->case?->completed_at)?->toDateString(),
+                (float) $item->total,
+            ];
+        }
+
+        return $this->csvRows($rows);
+    }
+
+    private function invoicePdfContent(LabInvoice $invoice, array $options = []): string
+    {
+        if (class_exists(\Barryvdh\DomPDF\Facade\Pdf::class)) {
+            $details = $this->invoiceDetails($invoice, $options);
+            $rows = collect($details['cases'])->map(fn (array $case) => '<tr><td>' . e($case['case_id']) . '</td><td>' . e($case['patient']) . '</td><td>' . e($case['service']) . '</td><td>' . e($case['teeth']) . '</td><td>$' . number_format($case['amount'], 2) . '</td></tr>')->implode('');
+            $html = '<h1>' . e($details['lab_info']['name']) . '</h1><h2>INVOICE</h2>'
+                . '<p>Invoice #: ' . e($details['invoice_number']) . '<br>Date: ' . e($details['issue_date']) . '<br>Due Date: ' . e($details['due_date']) . '</p>'
+                . '<hr><h3>Bill To</h3><p>' . e($details['bill_to']['name']) . '<br>' . e($details['bill_to']['email']) . '<br>' . e($details['bill_to']['address']) . '</p>'
+                . '<table width="100%" border="0" cellspacing="0" cellpadding="8"><thead><tr><th align="left">Case ID</th><th align="left">Patient</th><th align="left">Service</th><th align="left">Teeth</th><th align="right">Amount</th></tr></thead><tbody>' . $rows . '</tbody></table>'
+                . '<hr><p align="right">Subtotal: $' . number_format($details['subtotal'], 2) . '<br>Tax (' . $details['tax_rate'] . '%): $' . number_format($details['tax'], 2) . '<br>Discount: -$' . number_format($details['discount'], 2) . '</p>'
+                . '<h2 align="right">Total Due: $' . number_format($details['total_due'], 2) . '</h2>'
+                . '<p align="center">Thank you for your business!<br>Please include invoice number ' . e($details['invoice_number']) . ' on your payment.</p>';
+
+            return \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html)->output();
+        }
+
+        return $this->invoiceCsvContent($invoice);
+    }
+
+    private function whatsAppPayload(LabInvoice $invoice): array
+    {
+        $month = optional($invoice->period_month ?: $invoice->issue_date)?->format('Y-m');
+
+        return [
+            'recipient' => trim(($invoice->clinic?->name ?? 'Clinic') . ' (' . ($invoice->clinic?->phone ?? 'No phone') . ')'),
+            'message' => "Dear {$invoice->clinic?->name},\n\nPlease find attached your invoice ({$invoice->invoice_number}) for {$month}.\nTotal: $" . number_format((float) $invoice->total_amount, 2),
+            'attachment_preview' => $invoice->invoice_number . '.pdf',
+        ];
+    }
+
+    private function paymentLinkPayload(LabInvoice $invoice): array
+    {
+        return [
+            'clinic' => $invoice->clinic?->name,
+            'invoice_id' => $invoice->invoice_number,
+            'amount_due' => (float) $invoice->remaining_amount,
+            'payment_url' => url('/lab/accounting/pay/' . $invoice->invoice_number),
+            'providers' => [
+                ['label' => 'Pay with Stripe', 'provider' => 'Stripe'],
+                ['label' => 'Pay with PayPal', 'provider' => 'PayPal'],
+            ],
+        ];
+    }
+
+    private function normalizeInvoiceStatus(string $status): ?string
+    {
+        return match (strtolower(str_replace(' ', '_', $status))) {
+            'all_statuses' => null,
+            'paid' => LabInvoice::STATUS_PAID,
+            'pending' => LabInvoice::STATUS_PENDING,
+            'overdue' => LabInvoice::STATUS_OVERDUE,
+            'disputed' => 'disputed',
+            default => strtolower($status),
+        };
+    }
+
+    private function applyPeriodFilters(array $filters): array
+    {
+        $period = $filters['period'] ?? 'all_time';
+        if ($period === 'this_month') {
+            $filters['date_from'] = now()->startOfMonth()->toDateString();
+            $filters['date_to'] = now()->endOfMonth()->toDateString();
+        }
+
+        if ($period === 'this_week') {
+            $filters['date_from'] = now()->startOfWeek()->toDateString();
+            $filters['date_to'] = now()->endOfWeek()->toDateString();
+        }
+
+        if (($filters['technician_id'] ?? null) === 'all') {
+            unset($filters['technician_id']);
+        }
+
+        return $filters;
+    }
+
+    private function displayInvoiceStatus(?string $status): string
+    {
+        return match ($status) {
+            LabInvoice::STATUS_PAID => 'Paid',
+            LabInvoice::STATUS_OVERDUE => 'Overdue',
+            'disputed' => 'Disputed',
+            default => 'Pending',
+        };
+    }
+
+    private function csvRows(array $rows): string
+    {
+        $handle = fopen('php://temp', 'r+');
+        foreach ($rows as $row) {
+            fputcsv($handle, $row);
+        }
+        rewind($handle);
+        $content = stream_get_contents($handle);
+        fclose($handle);
+
+        return (string) $content;
     }
 
     private function casePrice(CaseModel $case, int $labId): float

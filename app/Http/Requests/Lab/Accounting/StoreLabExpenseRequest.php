@@ -14,11 +14,15 @@ class StoreLabExpenseRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'lab_expense_category_id' => ['required', 'integer', 'exists:lab_expense_categories,id'],
-            'title' => ['required', 'string', 'max:255'],
-            'amount' => ['required', 'numeric', 'min:0.01'],
+            'lab_expense_category_id' => ['nullable', 'integer', 'exists:lab_expense_categories,id'],
+            'expense_type' => ['nullable', 'in:Materials,Salaries,Utilities,Maintenance,Delivery,Other'],
+            'type' => ['nullable', 'string', 'max:255'],
+            'title' => ['nullable', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'amount' => ['nullable', 'numeric', 'min:0.01'],
             'payment_method' => ['nullable', 'string', 'max:50'],
-            'expense_date' => ['required', 'date'],
+            'expense_date' => ['nullable', 'date'],
+            'date' => ['nullable', 'date'],
             'vendor' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
             'attachment' => ['nullable', 'file', 'max:4096'],
