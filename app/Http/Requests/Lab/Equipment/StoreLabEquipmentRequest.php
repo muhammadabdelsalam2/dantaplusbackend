@@ -16,7 +16,7 @@ class StoreLabEquipmentRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->merge([
-            'status' => $this->input('status', LabEquipment::MAINTENANCE_STATUS_UP_TO_DATE),
+            'status' => $this->input('status', LabEquipment::STATUS_OPERATIONAL),
         ]);
     }
 
@@ -28,7 +28,7 @@ class StoreLabEquipmentRequest extends FormRequest
             'purchase_date' => ['required', 'date'],
             'last_maintenance_date' => ['required', 'date'],
             'maintenance_cycle_days' => ['required', 'integer', 'min:1', 'max:3650'],
-            'status' => ['nullable', Rule::in(LabEquipment::MAINTENANCE_STATUSES)],
+            'status' => ['nullable', Rule::in(LabEquipment::STATUSES)],
             'maintenance_notes' => ['nullable', 'string', 'max:5000'],
         ];
     }
