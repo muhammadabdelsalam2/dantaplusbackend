@@ -64,10 +64,10 @@ class RoleAccessRepository implements RoleAccessRepositoryInterface
     {
         $permissionNames = array_values(array_unique(array_map('trim', $permissionNames)));
 
-        $permissions = Permission::query()
-            ->where('guard_name', $this->guardName)
-            ->whereIn('name', $permissionNames)
-            ->get();
+        $permissions = collect($permissionNames)
+            ->filter()
+            ->map(fn (string $permission) => Permission::findOrCreate($permission, $this->guardName))
+            ->values();
 
         $role->syncPermissions($permissions);
 

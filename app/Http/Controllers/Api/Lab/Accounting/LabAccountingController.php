@@ -191,6 +191,11 @@ class LabAccountingController extends Controller
         return $this->respond($this->service->technicianEarnings($request->validated()));
     }
 
+    public function technicianEarningsExport(IndexLabAccountingRequest $request): JsonResponse
+    {
+        return $this->respond($this->service->technicianEarningsExport($request->validated()));
+    }
+
     public function topPayingClinics(IndexLabAccountingRequest $request): JsonResponse
     {
         return $this->respond($this->service->topPayingClinics($request->validated()));
@@ -229,6 +234,11 @@ class LabAccountingController extends Controller
     public function downloadInvoice(Request $request, int $invoice, string $format): Response
     {
         return $this->service->downloadInvoice($invoice, $format, $request->query(), false);
+    }
+
+    public function downloadTechnicianEarnings(Request $request, string $format): Response
+    {
+        return $this->service->downloadTechnicianEarnings($format, $request->query());
     }
 
     public function invoiceWhatsAppPreview(int $invoice): JsonResponse

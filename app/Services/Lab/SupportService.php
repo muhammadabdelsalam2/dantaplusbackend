@@ -122,12 +122,18 @@ class SupportService
             return ServiceResult::error('Support ticket not found.', null, null, 404);
         }
 
-        $message = $this->ticketRepository->createMessage($ticket, [
+        $payload = [
             'sender_id' => (int) $user->id,
             'sender_name' => $user->name,
             'sender_type' => 'lab',
-            'message' => $data['message'],
-        ]);
+            'message' => $data['message'] ?? null,
+        ];
+
+        if (isset($data['attachment']) && $data['attachment'] instanceof UploadedFile) {
+            $payload += $this->storeMessageAttachment($data['attachment']);
+        }
+
+        $message = $this->ticketRepository->createMessage($ticket, $payload);
 
         return ServiceResult::success($this->mapMessage($message), 'Support ticket message sent successfully', 201);
     }
@@ -185,8 +191,28 @@ class SupportService
                 'type' => $message->sender_type,
             ],
             'message' => $message->message,
+            'attachment' => $message->attachment_url ? [
+                'url' => asset('storage/' . $message->attachment_url),
+                'path' => $message->attachment_url,
+                'name' => $message->attachment_name,
+                'mime' => $message->attachment_mime,
+                'size' => $message->attachment_size,
+            ] : null,
+            'attachment_url' => $message->attachment_url ? asset('storage/' . $message->attachment_url) : null,
             'created_at' => optional($message->created_at)->toISOString(),
             'time' => optional($message->created_at)->format('H:i'),
+        ];
+    }
+
+    private function storeMessageAttachment(UploadedFile $file): array
+    {
+        $path = $this->storeAttachment($file);
+
+        return [
+            'attachment_url' => $path,
+            'attachment_name' => $file->getClientOriginalName(),
+            'attachment_mime' => $file->getClientMimeType(),
+            'attachment_size' => $file->getSize(),
         ];
     }
 

@@ -49,6 +49,32 @@ class CommunicationController extends Controller
         return ApiResponse::success($result['data'], $result['message'], $result['code']);
     }
 
+    public function sendableCases(Request $request, int $id)
+    {
+        $result = $this->service->listSendableCases($id, $request->all());
+
+        if (! $result['success']) {
+            return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+        }
+
+        return ApiResponse::success($result['data'], $result['message'], $result['code']);
+    }
+
+    public function sendCase(Request $request, int $id)
+    {
+        $validated = $request->validate([
+            'case_id' => ['required', 'integer', 'exists:cases,id'],
+        ]);
+
+        $result = $this->service->sendCase($id, (int) $validated['case_id']);
+
+        if (! $result['success']) {
+            return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+        }
+
+        return ApiResponse::success($result['data'], $result['message'], $result['code']);
+    }
+
     public function updateStatus(UpdateConversationStatusRequest $request, int $id)
     {
         $result = $this->service->updateConversationStatus($id, $request->validated());

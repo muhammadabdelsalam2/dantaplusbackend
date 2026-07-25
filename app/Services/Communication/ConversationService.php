@@ -4,6 +4,7 @@ namespace App\Services\Communication;
 
 use App\Http\Resources\CommunicationConversationResource;
 use App\Http\Resources\CommunicationMessageResource;
+use App\Models\CaseModel;
 use App\Models\CommunicationConversation;
 use App\Models\CommunicationMessage;
 use App\Models\Notification;
@@ -100,6 +101,99 @@ class ConversationService
         });
     }
 
+    public function listSendableCases(int $conversationId, array $filters = []): array
+    {
+        $conversation = $this->conversationRepository->findConversationById($conversationId);
+        if (! $conversation || ! $this->canAccessConversation($conversation)) {
+            return ServiceResult::error('Conversation not found', null, null, 404);
+        }
+
+        if (! $conversation->clinic_id || ! $conversation->lab_id) {
+            return ServiceResult::error('Conversation is not linked to a clinic and lab.', null, null, 422);
+        }
+
+        $search = trim((string) ($filters['search'] ?? ''));
+        $perPage = max(1, min((int) ($filters['per_page'] ?? 20), 100));
+
+        $cases = CaseModel::query()
+            ->with('patient.user:id,name')
+            ->where('clinic_id', $conversation->clinic_id)
+            ->where('lab_id', $conversation->lab_id)
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('case_number', 'like', "%{$search}%")
+                        ->orWhere('case_type', 'like', "%{$search}%")
+                        ->orWhereHas('patient.user', fn ($user) => $user->where('name', 'like', "%{$search}%"));
+                });
+            })
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->paginate($perPage);
+
+        return ServiceResult::success([
+            'items' => collect($cases->items())->map(fn (CaseModel $case) => $this->mapSendableCase($case))->values()->all(),
+            'pagination' => [
+                'current_page' => $cases->currentPage(),
+                'last_page' => $cases->lastPage(),
+                'per_page' => $cases->perPage(),
+                'total' => $cases->total(),
+            ],
+        ], 'Sendable cases fetched successfully');
+    }
+
+    public function sendCase(int $conversationId, int $caseId): array
+    {
+        return DB::transaction(function () use ($conversationId, $caseId) {
+            $conversation = $this->conversationRepository->findConversationById($conversationId);
+            if (! $conversation || ! $this->canAccessConversation($conversation)) {
+                return ServiceResult::error('Conversation not found', null, null, 404);
+            }
+
+            $case = CaseModel::query()
+                ->with('patient.user:id,name')
+                ->where('clinic_id', $conversation->clinic_id)
+                ->where('lab_id', $conversation->lab_id)
+                ->find($caseId);
+
+            if (! $case) {
+                return ServiceResult::error('Case not found for this conversation.', null, null, 404);
+            }
+
+            $sender = auth()->user();
+            $caseNumber = $case->case_number ?: ('CASE-' . $case->id);
+
+            $message = $this->conversationRepository->createMessage([
+                'conversation_id' => $conversation->id,
+                'sender_id' => $sender?->id,
+                'sender_name' => $sender?->name,
+                'sender_type' => $this->resolveSenderType($conversation),
+                'text' => 'Case Details',
+                'content' => 'Case Details',
+                'type' => CommunicationMessage::TYPE_SYSTEM,
+                'message_type' => 'case',
+                'related_id' => $case->id,
+                'related_type' => 'case',
+                'attachment_name' => $caseNumber,
+                'is_system_message' => true,
+                'is_read' => false,
+            ]);
+
+            $this->conversationRepository->updateConversation($conversation, [
+                'last_message_text' => "Shared case: {$caseNumber}",
+                'last_message_at' => now(),
+                'last_message_sender_id' => $sender?->id,
+            ]);
+
+            $this->notifyMessageRecipient($conversation, $message, $sender?->id, $sender?->name);
+
+            return ServiceResult::success(
+                (new CommunicationMessageResource($message))->resolve(),
+                'Case sent successfully',
+                201
+            );
+        });
+    }
+
     public function updateConversationStatus(int $conversationId, array $data): array
     {
         $conversation = $this->conversationRepository->findConversationById($conversationId);
@@ -183,5 +277,18 @@ class ConversationService
             'sender_name' => $senderName,
             'link' => '/communication',
         ]);
+    }
+
+    private function mapSendableCase(CaseModel $case): array
+    {
+        return [
+            'id' => $case->id,
+            'case_id' => $case->case_number ?: ('CASE-' . $case->id),
+            'case_number' => $case->case_number,
+            'patient_name' => $case->patient?->user?->name,
+            'case_type' => $case->case_type,
+            'status' => $case->status,
+            'due_date' => optional($case->due_date)->toDateString(),
+        ];
     }
 }

@@ -13,6 +13,10 @@ class LabSupportTicketMessage extends Model
         'sender_name',
         'sender_type',
         'message',
+        'attachment_url',
+        'attachment_name',
+        'attachment_mime',
+        'attachment_size',
     ];
 
     protected function casts(): array

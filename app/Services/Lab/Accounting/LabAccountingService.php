@@ -578,6 +578,57 @@ class LabAccountingService
             return ServiceResult::error('Lab account is not linked to a dental lab.', null, null, 403);
         }
 
+        return ServiceResult::success($this->technicianEarningsRows($labId, $filters), 'Technician earnings fetched successfully');
+    }
+
+    public function technicianEarningsExport(array $filters = []): array
+    {
+        $labId = $this->currentLabId();
+        if (! $labId) {
+            return ServiceResult::error('Lab account is not linked to a dental lab.', null, null, 403);
+        }
+
+        $parameters = array_filter([
+            'lab_id' => $labId,
+            'period' => $filters['period'] ?? null,
+            'technician_id' => $filters['technician_id'] ?? null,
+            'material_type' => $filters['material_type'] ?? null,
+            'date_from' => $filters['date_from'] ?? null,
+            'date_to' => $filters['date_to'] ?? null,
+        ], fn ($value) => $value !== null && $value !== '');
+
+        return ServiceResult::success([
+            'filename_base' => 'technician-earnings-' . now()->format('Ymd-His'),
+            'signed_download_urls' => [
+                'pdf' => URL::temporarySignedRoute('lab.accounting.technician-earnings.download', now()->addMinutes(60), $parameters + ['format' => 'pdf']),
+                'excel' => URL::temporarySignedRoute('lab.accounting.technician-earnings.download', now()->addMinutes(60), $parameters + ['format' => 'excel']),
+                'csv' => URL::temporarySignedRoute('lab.accounting.technician-earnings.download', now()->addMinutes(60), $parameters + ['format' => 'csv']),
+            ],
+            'filters' => $parameters,
+        ], 'Technician earnings export links prepared successfully');
+    }
+
+    public function downloadTechnicianEarnings(string $format, array $filters = []): Response
+    {
+        $labId = (int) ($filters['lab_id'] ?? 0);
+        abort_if($labId <= 0, 404, 'Dental lab not found.');
+
+        $downloadFormat = $format === 'excel' ? 'csv' : $format;
+        $rows = $this->technicianEarningsRows($labId, $filters);
+        $content = $downloadFormat === 'pdf'
+            ? $this->technicianEarningsPdfContent($rows, $filters)
+            : $this->technicianEarningsCsvContent($rows);
+
+        $filename = 'technician-earnings-' . now()->format('Ymd-His') . '.' . $downloadFormat;
+
+        return response($content, 200, [
+            'Content-Type' => $downloadFormat === 'pdf' ? 'application/pdf' : 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
+    }
+
+    private function technicianEarningsRows(int $labId, array $filters = []): array
+    {
         $filters = $this->applyPeriodFilters($filters);
         $materialType = $this->normalizeMaterialType($filters['material_type'] ?? null);
 
@@ -617,7 +668,7 @@ class LabAccountingService
             ->values()
             ->all();
 
-        return ServiceResult::success($rows, 'Technician earnings fetched successfully');
+        return $rows;
     }
 
     public function topPayingClinics(array $filters = []): array
@@ -1223,6 +1274,58 @@ class LabAccountingService
         }
 
         return $this->invoiceCsvContent($invoice);
+    }
+
+    private function technicianEarningsCsvContent(array $rows): string
+    {
+        $csvRows = [
+            ['Technician Earnings Report'],
+            ['Generated At', now()->toDateTimeString()],
+            [],
+            ['Technician', 'Material(s)', 'Total Cases', 'Total Value', '% Commission', 'Total Earnings'],
+        ];
+
+        foreach ($rows as $row) {
+            $csvRows[] = [
+                $row['technician'] ?? $row['technician_name'] ?? '',
+                implode(', ', $row['materials'] ?? []),
+                $row['total_cases'] ?? 0,
+                number_format((float) ($row['total_value'] ?? 0), 2, '.', ''),
+                number_format((float) ($row['commission_rate'] ?? 0), 2, '.', ''),
+                number_format((float) ($row['net_earnings'] ?? $row['commission'] ?? 0), 2, '.', ''),
+            ];
+        }
+
+        return $this->csvRows($csvRows);
+    }
+
+    private function technicianEarningsPdfContent(array $rows, array $filters = []): string
+    {
+        $tableRows = collect($rows)->map(function (array $row) {
+            return '<tr>'
+                . '<td>' . e($row['technician'] ?? $row['technician_name'] ?? '') . '</td>'
+                . '<td>' . e(implode(', ', $row['materials'] ?? [])) . '</td>'
+                . '<td align="right">' . e((string) ($row['total_cases'] ?? 0)) . '</td>'
+                . '<td align="right">$' . number_format((float) ($row['total_value'] ?? 0), 2) . '</td>'
+                . '<td align="right">' . number_format((float) ($row['commission_rate'] ?? 0), 2) . '%</td>'
+                . '<td align="right">$' . number_format((float) ($row['net_earnings'] ?? $row['commission'] ?? 0), 2) . '</td>'
+                . '</tr>';
+        })->implode('');
+
+        $period = e((string) ($filters['period'] ?? 'all_time'));
+        $html = '<h1>Precision Dental Labs</h1><h2>Technician Earnings Report</h2>'
+            . '<p>Period: ' . $period . '<br>Generated: ' . e(now()->toDateTimeString()) . '</p>'
+            . '<hr>'
+            . '<table width="100%" border="0" cellspacing="0" cellpadding="8">'
+            . '<thead><tr><th align="left">Technician</th><th align="left">Material(s)</th><th align="right">Total Cases</th><th align="right">Total Value</th><th align="right">% Commission</th><th align="right">Total Earnings</th></tr></thead>'
+            . '<tbody>' . ($tableRows ?: '<tr><td colspan="6" align="center">No earnings data found for the selected filters.</td></tr>') . '</tbody>'
+            . '</table>';
+
+        if (class_exists(\Barryvdh\DomPDF\Facade\Pdf::class)) {
+            return \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html)->output();
+        }
+
+        return $this->technicianEarningsCsvContent($rows);
     }
 
     private function whatsAppPayload(LabInvoice $invoice): array

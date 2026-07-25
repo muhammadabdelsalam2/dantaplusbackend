@@ -11,9 +11,12 @@ class CommunicationMessageResource extends JsonResource
     {
         $text = $this->text ?? $this->content;
         $displayText = $text;
+        $cardType = in_array($this->related_type, ['invoice', 'case'], true)
+            ? $this->related_type
+            : ($this->message_type ?? $this->type);
 
-        if (! $displayText && ($this->is_system_message || $this->type === 'system' || $this->message_type === 'invoice')) {
-            $displayText = 'Invoice Sent';
+        if (! $displayText && ($this->is_system_message || $this->type === 'system' || $cardType === 'invoice' || $cardType === 'case')) {
+            $displayText = $cardType === 'case' ? 'Case Details' : 'Invoice Sent';
         }
 
         return [
@@ -29,11 +32,18 @@ class CommunicationMessageResource extends JsonResource
             'sender_role' => $this->sender_type,
             'text' => $displayText,
             'content' => $displayText,
-            'type' => $this->type,
-            'message_type' => $this->message_type ?? $this->type,
+            'type' => $cardType,
+            'raw_type' => $this->type,
+            'message_type' => $this->message_type ?? $cardType,
             'relatedId' => $this->related_id,
             'related_id' => $this->related_id,
             'related_type' => $this->related_type,
+            'card' => $this->related_type ? [
+                'type' => $cardType,
+                'title' => $cardType === 'case' ? 'Case Details' : ($cardType === 'invoice' ? 'Invoice Sent' : $displayText),
+                'id' => $this->attachment_name ?: $this->related_id,
+                'related_id' => $this->related_id,
+            ] : null,
             'attachmentUrl' => $this->attachment_url,
             'attachment_url' => $this->attachment_url,
             'attachment_path' => $this->attachment_path,

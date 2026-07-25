@@ -1,0 +1,500 @@
+{
+  "info": {
+    "_postman_id": "7b8738d8-f1c6-4d65-9b2a-lab-fixes-batch",
+    "name": "Lab Fixes Batch",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000/api"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "conversation_id",
+      "value": "1"
+    },
+    {
+      "key": "case_id",
+      "value": "1"
+    },
+    {
+      "key": "ticket_id",
+      "value": "1"
+    },
+    {
+      "key": "role_id",
+      "value": "lab_receptionist"
+    },
+    {
+      "key": "technician_earnings_pdf_url",
+      "value": ""
+    },
+    {
+      "key": "technician_earnings_excel_url",
+      "value": ""
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Communication",
+      "item": [
+        {
+          "name": "List Sendable Cases",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/communication/conversations/{{conversation_id}}/sendable-cases?search=&per_page=15",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "communication",
+                "conversations",
+                "{{conversation_id}}",
+                "sendable-cases"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "sometimes|nullable|string"
+                },
+                {
+                  "key": "per_page",
+                  "value": "15",
+                  "description": "sometimes|nullable|integer"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{base_url}}/communication/conversations/{{conversation_id}}/sendable-cases?search=&per_page=15"
+              },
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"status\": \"success\",\n  \"success\": true,\n  \"message\": \"Sendable cases fetched successfully\",\n  \"data\": {\n    \"items\": [\n      {\n        \"id\": 37,\n        \"case_id\": \"LO-003\",\n        \"case_number\": \"LO-003\",\n        \"patient_name\": \"Liam Smith\",\n        \"case_type\": \"E-Max Veneer\",\n        \"status\": \"Pending\",\n        \"due_date\": \"2026-07-31\"\n      }\n    ],\n    \"pagination\": {\n      \"current_page\": 1,\n      \"last_page\": 1,\n      \"per_page\": 15,\n      \"total\": 1\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Send Case",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "case_id",
+                  "value": "{{case_id}}",
+                  "type": "text",
+                  "description": "required|integer|exists:cases,id"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/communication/conversations/{{conversation_id}}/send-case",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "communication",
+                "conversations",
+                "{{conversation_id}}",
+                "send-case"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "case_id",
+                      "value": "37",
+                      "type": "text"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/communication/conversations/{{conversation_id}}/send-case"
+              },
+              "status": "Created",
+              "code": 201,
+              "body": "{\n  \"status\": \"success\",\n  \"success\": true,\n  \"message\": \"Case sent successfully\",\n  \"data\": {\n    \"id\": 88,\n    \"conversation_id\": 1,\n    \"sender_name\": \"Memo Ahmed\",\n    \"sender_type\": \"lab\",\n    \"text\": \"Case Details\",\n    \"type\": \"case\",\n    \"raw_type\": \"system\",\n    \"message_type\": \"case\",\n    \"related_id\": 37,\n    \"related_type\": \"case\",\n    \"card\": {\n      \"type\": \"case\",\n      \"title\": \"Case Details\",\n      \"id\": \"LO-003\",\n      \"related_id\": 37\n    },\n    \"is_system_message\": true,\n    \"is_read\": false,\n    \"created_at\": \"2026-07-25T18:30:00.000000Z\"\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Accounting",
+      "item": [
+        {
+          "name": "Technician Earnings Export Links",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/lab/accounting/technician-earnings/export?period=all_time&technician_id=all&material_type=All Materials",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "lab",
+                "accounting",
+                "technician-earnings",
+                "export"
+              ],
+              "query": [
+                {
+                  "key": "period",
+                  "value": "all_time",
+                  "description": "sometimes|nullable|in:all_time,this_month,this_week"
+                },
+                {
+                  "key": "technician_id",
+                  "value": "all",
+                  "description": "sometimes|nullable"
+                },
+                {
+                  "key": "material_type",
+                  "value": "All Materials",
+                  "description": "sometimes|nullable"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{base_url}}/lab/accounting/technician-earnings/export?period=all_time&technician_id=all&material_type=All Materials"
+              },
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"status\": \"success\",\n  \"success\": true,\n  \"message\": \"Technician earnings export links prepared successfully\",\n  \"data\": {\n    \"filename_base\": \"technician-earnings-20260725-183000\",\n    \"signed_download_urls\": {\n      \"pdf\": \"http://127.0.0.1:8000/api/lab/accounting/technician-earnings/download/pdf?lab_id=12&period=all_time&technician_id=all&material_type=All+Materials&expires=1785000000&signature=example\",\n      \"excel\": \"http://127.0.0.1:8000/api/lab/accounting/technician-earnings/download/excel?lab_id=12&period=all_time&technician_id=all&material_type=All+Materials&expires=1785000000&signature=example\",\n      \"csv\": \"http://127.0.0.1:8000/api/lab/accounting/technician-earnings/download/csv?lab_id=12&period=all_time&technician_id=all&material_type=All+Materials&expires=1785000000&signature=example\"\n    },\n    \"filters\": {\n      \"lab_id\": 12,\n      \"period\": \"all_time\",\n      \"technician_id\": \"all\",\n      \"material_type\": \"All Materials\"\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Technician Earnings Report PDF Export",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [],
+            "url": {
+              "raw": "{{technician_earnings_pdf_url}}",
+              "host": [
+                "{{technician_earnings_pdf_url}}"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "PDF Download",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": "{{technician_earnings_pdf_url}}"
+              },
+              "status": "OK",
+              "code": 200,
+              "body": "Binary PDF response. Content-Type: application/pdf. Content-Disposition: attachment; filename=\"technician-earnings-20260725-183000.pdf\""
+            }
+          ]
+        },
+        {
+          "name": "Technician Earnings Report Excel Export",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [],
+            "url": {
+              "raw": "{{technician_earnings_excel_url}}",
+              "host": [
+                "{{technician_earnings_excel_url}}"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Excel CSV Download",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": "{{technician_earnings_excel_url}}"
+              },
+              "status": "OK",
+              "code": 200,
+              "body": "CSV-compatible Excel download. Content-Type: text/csv; charset=UTF-8. Columns: Technician, Material(s), Total Cases, Total Value, % Commission, Total Earnings."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Support",
+      "item": [
+        {
+          "name": "Support Ticket Message (with file/text)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "message",
+                  "value": "Please review the attached screenshot.",
+                  "type": "text",
+                  "description": "sometimes|nullable|string|max:5000"
+                },
+                {
+                  "key": "attachment",
+                  "type": "file",
+                  "src": [],
+                  "description": "sometimes|nullable|file|max:10240"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/lab/support/tickets/{{ticket_id}}/messages",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "lab",
+                "support",
+                "tickets",
+                "{{ticket_id}}",
+                "messages"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "message",
+                      "value": "Please review the attached screenshot.",
+                      "type": "text"
+                    },
+                    {
+                      "key": "attachment",
+                      "type": "file",
+                      "src": []
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/lab/support/tickets/{{ticket_id}}/messages"
+              },
+              "status": "Created",
+              "code": 201,
+              "body": "{\n  \"status\": \"success\",\n  \"success\": true,\n  \"message\": \"Support ticket message sent successfully\",\n  \"data\": {\n    \"id\": 14,\n    \"ticket_id\": 1,\n    \"sender\": {\n      \"id\": 9,\n      \"name\": \"Memo Ahmed\",\n      \"type\": \"lab\"\n    },\n    \"message\": \"Please review the attached screenshot.\",\n    \"attachment\": {\n      \"url\": \"http://127.0.0.1:8000/storage/lab-support/4d6e8d6a.png\",\n      \"path\": \"lab-support/4d6e8d6a.png\",\n      \"name\": \"screenshot.png\",\n      \"mime\": \"image/png\",\n      \"size\": 24512\n    },\n    \"attachment_url\": \"http://127.0.0.1:8000/storage/lab-support/4d6e8d6a.png\",\n    \"created_at\": \"2026-07-25T18:30:00.000000Z\",\n    \"time\": \"18:30\"\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Roles & Permissions",
+      "item": [
+        {
+          "name": "Update Role Permissions (Fixed)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "modules[]",
+                  "value": "dashboard",
+                  "type": "text",
+                  "description": "required|array item"
+                },
+                {
+                  "key": "modules[]",
+                  "value": "orders",
+                  "type": "text"
+                },
+                {
+                  "key": "modules[]",
+                  "value": "communication",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/roles/{{role_id}}/permissions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "roles",
+                "{{role_id}}",
+                "permissions"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "modules[]",
+                      "value": "dashboard",
+                      "type": "text"
+                    },
+                    {
+                      "key": "modules[]",
+                      "value": "orders",
+                      "type": "text"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/roles/{{role_id}}/permissions"
+              },
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"status\": \"success\",\n  \"success\": true,\n  \"message\": \"Role permissions updated successfully\",\n  \"data\": {\n    \"role_id\": 4,\n    \"role\": \"lab_receptionist\",\n    \"permissions\": [\n      \"cases.create\",\n      \"cases.update\",\n      \"cases.view\",\n      \"module.lab.communication\",\n      \"module.lab.dashboard\",\n      \"module.lab.orders\"\n    ],\n    \"modules\": [\n      \"dashboard\",\n      \"communication\",\n      \"orders\"\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Role Modules",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/roles/{{role_id}}/modules",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "roles",
+                "{{role_id}}",
+                "modules"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{base_url}}/roles/{{role_id}}/modules"
+              },
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"status\": \"success\",\n  \"success\": true,\n  \"message\": \"Modules fetched successfully\",\n  \"data\": [\n    \"dashboard\",\n    \"communication\",\n    \"orders\"\n  ]\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

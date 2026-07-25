@@ -48,8 +48,14 @@ class CommunicationService
                 'attachment_url' => $attachmentPath,
             ]);
 
+            $lastMessageText = match ($message->related_type) {
+                'invoice' => 'Shared invoice: ' . ($message->content ? str_replace('Invoice ', '', $message->content) : $message->related_id),
+                'case' => 'Shared case: ' . ($message->content ? str_replace('Case ', '', $message->content) : $message->related_id),
+                default => $message->content,
+            };
+
             $conversation->update([
-                'last_message_text' => $message->content,
+                'last_message_text' => $lastMessageText,
                 'last_message_at' => now(),
                 'last_message_sender_id' => auth()->id(),
             ]);

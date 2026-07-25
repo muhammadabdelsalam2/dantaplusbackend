@@ -34,6 +34,11 @@ Route::get('lab/accounting/invoices/{invoice}/download/{format}', [LabAccounting
     ->middleware('signed')
     ->name('lab.accounting.invoices.download');
 
+Route::get('lab/accounting/technician-earnings/download/{format}', [LabAccountingController::class, 'downloadTechnicianEarnings'])
+    ->whereIn('format', ['csv', 'excel', 'pdf'])
+    ->middleware('signed')
+    ->name('lab.accounting.technician-earnings.download');
+
 Route::prefix('lab')
     ->middleware(['auth:sanctum'])
     ->group(function () {
@@ -62,6 +67,7 @@ Route::prefix('lab')
             Route::get('/expenses', [LabAccountingController::class, 'expenses']);
             Route::get('/expense-categories', [LabAccountingController::class, 'categories']);
             Route::get('/technician-earnings', [LabAccountingController::class, 'technicianEarnings']);
+            Route::get('/technician-earnings/export', [LabAccountingController::class, 'technicianEarningsExport']);
             Route::get('/reports/top-paying-clinics', [LabAccountingController::class, 'topPayingClinics']);
             Route::get('/analytics', [LabAccountingController::class, 'analytics']);
 

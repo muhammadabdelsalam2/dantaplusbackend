@@ -29,6 +29,8 @@ Route::middleware('api.error')->group(function () {
             Route::get('/contacts', [CommunicationController::class, 'contacts']);
             Route::get('/conversations/{id}/messages', [CommunicationController::class, 'messages']);
             Route::post('/conversations/{id}/messages', [CommunicationController::class, 'storeMessage']);
+            Route::get('/conversations/{id}/sendable-cases', [CommunicationController::class, 'sendableCases']);
+            Route::post('/conversations/{id}/send-case', [CommunicationController::class, 'sendCase']);
             Route::patch('/conversations/{id}/status', [CommunicationController::class, 'updateStatus']);
             Route::post('/conversations/{id}/mark-read', [CommunicationController::class, 'markRead']);
         });

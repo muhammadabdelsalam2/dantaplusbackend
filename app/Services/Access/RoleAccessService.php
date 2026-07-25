@@ -74,6 +74,7 @@ class RoleAccessService
 
             $permissionNames = [];
             foreach ($modules as $module) {
+                $permissionNames[] = $this->modulePermissionName($type, $module);
                 $perms = $moduleConfig[$module] ?? [];
                 foreach ($perms as $p) {
                     $permissionNames[] = $p;
@@ -93,6 +94,7 @@ class RoleAccessService
             'role_id' => $role->id,
             'role' => $role->name,
             'permissions' => $this->repository->permissionNames($role),
+            'modules' => $this->visibleModulesForRole($role->name, $this->repository->permissionNames($role)),
         ], 'Role permissions updated successfully');
     }
 
@@ -286,8 +288,8 @@ private function visibleModulesForRole(?string $roleName, array $permissions): a
         return [];
     }
 
-    // Lab بيستخدم role-based mapping مباشر لأن الراوتس بتاعته role-gated مش permission-gated
-    if ($type === 'lab') {
+    $hasExplicitModuleSelection = collect($permissions)->contains(fn (string $permission) => str_starts_with($permission, "module.{$type}."));
+    if ($type === 'lab' && ! $hasExplicitModuleSelection) {
         return config("frontend_modules.lab_role_modules.{$roleName}", []);
     }
 
@@ -295,7 +297,15 @@ private function visibleModulesForRole(?string $roleName, array $permissions): a
     $modules = config("frontend_modules.{$type}", []);
 
     return collect($modules)
-        ->filter(function (array $modulePermissions) use ($permissionLookup) {
+        ->filter(function (array $modulePermissions, string $module) use ($permissionLookup, $type, $hasExplicitModuleSelection) {
+            if (array_key_exists($this->modulePermissionName($type, $module), $permissionLookup)) {
+                return true;
+            }
+
+            if ($hasExplicitModuleSelection && $modulePermissions === []) {
+                return false;
+            }
+
             if ($modulePermissions === []) {
                 return true;
             }
@@ -311,5 +321,10 @@ private function visibleModulesForRole(?string $roleName, array $permissions): a
         ->keys()
         ->values()
         ->all();
+}
+
+private function modulePermissionName(string $type, string $module): string
+{
+    return 'module.' . $type . '.' . $module;
 }
 }
