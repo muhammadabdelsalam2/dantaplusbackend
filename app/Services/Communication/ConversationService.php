@@ -118,20 +118,7 @@ class ConversationService
         $search = trim((string) ($filters['search'] ?? ''));
         $perPage = max(1, min((int) ($filters['per_page'] ?? 20), 100));
 
-        $cases = CaseModel::query()
-            ->with('patient.user:id,name')
-            ->where('clinic_id', $clinicId)
-            ->where('lab_id', $labId)
-            ->when($search !== '', function ($query) use ($search) {
-                $query->where(function ($q) use ($search) {
-                    $q->where('case_number', 'like', "%{$search}%")
-                        ->orWhere('case_type', 'like', "%{$search}%")
-                        ->orWhereHas('patient.user', fn ($user) => $user->where('name', 'like', "%{$search}%"));
-                });
-            })
-            ->orderByDesc('created_at')
-            ->orderByDesc('id')
-            ->paginate($perPage);
+        $cases = $this->sendableCasesQuery($labId, $clinicId, $search)->paginate($perPage);
 
         return ServiceResult::success([
             'items' => collect($cases->items())->map(fn (CaseModel $case) => $this->mapSendableCase($case))->values()->all(),
@@ -199,6 +186,45 @@ class ConversationService
         });
     }
 
+    public function listSendables(int $conversationId, array $filters = []): array
+    {
+        $conversation = $this->conversationRepository->findConversationById($conversationId);
+        if (! $conversation || ! $this->canAccessConversation($conversation)) {
+            return ServiceResult::error('Conversation not found', null, null, 404);
+        }
+
+        [$labId, $clinicId] = $this->conversationLabClinic($conversation);
+
+        if (! $clinicId || ! $labId) {
+            return ServiceResult::error('Conversation is not linked to a clinic and lab.', null, null, 422);
+        }
+
+        $search = trim((string) ($filters['search'] ?? ''));
+        $limit = max(1, min((int) ($filters['limit'] ?? $filters['per_page'] ?? 50), 100));
+
+        $cases = $this->sendableCasesQuery($labId, $clinicId, $search)
+            ->limit($limit)
+            ->get()
+            ->map(fn (CaseModel $case) => $this->mapSendableCase($case))
+            ->values()
+            ->all();
+
+        $invoices = $this->sendableInvoicesQuery($labId, $clinicId, $search)
+            ->limit($limit)
+            ->get()
+            ->map(fn (LabInvoice $invoice) => $this->mapSendableInvoice($invoice))
+            ->values()
+            ->all();
+
+        return ServiceResult::success([
+            'conversation_id' => $conversation->id,
+            'clinic_id' => $clinicId,
+            'lab_id' => $labId,
+            'sendable_cases' => $cases,
+            'sendable_invoices' => $invoices,
+        ], 'Sendable cases and invoices fetched successfully');
+    }
+
     public function listSendableInvoices(int $conversationId, array $filters = []): array
     {
         $conversation = $this->conversationRepository->findConversationById($conversationId);
@@ -215,22 +241,7 @@ class ConversationService
         $search = trim((string) ($filters['search'] ?? ''));
         $perPage = max(1, min((int) ($filters['per_page'] ?? 20), 100));
 
-        $invoices = LabInvoice::query()
-            ->with('clinic:id,name,email,phone')
-            ->where('clinic_id', $clinicId)
-            ->where('lab_id', $labId)
-            ->when($search !== '', function ($query) use ($search) {
-                $query->where(function ($q) use ($search) {
-                    $q->where('invoice_number', 'like', "%{$search}%")
-                        ->orWhereHas('items', function ($item) use ($search) {
-                            $item->where('patient_name', 'like', "%{$search}%")
-                                ->orWhere('case_number', 'like', "%{$search}%");
-                        });
-                });
-            })
-            ->orderByDesc('issue_date')
-            ->orderByDesc('id')
-            ->paginate($perPage);
+        $invoices = $this->sendableInvoicesQuery($labId, $clinicId, $search)->paginate($perPage);
 
         return ServiceResult::success([
             'items' => collect($invoices->items())->map(fn (LabInvoice $invoice) => $this->mapSendableInvoice($invoice))->values()->all(),
@@ -388,8 +399,10 @@ class ConversationService
             'id' => $case->id,
             'case_id' => $case->case_number ?: ('CASE-' . $case->id),
             'case_number' => $case->case_number,
+            'caseNumber' => $case->case_number,
             'patient_name' => $case->patient?->user?->name,
             'case_type' => $case->case_type,
+            'caseType' => $case->case_type,
             'status' => $case->status,
             'due_date' => optional($case->due_date)->toDateString(),
         ];
@@ -397,18 +410,57 @@ class ConversationService
 
     private function mapSendableInvoice(LabInvoice $invoice): array
     {
+        $firstItem = $invoice->items->first();
+
         return [
             'id' => $invoice->id,
             'invoice_id' => $invoice->invoice_number ?: ('INV-' . $invoice->id),
             'invoice_number' => $invoice->invoice_number,
             'clinic_id' => $invoice->clinic_id,
             'clinic_name' => $invoice->clinic?->name,
+            'patient_name' => $firstItem?->patient_name,
             'issue_date' => optional($invoice->issue_date)->toDateString(),
             'due_date' => optional($invoice->due_date)->toDateString(),
             'amount' => (float) $invoice->total_amount,
+            'total_amount' => (float) $invoice->total_amount,
             'remaining_amount' => (float) $invoice->remaining_amount,
             'status' => $invoice->status,
         ];
+    }
+
+    private function sendableCasesQuery(int $labId, int $clinicId, string $search)
+    {
+        return CaseModel::query()
+            ->with('patient.user:id,name')
+            ->where('lab_id', $labId)
+            ->where('clinic_id', $clinicId)
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('case_number', 'like', "%{$search}%")
+                        ->orWhere('case_type', 'like', "%{$search}%")
+                        ->orWhereHas('patient.user', fn ($user) => $user->where('name', 'like', "%{$search}%"));
+                });
+            })
+            ->orderByDesc('id');
+    }
+
+    private function sendableInvoicesQuery(int $labId, int $clinicId, string $search)
+    {
+        return LabInvoice::query()
+            ->with(['clinic:id,name,email,phone', 'items:id,lab_invoice_id,patient_name,case_number'])
+            ->where('lab_id', $labId)
+            ->where('clinic_id', $clinicId)
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('invoice_number', 'like', "%{$search}%")
+                        ->orWhereHas('items', function ($item) use ($search) {
+                            $item->where('patient_name', 'like', "%{$search}%")
+                                ->orWhere('case_number', 'like', "%{$search}%");
+                        });
+                });
+            })
+            ->orderByDesc('issue_date')
+            ->orderByDesc('id');
     }
 
     private function conversationLabClinic(CommunicationConversation $conversation): array
