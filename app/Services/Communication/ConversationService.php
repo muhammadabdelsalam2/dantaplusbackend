@@ -9,11 +9,10 @@ use App\Models\CommunicationConversation;
 use App\Models\CommunicationMessage;
 use App\Models\LabInvoice;
 use App\Models\Notification;
-use App\Repositories\CaseRepository;
 use App\Repositories\CommunicationConversationRepository;
-use App\Services\Lab\Accounting\LabAccountingService;
 use App\Support\ServiceResult;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ConversationService
 {
@@ -104,35 +103,6 @@ class ConversationService
         });
     }
 
-    public function listSendableCases(int $conversationId, array $filters = []): array
-    {
-        $conversation = $this->conversationRepository->findConversationById($conversationId);
-        if (! $conversation || ! $this->canAccessConversation($conversation)) {
-            return ServiceResult::error('Conversation not found', null, null, 404);
-        }
-
-        [$labId, $clinicId] = $this->conversationLabClinic($conversation);
-
-        if (! $clinicId || ! $labId) {
-            return ServiceResult::error('Conversation is not linked to a clinic and lab.', null, null, 422);
-        }
-
-        $search = trim((string) ($filters['search'] ?? ''));
-        $perPage = max(1, min((int) ($filters['per_page'] ?? 20), 100));
-
-        $cases = $this->sendableCasesQuery($labId, $clinicId, $search)->paginate($perPage);
-
-        return ServiceResult::success([
-            'items' => collect($cases->items())->map(fn (CaseModel $case) => $this->mapSendableCase($case))->values()->all(),
-            'pagination' => [
-                'current_page' => $cases->currentPage(),
-                'last_page' => $cases->lastPage(),
-                'per_page' => $cases->perPage(),
-                'total' => $cases->total(),
-            ],
-        ], 'Sendable cases fetched successfully');
-    }
-
     public function sendCase(int $conversationId, int $caseId): array
     {
         return DB::transaction(function () use ($conversationId, $caseId) {
@@ -143,9 +113,30 @@ class ConversationService
 
             [$labId, $clinicId] = $this->conversationLabClinic($conversation);
 
-            $case = app(CaseRepository::class)->findFromOrdersListSource($caseId, $labId, $clinicId);
+            $case = CaseModel::query()
+                ->with(['patient.user:id,name'])
+                ->where('id', $caseId)
+                ->where('lab_id', $labId)
+                ->where('clinic_id', $clinicId)
+                ->first();
 
             if (! $case) {
+                $actualCase = CaseModel::query()->select(['id', 'case_number', 'lab_id', 'clinic_id'])->find($caseId);
+                Log::warning('Communication send-case lookup failed.', [
+                    'conversation_id' => $conversation->id,
+                    'requested_case_id' => $caseId,
+                    'requested_case_id_type' => gettype($caseId),
+                    'comparison_lab_id' => $labId,
+                    'comparison_lab_id_type' => gettype($labId),
+                    'comparison_clinic_id' => $clinicId,
+                    'comparison_clinic_id_type' => gettype($clinicId),
+                    'conversation_lab_id' => $conversation->lab_id,
+                    'conversation_lab_id_type' => gettype($conversation->lab_id),
+                    'conversation_clinic_id' => $conversation->clinic_id,
+                    'conversation_clinic_id_type' => gettype($conversation->clinic_id),
+                    'actual_case' => $actualCase?->toArray(),
+                ]);
+
                 return ServiceResult::error('Case not found for this conversation.', null, null, 404);
             }
 
@@ -184,74 +175,6 @@ class ConversationService
         });
     }
 
-    public function listSendables(int $conversationId, array $filters = []): array
-    {
-        $conversation = $this->conversationRepository->findConversationById($conversationId);
-        if (! $conversation || ! $this->canAccessConversation($conversation)) {
-            return ServiceResult::error('Conversation not found', null, null, 404);
-        }
-
-        [$labId, $clinicId] = $this->conversationLabClinic($conversation);
-
-        if (! $clinicId || ! $labId) {
-            return ServiceResult::error('Conversation is not linked to a clinic and lab.', null, null, 422);
-        }
-
-        $search = trim((string) ($filters['search'] ?? ''));
-        $limit = max(1, min((int) ($filters['limit'] ?? $filters['per_page'] ?? 50), 100));
-
-        $cases = $this->sendableCasesQuery($labId, $clinicId, $search)
-            ->limit($limit)
-            ->get()
-            ->map(fn (CaseModel $case) => $this->mapSendableCase($case))
-            ->values()
-            ->all();
-
-        $invoices = $this->sendableInvoicesQuery($labId, $clinicId, $search)
-            ->limit($limit)
-            ->get()
-            ->map(fn (LabInvoice $invoice) => $this->mapSendableInvoice($invoice))
-            ->values()
-            ->all();
-
-        return ServiceResult::success([
-            'conversation_id' => $conversation->id,
-            'clinic_id' => $clinicId,
-            'lab_id' => $labId,
-            'sendable_cases' => $cases,
-            'sendable_invoices' => $invoices,
-        ], 'Sendable cases and invoices fetched successfully');
-    }
-
-    public function listSendableInvoices(int $conversationId, array $filters = []): array
-    {
-        $conversation = $this->conversationRepository->findConversationById($conversationId);
-        if (! $conversation || ! $this->canAccessConversation($conversation)) {
-            return ServiceResult::error('Conversation not found', null, null, 404);
-        }
-
-        [$labId, $clinicId] = $this->conversationLabClinic($conversation);
-
-        if (! $clinicId || ! $labId) {
-            return ServiceResult::error('Conversation is not linked to a clinic and lab.', null, null, 422);
-        }
-
-        $search = trim((string) ($filters['search'] ?? ''));
-        $perPage = max(1, min((int) ($filters['per_page'] ?? 20), 100));
-
-        $invoices = $this->sendableInvoicesQuery($labId, $clinicId, $search)->paginate($perPage);
-
-        return ServiceResult::success([
-            'items' => collect($invoices->items())->map(fn (LabInvoice $invoice) => $this->mapSendableInvoice($invoice))->values()->all(),
-            'pagination' => [
-                'current_page' => $invoices->currentPage(),
-                'last_page' => $invoices->lastPage(),
-                'per_page' => $invoices->perPage(),
-                'total' => $invoices->total(),
-            ],
-        ], 'Sendable invoices fetched successfully');
-    }
-
     public function sendInvoice(int $conversationId, int $invoiceId): array
     {
         return DB::transaction(function () use ($conversationId, $invoiceId) {
@@ -262,9 +185,30 @@ class ConversationService
 
             [$labId, $clinicId] = $this->conversationLabClinic($conversation);
 
-            $invoice = app(LabAccountingService::class)->findInvoiceFromInvoicesListSource($invoiceId, $labId, $clinicId);
+            $invoice = LabInvoice::query()
+                ->with(['items:id,lab_invoice_id,patient_name,case_number'])
+                ->where('id', $invoiceId)
+                ->where('lab_id', $labId)
+                ->where('clinic_id', $clinicId)
+                ->first();
 
             if (! $invoice) {
+                $actualInvoice = LabInvoice::query()->select(['id', 'invoice_number', 'lab_id', 'clinic_id'])->find($invoiceId);
+                Log::warning('Communication send-invoice lookup failed.', [
+                    'conversation_id' => $conversation->id,
+                    'requested_invoice_id' => $invoiceId,
+                    'requested_invoice_id_type' => gettype($invoiceId),
+                    'comparison_lab_id' => $labId,
+                    'comparison_lab_id_type' => gettype($labId),
+                    'comparison_clinic_id' => $clinicId,
+                    'comparison_clinic_id_type' => gettype($clinicId),
+                    'conversation_lab_id' => $conversation->lab_id,
+                    'conversation_lab_id_type' => gettype($conversation->lab_id),
+                    'conversation_clinic_id' => $conversation->clinic_id,
+                    'conversation_clinic_id_type' => gettype($conversation->clinic_id),
+                    'actual_invoice' => $actualInvoice?->toArray(),
+                ]);
+
                 return ServiceResult::error('Invoice not found for this conversation.', null, null, 404);
             }
 
@@ -385,57 +329,6 @@ class ConversationService
             'sender_id' => $senderId,
             'sender_name' => $senderName,
             'link' => '/communication',
-        ]);
-    }
-
-    private function mapSendableCase(CaseModel $case): array
-    {
-        return [
-            'id' => $case->id,
-            'case_id' => $case->case_number ?: ('CASE-' . $case->id),
-            'case_number' => $case->case_number,
-            'caseNumber' => $case->case_number,
-            'patient_name' => $case->patient?->user?->name,
-            'case_type' => $case->case_type,
-            'caseType' => $case->case_type,
-            'status' => $case->status,
-            'due_date' => optional($case->due_date)->toDateString(),
-        ];
-    }
-
-    private function mapSendableInvoice(LabInvoice $invoice): array
-    {
-        $firstItem = $invoice->items->first();
-
-        return [
-            'id' => $invoice->id,
-            'invoice_id' => $invoice->invoice_number ?: ('INV-' . $invoice->id),
-            'invoice_number' => $invoice->invoice_number,
-            'clinic_id' => $invoice->clinic_id,
-            'clinic_name' => $invoice->clinic?->name,
-            'patient_name' => $firstItem?->patient_name,
-            'issue_date' => optional($invoice->issue_date)->toDateString(),
-            'due_date' => optional($invoice->due_date)->toDateString(),
-            'amount' => (float) $invoice->total_amount,
-            'total_amount' => (float) $invoice->total_amount,
-            'remaining_amount' => (float) $invoice->remaining_amount,
-            'status' => $invoice->status,
-        ];
-    }
-
-    private function sendableCasesQuery(int $labId, int $clinicId, string $search)
-    {
-        return app(CaseRepository::class)->ordersListQuery($labId, [
-            'clinic_id' => $clinicId,
-            'search' => $search !== '' ? $search : null,
-        ]);
-    }
-
-    private function sendableInvoicesQuery(int $labId, int $clinicId, string $search)
-    {
-        return app(LabAccountingService::class)->invoicesListQueryForLab($labId, [
-            'clinic_id' => $clinicId,
-            'search' => $search !== '' ? $search : null,
         ]);
     }
 

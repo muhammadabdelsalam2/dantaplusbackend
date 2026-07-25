@@ -61,13 +61,6 @@ class CaseRepository
             ->find($id);
     }
 
-    public function findFromOrdersListSource(int $id, int $labId, int $clinicId): ?CaseModel
-    {
-        return $this->ordersListQuery($labId, ['clinic_id' => $clinicId])
-            ->where('cases.id', $id)
-            ->first();
-    }
-
     public function ordersListQuery(int $labId, array $filters): Builder
     {
         $partnerClinicFilter = $this->partnerClinicFilter($labId, $filters);

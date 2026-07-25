@@ -23,7 +23,7 @@
     },
     {
       "key": "invoice_id",
-      "value": "1"
+      "value": "7"
     },
     {
       "key": "ticket_id",
@@ -57,7 +57,7 @@
       "name": "Communication",
       "item": [
         {
-          "name": "List Sendable Cases & Invoices",
+          "name": "Conversation Messages",
           "request": {
             "method": "GET",
             "header": [
@@ -67,7 +67,7 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/communication/conversations/{{conversation_id}}/sendables?search=&limit=15",
+              "raw": "{{base_url}}/communication/conversations/{{conversation_id}}/messages?per_page=30",
               "host": [
                 "{{base_url}}"
               ],
@@ -75,17 +75,12 @@
                 "communication",
                 "conversations",
                 "{{conversation_id}}",
-                "sendables"
+                "messages"
               ],
               "query": [
                 {
-                  "key": "search",
-                  "value": "",
-                  "description": "sometimes|nullable|string"
-                },
-                {
-                  "key": "limit",
-                  "value": "15",
+                  "key": "per_page",
+                  "value": "30",
                   "description": "sometimes|nullable|integer"
                 }
               ]
@@ -102,11 +97,11 @@
                     "value": "application/json"
                   }
                 ],
-                "url": "{{base_url}}/communication/conversations/{{conversation_id}}/sendables?search=&limit=15"
+                "url": "{{base_url}}/communication/conversations/{{conversation_id}}/messages?per_page=30"
               },
               "status": "OK",
               "code": 200,
-              "body": "{\n  \"status\": \"success\",\n  \"success\": true,\n  \"message\": \"Sendable cases and invoices fetched successfully\",\n  \"data\": {\n    \"conversation_id\": 1,\n    \"clinic_id\": 23,\n    \"lab_id\": 12,\n    \"sendable_cases\": [\n      {\n        \"id\": 43,\n        \"case_id\": \"LO-003\",\n        \"case_number\": \"LO-003\",\n        \"caseNumber\": \"LO-003\",\n        \"patient_name\": \"Liam Smith\",\n        \"case_type\": \"E-Max Veneer\",\n        \"caseType\": \"E-Max Veneer\"\n      }\n    ],\n    \"sendable_invoices\": [\n      {\n        \"id\": 12,\n        \"invoice_id\": \"LI-003\",\n        \"invoice_number\": \"LI-003\",\n        \"patient_name\": \"Liam Smith\",\n        \"amount\": 180,\n        \"total_amount\": 180\n      }\n    ]\n  }\n}"
+              "body": "{\n  \"status\": \"success\",\n  \"success\": true,\n  \"message\": \"Conversation messages fetched successfully\",\n  \"data\": {\n    \"items\": [\n      {\n        \"id\": 88,\n        \"conversation_id\": 1,\n        \"text\": \"Case Details\",\n        \"type\": \"case\",\n        \"raw_type\": \"system\",\n        \"message_type\": \"case\",\n        \"related_id\": 43,\n        \"related_type\": \"case\",\n        \"card\": {\n          \"type\": \"case\",\n          \"title\": \"Case Details\",\n          \"id\": \"LO-003\",\n          \"related_id\": 43\n        }\n      },\n      {\n        \"id\": 89,\n        \"conversation_id\": 1,\n        \"text\": \"Invoice Sent\",\n        \"type\": \"invoice\",\n        \"raw_type\": \"system\",\n        \"message_type\": \"invoice\",\n        \"related_id\": 7,\n        \"related_type\": \"invoice\",\n        \"card\": {\n          \"type\": \"invoice\",\n          \"title\": \"Invoice Sent\",\n          \"id\": \"LI-007\",\n          \"related_id\": 7\n        }\n      }\n    ],\n    \"pagination\": {\n      \"current_page\": 1,\n      \"last_page\": 1,\n      \"per_page\": 30,\n      \"total\": 2\n    }\n  }\n}"
             }
           ]
         },
@@ -223,7 +218,7 @@
                   "formdata": [
                     {
                       "key": "invoice_id",
-                      "value": "12",
+                      "value": "7",
                       "type": "text"
                     }
                   ]
@@ -232,7 +227,7 @@
               },
               "status": "Created",
               "code": 201,
-              "body": "{\n  \"status\": \"success\",\n  \"success\": true,\n  \"message\": \"Invoice sent successfully\",\n  \"data\": {\n    \"id\": 89,\n    \"conversation_id\": 1,\n    \"sender_name\": \"Memo Ahmed\",\n    \"sender_type\": \"lab\",\n    \"text\": \"Invoice Sent\",\n    \"type\": \"invoice\",\n    \"raw_type\": \"system\",\n    \"message_type\": \"invoice\",\n    \"related_id\": 12,\n    \"related_type\": \"invoice\",\n    \"card\": {\n      \"type\": \"invoice\",\n      \"title\": \"Invoice Sent\",\n      \"id\": \"LI-003\",\n      \"related_id\": 12\n    },\n    \"is_system_message\": true,\n    \"is_read\": false,\n    \"created_at\": \"2026-07-25T18:35:00.000000Z\"\n  }\n}"
+              "body": "{\n  \"status\": \"success\",\n  \"success\": true,\n  \"message\": \"Invoice sent successfully\",\n  \"data\": {\n    \"id\": 89,\n    \"conversation_id\": 1,\n    \"sender_name\": \"Memo Ahmed\",\n    \"sender_type\": \"lab\",\n    \"text\": \"Invoice Sent\",\n    \"type\": \"invoice\",\n    \"raw_type\": \"system\",\n    \"message_type\": \"invoice\",\n    \"related_id\": 7,\n    \"related_type\": \"invoice\",\n    \"card\": {\n      \"type\": \"invoice\",\n      \"title\": \"Invoice Sent\",\n      \"id\": \"LI-007\",\n      \"related_id\": 7\n    },\n    \"is_system_message\": true,\n    \"is_read\": false,\n    \"created_at\": \"2026-07-25T18:35:00.000000Z\"\n  }\n}"
             }
           ]
         }
