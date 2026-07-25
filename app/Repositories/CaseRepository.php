@@ -13,94 +13,7 @@ class CaseRepository
 {
     public function paginateForLab(int $labId, array $filters, int $perPage = 15): LengthAwarePaginator
     {
-        $partnerClinicFilter = $this->partnerClinicFilter($labId, $filters);
-
-        return CaseModel::query()
-            ->with([
-                'clinic:id,name,email,phone,address',
-                'lab:id,name',
-                'patient:id,user_id,date_of_birth,gender',
-                'patient.user:id,name',
-                'dentist:id,user_id',
-                'dentist.user:id,name',
-                'technician:id,name,avatar_url',
-                'deliveryRep:id,name',
-            ])
-            ->where('lab_id', $labId)
-
-            ->when($this->activeFilter($filters['status'] ?? null, ['All Statuses', 'all', 'All']),
-                fn (Builder $q, $status) => $q->where('status', $status)
-            )
-
-            ->when($this->activeFilter($filters['priority'] ?? null, ['All Priorities', 'all', 'All']),
-                fn (Builder $q, $priority) => $q->where('priority', $priority)
-            )
-
-            ->when($partnerClinicFilter !== null,
-                fn (Builder $q) => $partnerClinicFilter === 0
-                    ? $q->whereRaw('1 = 0')
-                    : $q->where('clinic_id', $partnerClinicFilter)
-            )
-
-            ->when($partnerClinicFilter === null && ($filters['clinic_id'] ?? $filters['clinic'] ?? null),
-                function (Builder $q, $clinic) {
-                    if (! is_numeric($clinic) && ! in_array($clinic, ['All Clinics', 'all', 'All'], true)) {
-                        $q->whereHas('clinic', fn (Builder $clinicQuery) => $clinicQuery->where('name', 'like', "%{$clinic}%"));
-                    }
-                }
-            )
-
-            ->when($filters['patient_id'] ?? null,
-                fn (Builder $q, $patientId) => $q->where('patient_id', $patientId)
-            )
-
-            ->when($filters['dentist_id'] ?? null,
-                fn (Builder $q, $dentistId) => $q->where('dentist_id', $dentistId)
-            )
-
-            ->when($filters['restricted_user_id'] ?? null, function (Builder $q, $userId) {
-                $q->where(function (Builder $restricted) use ($userId) {
-                    $restricted->where('assigned_technician_id', $userId)
-                        ->orWhere('created_by', $userId);
-                });
-            })
-
-            ->when($filters['from'] ?? null,
-                fn (Builder $q, $from) => $q->whereDate('due_date', '>=', $from)
-            )
-
-            ->when($filters['to'] ?? null,
-                fn (Builder $q, $to) => $q->whereDate('due_date', '<=', $to)
-            )
-
-            ->when($filters['search'] ?? null, function (Builder $q, $search) {
-
-                $q->where(function (Builder $query) use ($search) {
-
-                    $query->where('case_number', 'like', "%{$search}%")
-                        ->orWhere('case_type', 'like', "%{$search}%")
-                        ->orWhere('description', 'like', "%{$search}%")
-
-                        ->orWhereHas('clinic', function (Builder $q) use ($search) {
-                            $q->where('name', 'like', "%{$search}%");
-                        })
-
-                        ->orWhereHas('patient.user', function (Builder $q) use ($search) {
-                            $q->where('name', 'like', "%{$search}%");
-                        })
-
-                        ->orWhereHas('dentist.user', function (Builder $q) use ($search) {
-                            $q->where('name', 'like', "%{$search}%");
-                        })
-
-                        ->orWhereHas('technician', function (Builder $q) use ($search) {
-                            $q->where('name', 'like', "%{$search}%");
-                        });
-                });
-            })
-
-            ->orderByDesc('id')
-            ->paginate($perPage);
+        return $this->ordersListQuery($labId, $filters)->paginate($perPage);
     }
 
     public function statsForLab(int $labId, array $filters = []): array
@@ -146,6 +59,87 @@ class CaseRepository
             ])
             ->where('lab_id', $labId)
             ->find($id);
+    }
+
+    public function findFromOrdersListSource(int $id, int $labId, int $clinicId): ?CaseModel
+    {
+        return $this->ordersListQuery($labId, ['clinic_id' => $clinicId])
+            ->where('cases.id', $id)
+            ->first();
+    }
+
+    public function ordersListQuery(int $labId, array $filters): Builder
+    {
+        $partnerClinicFilter = $this->partnerClinicFilter($labId, $filters);
+
+        return CaseModel::query()
+            ->with([
+                'clinic:id,name,email,phone,address',
+                'lab:id,name',
+                'patient:id,user_id,date_of_birth,gender',
+                'patient.user:id,name',
+                'dentist:id,user_id',
+                'dentist.user:id,name',
+                'technician:id,name,avatar_url',
+                'deliveryRep:id,name',
+            ])
+            ->where('lab_id', $labId)
+            ->when($this->activeFilter($filters['status'] ?? null, ['All Statuses', 'all', 'All']),
+                fn (Builder $q, $status) => $q->where('status', $status)
+            )
+            ->when($this->activeFilter($filters['priority'] ?? null, ['All Priorities', 'all', 'All']),
+                fn (Builder $q, $priority) => $q->where('priority', $priority)
+            )
+            ->when($partnerClinicFilter !== null,
+                fn (Builder $q) => $partnerClinicFilter === 0
+                    ? $q->whereRaw('1 = 0')
+                    : $q->where('clinic_id', $partnerClinicFilter)
+            )
+            ->when($partnerClinicFilter === null && ($filters['clinic_id'] ?? $filters['clinic'] ?? null),
+                function (Builder $q, $clinic) {
+                    if (! is_numeric($clinic) && ! in_array($clinic, ['All Clinics', 'all', 'All'], true)) {
+                        $q->whereHas('clinic', fn (Builder $clinicQuery) => $clinicQuery->where('name', 'like', "%{$clinic}%"));
+                    }
+                }
+            )
+            ->when($filters['patient_id'] ?? null,
+                fn (Builder $q, $patientId) => $q->where('patient_id', $patientId)
+            )
+            ->when($filters['dentist_id'] ?? null,
+                fn (Builder $q, $dentistId) => $q->where('dentist_id', $dentistId)
+            )
+            ->when($filters['restricted_user_id'] ?? null, function (Builder $q, $userId) {
+                $q->where(function (Builder $restricted) use ($userId) {
+                    $restricted->where('assigned_technician_id', $userId)
+                        ->orWhere('created_by', $userId);
+                });
+            })
+            ->when($filters['from'] ?? null,
+                fn (Builder $q, $from) => $q->whereDate('due_date', '>=', $from)
+            )
+            ->when($filters['to'] ?? null,
+                fn (Builder $q, $to) => $q->whereDate('due_date', '<=', $to)
+            )
+            ->when($filters['search'] ?? null, function (Builder $q, $search) {
+                $q->where(function (Builder $query) use ($search) {
+                    $query->where('case_number', 'like', "%{$search}%")
+                        ->orWhere('case_type', 'like', "%{$search}%")
+                        ->orWhere('description', 'like', "%{$search}%")
+                        ->orWhereHas('clinic', function (Builder $q) use ($search) {
+                            $q->where('name', 'like', "%{$search}%");
+                        })
+                        ->orWhereHas('patient.user', function (Builder $q) use ($search) {
+                            $q->where('name', 'like', "%{$search}%");
+                        })
+                        ->orWhereHas('dentist.user', function (Builder $q) use ($search) {
+                            $q->where('name', 'like', "%{$search}%");
+                        })
+                        ->orWhereHas('technician', function (Builder $q) use ($search) {
+                            $q->where('name', 'like', "%{$search}%");
+                        });
+                });
+            })
+            ->orderByDesc('id');
     }
 
     public function create(array $data): CaseModel

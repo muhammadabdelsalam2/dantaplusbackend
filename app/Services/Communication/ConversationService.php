@@ -9,7 +9,9 @@ use App\Models\CommunicationConversation;
 use App\Models\CommunicationMessage;
 use App\Models\LabInvoice;
 use App\Models\Notification;
+use App\Repositories\CaseRepository;
 use App\Repositories\CommunicationConversationRepository;
+use App\Services\Lab\Accounting\LabAccountingService;
 use App\Support\ServiceResult;
 use Illuminate\Support\Facades\DB;
 
@@ -141,11 +143,7 @@ class ConversationService
 
             [$labId, $clinicId] = $this->conversationLabClinic($conversation);
 
-            $case = CaseModel::query()
-                ->with('patient.user:id,name')
-                ->where('clinic_id', $clinicId)
-                ->where('lab_id', $labId)
-                ->find($caseId);
+            $case = app(CaseRepository::class)->findFromOrdersListSource($caseId, $labId, $clinicId);
 
             if (! $case) {
                 return ServiceResult::error('Case not found for this conversation.', null, null, 404);
@@ -264,10 +262,7 @@ class ConversationService
 
             [$labId, $clinicId] = $this->conversationLabClinic($conversation);
 
-            $invoice = LabInvoice::query()
-                ->where('clinic_id', $clinicId)
-                ->where('lab_id', $labId)
-                ->find($invoiceId);
+            $invoice = app(LabAccountingService::class)->findInvoiceFromInvoicesListSource($invoiceId, $labId, $clinicId);
 
             if (! $invoice) {
                 return ServiceResult::error('Invoice not found for this conversation.', null, null, 404);
@@ -430,37 +425,18 @@ class ConversationService
 
     private function sendableCasesQuery(int $labId, int $clinicId, string $search)
     {
-        return CaseModel::query()
-            ->with('patient.user:id,name')
-            ->where('lab_id', $labId)
-            ->where('clinic_id', $clinicId)
-            ->when($search !== '', function ($query) use ($search) {
-                $query->where(function ($q) use ($search) {
-                    $q->where('case_number', 'like', "%{$search}%")
-                        ->orWhere('case_type', 'like', "%{$search}%")
-                        ->orWhereHas('patient.user', fn ($user) => $user->where('name', 'like', "%{$search}%"));
-                });
-            })
-            ->orderByDesc('id');
+        return app(CaseRepository::class)->ordersListQuery($labId, [
+            'clinic_id' => $clinicId,
+            'search' => $search !== '' ? $search : null,
+        ]);
     }
 
     private function sendableInvoicesQuery(int $labId, int $clinicId, string $search)
     {
-        return LabInvoice::query()
-            ->with(['clinic:id,name,email,phone', 'items:id,lab_invoice_id,patient_name,case_number'])
-            ->where('lab_id', $labId)
-            ->where('clinic_id', $clinicId)
-            ->when($search !== '', function ($query) use ($search) {
-                $query->where(function ($q) use ($search) {
-                    $q->where('invoice_number', 'like', "%{$search}%")
-                        ->orWhereHas('items', function ($item) use ($search) {
-                            $item->where('patient_name', 'like', "%{$search}%")
-                                ->orWhere('case_number', 'like', "%{$search}%");
-                        });
-                });
-            })
-            ->orderByDesc('issue_date')
-            ->orderByDesc('id');
+        return app(LabAccountingService::class)->invoicesListQueryForLab($labId, [
+            'clinic_id' => $clinicId,
+            'search' => $search !== '' ? $search : null,
+        ]);
     }
 
     private function conversationLabClinic(CommunicationConversation $conversation): array
