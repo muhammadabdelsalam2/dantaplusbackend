@@ -104,6 +104,13 @@ class LabAccountingService
         ], 'Lab invoices fetched successfully');
     }
 
+    public function findInvoiceFromListSource(int $labId, int $invoiceId, int $clinicId): ?LabInvoice
+    {
+        return $this->invoiceQuery($labId, ['clinic_id' => $clinicId])
+            ->whereKey($invoiceId)
+            ->first();
+    }
+
     public function showInvoice(int $invoiceId, array $options = []): array
     {
         $invoice = $this->findInvoiceForCurrentLab($invoiceId);

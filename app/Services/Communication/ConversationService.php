@@ -7,16 +7,21 @@ use App\Http\Resources\CommunicationMessageResource;
 use App\Models\CaseModel;
 use App\Models\CommunicationConversation;
 use App\Models\CommunicationMessage;
-use App\Models\LabInvoice;
 use App\Models\Notification;
+use App\Repositories\CaseRepository;
 use App\Repositories\CommunicationConversationRepository;
+use App\Services\Lab\Accounting\LabAccountingService;
 use App\Support\ServiceResult;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class ConversationService
 {
-    public function __construct(private CommunicationConversationRepository $conversationRepository) {}
+    public function __construct(
+        private CommunicationConversationRepository $conversationRepository,
+        private CaseRepository $caseRepository,
+        private LabAccountingService $labAccountingService,
+    ) {}
 
     public function listContacts(array $filters): array
     {
@@ -113,12 +118,12 @@ class ConversationService
 
             [$labId, $clinicId] = $this->conversationLabClinic($conversation);
 
-            $case = CaseModel::query()
-                ->with(['patient.user:id,name'])
-                ->where('id', $caseId)
-                ->where('lab_id', $labId)
-                ->where('clinic_id', $clinicId)
-                ->first();
+            $case = $labId && $clinicId
+                ? $this->caseRepository
+                    ->ordersListQuery($labId, ['clinic_id' => $clinicId])
+                    ->whereKey($caseId)
+                    ->first()
+                : null;
 
             if (! $case) {
                 $actualCase = CaseModel::query()->select(['id', 'case_number', 'lab_id', 'clinic_id'])->find($caseId);
@@ -185,15 +190,12 @@ class ConversationService
 
             [$labId, $clinicId] = $this->conversationLabClinic($conversation);
 
-            $invoice = LabInvoice::query()
-                ->with(['items:id,lab_invoice_id,patient_name,case_number'])
-                ->where('id', $invoiceId)
-                ->where('lab_id', $labId)
-                ->where('clinic_id', $clinicId)
-                ->first();
+            $invoice = $labId && $clinicId
+                ? $this->labAccountingService->findInvoiceFromListSource($labId, $invoiceId, $clinicId)
+                : null;
 
             if (! $invoice) {
-                $actualInvoice = LabInvoice::query()->select(['id', 'invoice_number', 'lab_id', 'clinic_id'])->find($invoiceId);
+                $actualInvoice = \App\Models\LabInvoice::query()->select(['id', 'invoice_number', 'lab_id', 'clinic_id'])->find($invoiceId);
                 Log::warning('Communication send-invoice lookup failed.', [
                     'conversation_id' => $conversation->id,
                     'requested_invoice_id' => $invoiceId,
