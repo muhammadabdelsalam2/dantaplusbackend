@@ -19,6 +19,10 @@
     },
     {
       "key": "case_id",
+      "value": "43"
+    },
+    {
+      "key": "invoice_id",
       "value": "1"
     },
     {
@@ -102,7 +106,7 @@
               },
               "status": "OK",
               "code": 200,
-              "body": "{\n  \"status\": \"success\",\n  \"success\": true,\n  \"message\": \"Sendable cases fetched successfully\",\n  \"data\": {\n    \"items\": [\n      {\n        \"id\": 37,\n        \"case_id\": \"LO-003\",\n        \"case_number\": \"LO-003\",\n        \"patient_name\": \"Liam Smith\",\n        \"case_type\": \"E-Max Veneer\",\n        \"status\": \"Pending\",\n        \"due_date\": \"2026-07-31\"\n      }\n    ],\n    \"pagination\": {\n      \"current_page\": 1,\n      \"last_page\": 1,\n      \"per_page\": 15,\n      \"total\": 1\n    }\n  }\n}"
+              "body": "{\n  \"status\": \"success\",\n  \"success\": true,\n  \"message\": \"Sendable cases fetched successfully\",\n  \"data\": {\n    \"items\": [\n      {\n        \"id\": 43,\n        \"case_id\": \"LO-003\",\n        \"case_number\": \"LO-003\",\n        \"patient_name\": \"Liam Smith\",\n        \"case_type\": \"E-Max Veneer\",\n        \"status\": \"Pending\",\n        \"due_date\": \"2026-07-31\"\n      }\n    ],\n    \"pagination\": {\n      \"current_page\": 1,\n      \"last_page\": 1,\n      \"per_page\": 15,\n      \"total\": 1\n    }\n  }\n}"
             }
           ]
         },
@@ -156,7 +160,7 @@
                   "formdata": [
                     {
                       "key": "case_id",
-                      "value": "37",
+                      "value": "43",
                       "type": "text"
                     }
                   ]
@@ -165,7 +169,124 @@
               },
               "status": "Created",
               "code": 201,
-              "body": "{\n  \"status\": \"success\",\n  \"success\": true,\n  \"message\": \"Case sent successfully\",\n  \"data\": {\n    \"id\": 88,\n    \"conversation_id\": 1,\n    \"sender_name\": \"Memo Ahmed\",\n    \"sender_type\": \"lab\",\n    \"text\": \"Case Details\",\n    \"type\": \"case\",\n    \"raw_type\": \"system\",\n    \"message_type\": \"case\",\n    \"related_id\": 37,\n    \"related_type\": \"case\",\n    \"card\": {\n      \"type\": \"case\",\n      \"title\": \"Case Details\",\n      \"id\": \"LO-003\",\n      \"related_id\": 37\n    },\n    \"is_system_message\": true,\n    \"is_read\": false,\n    \"created_at\": \"2026-07-25T18:30:00.000000Z\"\n  }\n}"
+              "body": "{\n  \"status\": \"success\",\n  \"success\": true,\n  \"message\": \"Case sent successfully\",\n  \"data\": {\n    \"id\": 88,\n    \"conversation_id\": 1,\n    \"sender_name\": \"Memo Ahmed\",\n    \"sender_type\": \"lab\",\n    \"text\": \"Case Details\",\n    \"type\": \"case\",\n    \"raw_type\": \"system\",\n    \"message_type\": \"case\",\n    \"related_id\": 43,\n    \"related_type\": \"case\",\n    \"card\": {\n      \"type\": \"case\",\n      \"title\": \"Case Details\",\n      \"id\": \"LO-003\",\n      \"related_id\": 43\n    },\n    \"is_system_message\": true,\n    \"is_read\": false,\n    \"created_at\": \"2026-07-25T18:30:00.000000Z\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "List Sendable Invoices",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/communication/conversations/{{conversation_id}}/sendable-invoices?search=&per_page=15",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "communication",
+                "conversations",
+                "{{conversation_id}}",
+                "sendable-invoices"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "sometimes|nullable|string"
+                },
+                {
+                  "key": "per_page",
+                  "value": "15",
+                  "description": "sometimes|nullable|integer"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{base_url}}/communication/conversations/{{conversation_id}}/sendable-invoices?search=&per_page=15"
+              },
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"status\": \"success\",\n  \"success\": true,\n  \"message\": \"Sendable invoices fetched successfully\",\n  \"data\": {\n    \"items\": [\n      {\n        \"id\": 12,\n        \"invoice_id\": \"LI-003\",\n        \"invoice_number\": \"LI-003\",\n        \"clinic_id\": 23,\n        \"clinic_name\": \"Oakview Dental Care\",\n        \"issue_date\": \"2026-07-25\",\n        \"due_date\": \"2026-08-24\",\n        \"amount\": 180,\n        \"remaining_amount\": 180,\n        \"status\": \"pending\"\n      }\n    ],\n    \"pagination\": {\n      \"current_page\": 1,\n      \"last_page\": 1,\n      \"per_page\": 15,\n      \"total\": 1\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Send Invoice",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "invoice_id",
+                  "value": "{{invoice_id}}",
+                  "type": "text",
+                  "description": "required|integer|exists:lab_invoices,id"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/communication/conversations/{{conversation_id}}/send-invoice",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "communication",
+                "conversations",
+                "{{conversation_id}}",
+                "send-invoice"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "invoice_id",
+                      "value": "12",
+                      "type": "text"
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/communication/conversations/{{conversation_id}}/send-invoice"
+              },
+              "status": "Created",
+              "code": 201,
+              "body": "{\n  \"status\": \"success\",\n  \"success\": true,\n  \"message\": \"Invoice sent successfully\",\n  \"data\": {\n    \"id\": 89,\n    \"conversation_id\": 1,\n    \"sender_name\": \"Memo Ahmed\",\n    \"sender_type\": \"lab\",\n    \"text\": \"Invoice Sent\",\n    \"type\": \"invoice\",\n    \"raw_type\": \"system\",\n    \"message_type\": \"invoice\",\n    \"related_id\": 12,\n    \"related_type\": \"invoice\",\n    \"card\": {\n      \"type\": \"invoice\",\n      \"title\": \"Invoice Sent\",\n      \"id\": \"LI-003\",\n      \"related_id\": 12\n    },\n    \"is_system_message\": true,\n    \"is_read\": false,\n    \"created_at\": \"2026-07-25T18:35:00.000000Z\"\n  }\n}"
             }
           ]
         }

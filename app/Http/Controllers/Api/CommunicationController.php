@@ -75,6 +75,32 @@ class CommunicationController extends Controller
         return ApiResponse::success($result['data'], $result['message'], $result['code']);
     }
 
+    public function sendableInvoices(Request $request, int $id)
+    {
+        $result = $this->service->listSendableInvoices($id, $request->all());
+
+        if (! $result['success']) {
+            return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+        }
+
+        return ApiResponse::success($result['data'], $result['message'], $result['code']);
+    }
+
+    public function sendInvoice(Request $request, int $id)
+    {
+        $validated = $request->validate([
+            'invoice_id' => ['required', 'integer', 'exists:lab_invoices,id'],
+        ]);
+
+        $result = $this->service->sendInvoice($id, (int) $validated['invoice_id']);
+
+        if (! $result['success']) {
+            return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+        }
+
+        return ApiResponse::success($result['data'], $result['message'], $result['code']);
+    }
+
     public function updateStatus(UpdateConversationStatusRequest $request, int $id)
     {
         $result = $this->service->updateConversationStatus($id, $request->validated());
