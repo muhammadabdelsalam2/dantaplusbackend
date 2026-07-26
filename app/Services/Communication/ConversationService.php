@@ -107,7 +107,7 @@ class ConversationService
             );
         });
     }
-    public function listSendableCases(int $conversationId): array
+public function listSendableCases(int $conversationId): array
 {
     $conversation = $this->conversationRepository->findConversationById($conversationId);
     if (! $conversation || ! $this->canAccessConversation($conversation)) {
@@ -122,16 +122,14 @@ class ConversationService
 
     $cases = $this->caseRepository
         ->ordersListQuery($labId, ['clinic_id' => $clinicId])
-        ->with('patient:id,name')
-        ->latest('id')
         ->limit(50)
-        ->get(['id', 'case_number', 'case_type', 'patient_id']);
+        ->get(); // بدون ->with() إضافي وبدون تحديد أعمدة يدوي
 
     return ServiceResult::success([
         'items' => $cases->map(fn ($case) => [
-            'id' => $case->id, 
+            'id' => $case->id,
             'case_number' => $case->case_number ?: ('CASE-' . $case->id),
-            'patient_name' => $case->patient?->name,
+            'patient_name' => $case->patient?->user?->name,
             'case_type' => $case->case_type,
         ])->values(),
     ], 'Cases fetched successfully');
