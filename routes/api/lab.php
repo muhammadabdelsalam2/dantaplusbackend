@@ -147,6 +147,7 @@ Route::prefix('lab')
             Route::post('/{id}/start', [CaseController::class, 'start'])
                 ->middleware('role:lab_admin|lab_receptionist');
             Route::post('/{id}/status', [CaseController::class, 'updateStatus']);
+             Route::post('/{id}/assign-technician', [CaseController::class, 'assignTechnician']);
             Route::post('/{id}/complete', [CaseController::class, 'complete'])
                 ->middleware('role:lab_admin|lab_receptionist');
             Route::get('/{id}/notes', [CaseController::class, 'notes']);
