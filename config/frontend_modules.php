@@ -81,10 +81,10 @@ return [
         'subscriptions' => [],
         'settings' => [],
     ],
-    'lab_role_modules' => [
-    'lab_admin' => ['dashboard', 'accounting', 'analytics', 'clinics', 'orders', 'inventories', 'support', 'delivery-reps', 'delivery-reports', 'delivery-tasks', 'communication', 'equipment', 'settings' , 'my-delivery', 'reportes-analysis'],
-    'lab_receptionist' => ['dashboard', 'accounting', 'analytics', 'clinics', 'orders', 'inventories', 'support', 'delivery-reps', 'delivery-reports', 'delivery-tasks', 'communication','my-delivery', 'reportes-analysis'],
+   'lab_role_modules' => [
+    'lab_admin' => ['dashboard', 'accounting', 'analytics', 'clinics', 'orders', 'inventories', 'support', 'delivery-reps', 'delivery-reports', 'delivery-tasks', 'communication', 'equipment', 'settings', 'my-delivery', 'reportes-analysis'],
+    'lab_receptionist' => ['dashboard', 'accounting', 'analytics', 'clinics', 'orders', 'inventories', 'support', 'delivery-reps', 'delivery-reports', 'delivery-tasks', 'communication', 'my-delivery', 'reportes-analysis'],
     'lab_technician' => ['dashboard', 'orders', 'inventories', 'support'],
-    'delivery_representative' => ['dashboard', 'support', 'delivery-tasks','my-deliveries', 'reports-analysis'],
+    'delivery_representative' => ['dashboard', 'support', 'delivery-tasks', 'my-delivery', 'reportes-analysis'], // ⬅️ اتصلحت من my-deliveries/reports-analysis
 ],
 ];
