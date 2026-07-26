@@ -13,7 +13,7 @@ return [
         'materials' => ['materials.view'],
         'notifications' => [],
         'orders' => ['orders.view', 'orders.manage'],
-        'patient-messages' => [],   
+        'patient-messages' => [],
         'patients' => ['patients.view', 'patients.create', 'patients.update'],
         'settings' => ['settings.manage'],
         'support-tickets' => ['support.view', 'support.create', 'support.manage'],
@@ -24,12 +24,14 @@ return [
 
     'lab' => [
         'dashboard' => [],
-        'accounting' => [],       // ⚠️ لسه فاضية — شوف "الحل الجذري" تحت
-        'clinics' => [],          // ⚠️ لسه فاضية — شوف "الحل الجذري" تحت
-        'analytics' => [],        // ⚠️ لسه فاضية — شوف "الحل الجذري" تحت
+        'accounting' => [],
+        'clinics' => [],
+        'analytics' => [],
         'delivery-reports' => ['delivery.view'],
         'delivery-reps' => ['delivery.assign'],
-        'delivery-tasks' => [],   // ⬅️ جديدة، كانت ناقصة خالص
+        'delivery-tasks' => [],
+          'my-deliveries' => [],
+    'reports-analysis' => [],
         'communication' => [],
         'equipment' => ['equipment.view'],
         'inventories' => ['inventory.view', 'inventory.manage'],
@@ -80,9 +82,9 @@ return [
         'settings' => [],
     ],
     'lab_role_modules' => [
-    'lab_admin' => ['dashboard', 'accounting', 'analytics', 'clinics', 'orders', 'inventories', 'support', 'delivery-reps', 'delivery-reports', 'delivery-tasks', 'communication', 'equipment', 'settings'],
-    'lab_receptionist' => ['dashboard', 'accounting', 'analytics', 'clinics', 'orders', 'inventories', 'support', 'delivery-reps', 'delivery-reports', 'delivery-tasks', 'communication'],
+    'lab_admin' => ['dashboard', 'accounting', 'analytics', 'clinics', 'orders', 'inventories', 'support', 'delivery-reps', 'delivery-reports', 'delivery-tasks', 'communication', 'equipment', 'settings' , 'my-deliveries', 'reports-analysis'],
+    'lab_receptionist' => ['dashboard', 'accounting', 'analytics', 'clinics', 'orders', 'inventories', 'support', 'delivery-reps', 'delivery-reports', 'delivery-tasks', 'communication','my-deliveries', 'reports-analysis'],
     'lab_technician' => ['dashboard', 'orders', 'inventories', 'support'],
-    'delivery_representative' => ['dashboard', 'support', 'delivery-tasks'],
+    'delivery_representative' => ['dashboard', 'support', 'delivery-tasks','my-deliveries', 'reports-analysis'],
 ],
 ];

@@ -107,6 +107,60 @@ class ConversationService
             );
         });
     }
+    public function listSendableCases(int $conversationId): array
+{
+    $conversation = $this->conversationRepository->findConversationById($conversationId);
+    if (! $conversation || ! $this->canAccessConversation($conversation)) {
+        return ServiceResult::error('Conversation not found', null, null, 404);
+    }
+
+    [$labId, $clinicId] = $this->conversationLabClinic($conversation);
+
+    if (! $labId || ! $clinicId) {
+        return ServiceResult::success(['items' => []], 'Cases fetched successfully');
+    }
+
+    $cases = $this->caseRepository
+        ->ordersListQuery($labId, ['clinic_id' => $clinicId])
+        ->with('patient:id,name')
+        ->latest('id')
+        ->limit(50)
+        ->get(['id', 'case_number', 'case_type', 'patient_id']);
+
+    return ServiceResult::success([
+        'items' => $cases->map(fn ($case) => [
+            'id' => $case->id, 
+            'case_number' => $case->case_number ?: ('CASE-' . $case->id),
+            'patient_name' => $case->patient?->name,
+            'case_type' => $case->case_type,
+        ])->values(),
+    ], 'Cases fetched successfully');
+}
+
+public function listSendableInvoices(int $conversationId): array
+{
+    $conversation = $this->conversationRepository->findConversationById($conversationId);
+    if (! $conversation || ! $this->canAccessConversation($conversation)) {
+        return ServiceResult::error('Conversation not found', null, null, 404);
+    }
+
+    [$labId, $clinicId] = $this->conversationLabClinic($conversation);
+
+    if (! $labId || ! $clinicId) {
+        return ServiceResult::success(['items' => []], 'Invoices fetched successfully');
+    }
+
+    $invoices = $this->labAccountingService->listInvoicesFromListSource($labId, $clinicId, 50);
+
+    return ServiceResult::success([
+        'items' => $invoices->map(fn ($invoice) => [
+            'id' => $invoice->id,
+            'invoice_number' => $invoice->invoice_number ?: ('INV-' . $invoice->id),
+            'total_amount' => (float) $invoice->total_amount,
+            'status' => $invoice->status,
+        ])->values(),
+    ], 'Invoices fetched successfully');
+}
 
     public function sendCase(int $conversationId, int $caseId): array
     {

@@ -110,6 +110,13 @@ class LabAccountingService
             ->whereKey($invoiceId)
             ->first();
     }
+    public function listInvoicesFromListSource(int $labId, int $clinicId, int $limit = 50): Collection
+{
+    return $this->invoiceQuery($labId, ['clinic_id' => $clinicId])
+        ->latest('id')
+        ->limit($limit)
+        ->get(['id', 'invoice_number', 'clinic_id', 'total_amount', 'status']);
+}
 
     public function showInvoice(int $invoiceId, array $options = []): array
     {

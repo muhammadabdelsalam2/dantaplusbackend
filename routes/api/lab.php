@@ -236,7 +236,7 @@ Route::prefix('lab')
             Route::post('/delivery-tasks/{taskId}/confirm-receipt', [DeliveryTaskController::class, 'confirmReceipt']);
         });
 
-        Route::middleware(['role:delivery_representative'])->group(function () {
+        Route::middleware(['role:delivery_representative|lab_admin|lab_receptionist'])->group(function () {
             Route::get('/my-deliveries', [DeliveryRepController::class, 'myDeliveries']);
             Route::get('/my-reports', [DeliveryRepController::class, 'myReports']);
             Route::get('/my-deliveries/{taskId}', [DeliveryRepController::class, 'myDeliveryDetails']);

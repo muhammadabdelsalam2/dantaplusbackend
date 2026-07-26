@@ -100,4 +100,25 @@ class CommunicationController extends Controller
 
         return ApiResponse::success($result['data'], $result['message'], $result['code']);
     }
+    public function sendableCases(int $id)
+{
+    $result = $this->service->listSendableCases($id);
+
+    if (! $result['success']) {
+        return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+    }
+
+    return ApiResponse::success($result['data'], $result['message'], $result['code']);
+}
+
+public function sendableInvoices(int $id)
+{
+    $result = $this->service->listSendableInvoices($id);
+
+    if (! $result['success']) {
+        return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+    }
+
+    return ApiResponse::success($result['data'], $result['message'], $result['code']);
+}
 }
