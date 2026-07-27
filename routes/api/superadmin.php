@@ -52,15 +52,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/users', [UserController::class, 'index']);
         Route::post('/users', [UserController::class, 'store']);
         Route::get('/users/{user}', [UserController::class, 'show']);
-        Route::patch('/users/{user}', [UserController::class, 'update']);
-        Route::patch('/users/{user}/status', [UserController::class, 'toggleStatus']);
+        Route::post('/users/{user}', [UserController::class, 'update']);
+        Route::post('/users/{user}/status', [UserController::class, 'toggleStatus']);
         Route::delete('/users/{user}', [UserController::class, 'destroy']);
 
         Route::get('/clinics', [ClinicManagementController::class, 'index']);
         Route::post('/clinics', [ClinicManagementController::class, 'store']);
         Route::get('/clinics/{clinic}', [ClinicManagementController::class, 'show']);
         Route::post('/clinics/{clinic}', [ClinicManagementController::class, 'update']);
-        Route::patch('/clinics/{clinic}/status', [ClinicManagementController::class, 'updateStatus']);
+        Route::post('/clinics/{clinic}/status', [ClinicManagementController::class, 'updateStatus']);
         Route::delete('/clinics/{clinic}', [ClinicManagementController::class, 'destroy']);
         Route::get('/clinics/{clinic}/branches', [ClinicManagementController::class, 'branches']);
         Route::get('/modules', [ClinicManagementController::class, 'clinicmodules']);
@@ -69,7 +69,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/material-market', [MaterialCompanyController::class, 'store']);
         Route::get('/material-market/{company}', [MaterialCompanyController::class, 'show']);
         Route::post('/material-market/{company}', [MaterialCompanyController::class, 'update']);
-        Route::patch('/material-market/{company}/status', [MaterialCompanyController::class, 'updateStatus']);
+        Route::post('/material-market/{company}/status', [MaterialCompanyController::class, 'updateStatus']);
         Route::delete('/material-market/{company}', [MaterialCompanyController::class, 'destroy']);
         Route::get('/material-market/{company}/products', [MaterialProductController::class, 'index']);
         Route::post('/material-market/{company}/products', [MaterialProductController::class, 'store']);
@@ -78,22 +78,22 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/material-orders/{order}', [MaterialOrderController::class, 'destroy']);
         Route::get('/mc-commissions', [MaterialCommissionController::class, 'index']);
         Route::post('/mc-commissions/{company}', [MaterialCompanyController::class, 'updateCommission']);
-        Route::patch('/mc-commissions/{company}', [MaterialCompanyController::class, 'updateCommission']);
+        Route::post('/mc-commissions/{company}', [MaterialCompanyController::class, 'updateCommission']);
 
         Route::get('/invoices', [SubscriptionDashboardController::class, 'index']);
         Route::get('/invoices/dashboard', [SubscriptionDashboardController::class, 'dashboard']);
-        Route::patch('/invoices/{invoice}/status', [SubscriptionDashboardController::class, 'updateStatus']);
+        Route::post('/invoices/{invoice}/status', [SubscriptionDashboardController::class, 'updateStatus']);
 
         Route::prefix('equipment-maintenance')->group(function () {
             Route::get('/requests', [EquipmentMaintenanceController::class, 'listRequests']);
             Route::get('/requests/{id}', [EquipmentMaintenanceController::class, 'showRequest']);
             Route::post('/requests', [EquipmentMaintenanceController::class, 'storeRequest']);
-            Route::patch('/requests/{id}', [EquipmentMaintenanceController::class, 'updateRequest']);
+            Route::post('/requests/{id}', [EquipmentMaintenanceController::class, 'updateRequest']);
             Route::get('/companies', [EquipmentMaintenanceController::class, 'listCompanies']);
             Route::get('/companies/{id}', [EquipmentMaintenanceController::class, 'showCompany']);
             Route::post('/companies', [EquipmentMaintenanceController::class, 'storeCompany']);
-            Route::patch('/companies/{id}/status', [EquipmentMaintenanceController::class, 'updateCompanyStatus']);
-            Route::patch('/alerts/{id}/review', [EquipmentMaintenanceController::class, 'reviewAlert']);
+            Route::post('/companies/{id}/status', [EquipmentMaintenanceController::class, 'updateCompanyStatus']);
+            Route::post('/alerts/{id}/review', [EquipmentMaintenanceController::class, 'reviewAlert']);
         });
 
         Route::get('/labs', [DentalLabManagementController::class, 'index']);
@@ -102,7 +102,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/labs/bulk-delete', [DentalLabManagementController::class, 'bulkDelete']);
         Route::get('/labs/{lab}', [DentalLabManagementController::class, 'show']);
         Route::post('/labs/{lab}', [DentalLabManagementController::class, 'update']);
-        Route::patch('/labs/{lab}/status', [DentalLabManagementController::class, 'updateStatus']);
+        Route::post('/labs/{lab}/status', [DentalLabManagementController::class, 'updateStatus']);
         Route::delete('/labs/{lab}', [DentalLabManagementController::class, 'destroy']);
 
         Route::prefix('material')->group(function () {
@@ -119,11 +119,11 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/companies/{company}/products', [MaterialProductController::class, 'index']);
             Route::post('/companies/{company}/products', [MaterialProductController::class, 'store']);
             Route::post('/products/{product}', [MaterialProductController::class, 'update']);
-            Route::patch('/products/{product}/status', [MaterialProductController::class, 'updateStatus']);
+            Route::post('/products/{product}/status', [MaterialProductController::class, 'updateStatus']);
             Route::delete('/products/{product}', [MaterialProductController::class, 'destroy']);
             Route::get('/products/pending', [MaterialProductController::class, 'pending']);
-Route::patch('/products/{product}/approve', [MaterialProductController::class, 'approve']);
-Route::patch('/products/{product}/reject', [MaterialProductController::class, 'reject']);
+Route::post('/products/{product}/approve', [MaterialProductController::class, 'approve']);
+Route::post('/products/{product}/reject', [MaterialProductController::class, 'reject']);
             Route::get('/commissions', [MaterialCommissionController::class, 'index']);
             Route::patch('/commissions/{company}', [MaterialCompanyController::class, 'updateCommission']);
 
@@ -136,12 +136,12 @@ Route::patch('/products/{product}/reject', [MaterialProductController::class, 'r
             Route::get('/requests', [EquipmentMaintenanceController::class, 'listRequests']);
             Route::get('/requests/{id}', [EquipmentMaintenanceController::class, 'showRequest']);
             Route::post('/requests', [EquipmentMaintenanceController::class, 'storeRequest']);
-            Route::patch('/requests/{id}', [EquipmentMaintenanceController::class, 'updateRequest']);
+            Route::post('/requests/{id}', [EquipmentMaintenanceController::class, 'updateRequest']);
             Route::get('/companies', [EquipmentMaintenanceController::class, 'listCompanies']);
             Route::get('/companies/{id}', [EquipmentMaintenanceController::class, 'showCompany']);
             Route::post('/companies', [EquipmentMaintenanceController::class, 'storeCompany']);
-            Route::patch('/companies/{id}/status', [EquipmentMaintenanceController::class, 'updateCompanyStatus']);
-            Route::patch('/alerts/{id}/review', [EquipmentMaintenanceController::class, 'reviewAlert']);
+            Route::post('/companies/{id}/status', [EquipmentMaintenanceController::class, 'updateCompanyStatus']);
+            Route::post('/alerts/{id}/review', [EquipmentMaintenanceController::class, 'reviewAlert']);
         });
 
         Route::prefix('communication')->group(function () {
@@ -156,7 +156,7 @@ Route::patch('/products/{product}/reject', [MaterialProductController::class, 'r
             Route::get('/', [NotificationCenterController::class, 'index']);
             Route::post('/', [NotificationCenterController::class, 'store']);
             Route::post('/test', [NotificationCenterController::class, 'test']);
-            Route::patch('/{id}/read', [NotificationCenterController::class, 'markRead']);
+            Route::post('/{id}/read', [NotificationCenterController::class, 'markRead']);
         });
 
         Route::get('/notification-logs', [NotificationLogController::class, 'index']);
