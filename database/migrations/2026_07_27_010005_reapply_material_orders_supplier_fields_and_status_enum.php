@@ -7,6 +7,15 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    private const STATUS_PENDING_SUPPLIER_CONFIRMATION = 'Pending Supplier Confirmation';
+    private const STATUS_ACCEPTED = 'Accepted';
+    private const STATUS_PROCESSING = 'Processing';
+    private const STATUS_SHIPPED = 'Shipped';
+    private const STATUS_DELIVERED = 'Delivered';
+    private const STATUS_COMPLETED = 'Completed';
+    private const STATUS_CANCELLED = 'Cancelled';
+    private const STATUS_REJECTED = 'Rejected';
+
     public function up(): void
     {
         if (! Schema::hasTable('material_orders')) {
@@ -27,18 +36,50 @@ return new class extends Migration
             return;
         }
 
+        DB::table('material_orders')
+            ->whereIn('status', ['pending', 'Pending', 'awaiting_clinic_confirmation'])
+            ->update(['status' => self::STATUS_PENDING_SUPPLIER_CONFIRMATION]);
+
+        DB::table('material_orders')
+            ->whereIn('status', ['confirmed', 'Confirmed'])
+            ->update(['status' => self::STATUS_ACCEPTED]);
+
+        DB::table('material_orders')
+            ->where('status', 'processing')
+            ->update(['status' => self::STATUS_PROCESSING]);
+
+        DB::table('material_orders')
+            ->where('status', 'shipped')
+            ->update(['status' => self::STATUS_SHIPPED]);
+
+        DB::table('material_orders')
+            ->where('status', 'delivered')
+            ->update(['status' => self::STATUS_DELIVERED]);
+
+        DB::table('material_orders')
+            ->where('status', 'completed')
+            ->update(['status' => self::STATUS_COMPLETED]);
+
+        DB::table('material_orders')
+            ->where('status', 'cancelled')
+            ->update(['status' => self::STATUS_CANCELLED]);
+
+        DB::table('material_orders')
+            ->where('status', 'rejected')
+            ->update(['status' => self::STATUS_REJECTED]);
+
         DB::statement("
             ALTER TABLE material_orders
             MODIFY status ENUM(
-                'pending',
-                'confirmed',
-                'processing',
-                'shipped',
-                'delivered',
-                'cancelled',
-                'completed',
-                'awaiting_clinic_confirmation'
-            ) NOT NULL DEFAULT 'pending'
+                'Pending Supplier Confirmation',
+                'Accepted',
+                'Processing',
+                'Shipped',
+                'Delivered',
+                'Completed',
+                'Cancelled',
+                'Rejected'
+            ) NOT NULL DEFAULT 'Pending Supplier Confirmation'
         ");
     }
 
@@ -52,13 +93,15 @@ return new class extends Migration
             DB::statement("
                 ALTER TABLE material_orders
                 MODIFY status ENUM(
-                    'Pending',
-                    'Confirmed',
+                    'Pending Supplier Confirmation',
+                    'Accepted',
                     'Processing',
                     'Shipped',
                     'Delivered',
-                    'Cancelled'
-                ) NOT NULL DEFAULT 'Pending'
+                    'Completed',
+                    'Cancelled',
+                    'Rejected'
+                ) NOT NULL DEFAULT 'Pending Supplier Confirmation'
             ");
         }
 
