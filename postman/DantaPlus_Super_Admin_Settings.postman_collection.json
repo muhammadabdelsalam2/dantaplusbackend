@@ -28,6 +28,22 @@
       "name": "Settings",
       "item": [
         {
+          "name": "Save Changes (All Settings)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/owner/settings/save-all",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"global\":{\"system_name\":\"Denta+ SaaS\",\"support_email\":\"support@dentaplus.com\",\"support_phone\":\"1-800-555-DENT\",\"timezone\":\"America/New_York\",\"default_language\":\"English\",\"default_currency\":\"USD\"},\"whatsapp\":{\"device_status\":\"Connected\",\"message_templates\":[{\"key\":\"queue_arrival\",\"name\":\"Queue Arrival\",\"content\":\"Hello {{patient_name}}, your turn is approaching at {{clinic_name}}.\"}]},\"billing_plans\":{\"premium\":{\"plan_name\":\"Premium\",\"yearly_price\":990,\"monthly_price\":99,\"description\":\"All features for large-scale operations.\"},\"standard\":{\"plan_name\":\"Standard\",\"yearly_price\":590,\"monthly_price\":59,\"description\":\"Advanced features for growing clinics.\"},\"basic\":{\"plan_name\":\"Basic\",\"yearly_price\":290,\"monthly_price\":29,\"description\":\"Essential features for small clinics.\"}},\"user_management\":{\"allow_new_signups\":true,\"allow_trial_accounts\":true},\"notifications\":{\"enable_system_email_notifications\":true,\"enable_sms_whatsapp_notifications\":false,\"notification_sounds\":true},\"backup\":{\"auto_backup_frequency\":\"daily\"},\"customization\":{\"dashboard_theme\":\"auto\",\"accent_color\":\"#6C5CE7\"}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
           "name": "My Profile",
           "item": [
             {
@@ -115,58 +131,6 @@
                 "method": "GET",
                 "url": "{{base_url}}/owner/settings/timezones"
               }
-            },
-            {
-              "name": "Save General Settings",
-              "request": {
-                "method": "POST",
-                "url": "{{base_url}}/owner/settings/global",
-                "body": {
-                  "mode": "formdata",
-                  "formdata": [
-                    {
-                      "key": "system_name",
-                      "value": "Denta+ SaaS",
-                      "type": "text"
-                    },
-                    {
-                      "key": "support_email",
-                      "value": "support@dentaplus.com",
-                      "type": "text"
-                    },
-                    {
-                      "key": "support_phone",
-                      "value": "1-800-555-DENT",
-                      "type": "text"
-                    },
-                    {
-                      "key": "timezone",
-                      "value": "America/New_York",
-                      "type": "text"
-                    },
-                    {
-                      "key": "default_language",
-                      "value": "English",
-                      "type": "text"
-                    },
-                    {
-                      "key": "default_currency",
-                      "value": "USD",
-                      "type": "text"
-                    },
-                    {
-                      "key": "logo_file",
-                      "type": "file",
-                      "src": ""
-                    },
-                    {
-                      "key": "favicon_file",
-                      "type": "file",
-                      "src": ""
-                    }
-                  ]
-                }
-              }
             }
           ]
         },
@@ -178,22 +142,6 @@
               "request": {
                 "method": "GET",
                 "url": "{{base_url}}/owner/settings/whatsapp"
-              }
-            },
-            {
-              "name": "Save WhatsApp Runtime Settings",
-              "request": {
-                "method": "POST",
-                "url": "{{base_url}}/owner/settings/whatsapp",
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\"device_status\":\"Connected\"}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                }
               }
             },
             {
@@ -225,22 +173,6 @@
                 "method": "GET",
                 "url": "{{base_url}}/owner/settings/whatsapp/templates"
               }
-            },
-            {
-              "name": "Save Queue Arrival Template",
-              "request": {
-                "method": "POST",
-                "url": "{{base_url}}/owner/settings/whatsapp/templates/queue_arrival",
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\"name\":\"Queue Arrival\",\"content\":\"Hello {{patient_name}}, your turn is approaching at {{clinic_name}}.\"}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                }
-              }
             }
           ]
         },
@@ -252,22 +184,6 @@
               "request": {
                 "method": "GET",
                 "url": "{{base_url}}/owner/settings/billing/plans"
-              }
-            },
-            {
-              "name": "Save Billing Plans",
-              "request": {
-                "method": "POST",
-                "url": "{{base_url}}/owner/settings/billing/plans",
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\"premium\":{\"plan_name\":\"Premium\",\"yearly_price\":990,\"monthly_price\":99,\"description\":\"All features for large-scale operations.\"},\"standard\":{\"plan_name\":\"Standard\",\"yearly_price\":590,\"monthly_price\":59,\"description\":\"Advanced features for growing clinics.\"},\"basic\":{\"plan_name\":\"Basic\",\"yearly_price\":290,\"monthly_price\":29,\"description\":\"Essential features for small clinics.\"}}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                }
               }
             },
             {
@@ -288,22 +204,6 @@
                 "method": "GET",
                 "url": "{{base_url}}/owner/settings/user-management"
               }
-            },
-            {
-              "name": "Save User Management Settings",
-              "request": {
-                "method": "POST",
-                "url": "{{base_url}}/owner/settings/user-management",
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\"allow_new_signups\":true,\"allow_trial_accounts\":true}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                }
-              }
             }
           ]
         },
@@ -316,22 +216,6 @@
                 "method": "GET",
                 "url": "{{base_url}}/owner/settings/notifications"
               }
-            },
-            {
-              "name": "Save Notification Settings",
-              "request": {
-                "method": "POST",
-                "url": "{{base_url}}/owner/settings/notifications",
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\"enable_system_email_notifications\":true,\"enable_sms_whatsapp_notifications\":false,\"notification_sounds\":true}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                }
-              }
             }
           ]
         },
@@ -343,22 +227,6 @@
               "request": {
                 "method": "GET",
                 "url": "{{base_url}}/owner/settings/backup"
-              }
-            },
-            {
-              "name": "Save Backup Settings",
-              "request": {
-                "method": "POST",
-                "url": "{{base_url}}/owner/settings/backup",
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\"auto_backup_frequency\":\"daily\"}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                }
               }
             },
             {
@@ -378,22 +246,6 @@
               "request": {
                 "method": "GET",
                 "url": "{{base_url}}/owner/settings/customization"
-              }
-            },
-            {
-              "name": "Save Customization Settings",
-              "request": {
-                "method": "POST",
-                "url": "{{base_url}}/owner/settings/customization",
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\"dashboard_theme\":\"auto\",\"accent_color\":\"#6C5CE7\"}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                }
               }
             }
           ]

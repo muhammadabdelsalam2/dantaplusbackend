@@ -186,6 +186,7 @@ Route::post('/products/{product}/reject', [MaterialProductController::class, 're
             Route::post('/profile/photo', [ProfileController::class, 'uploadPhoto']);
             Route::patch('/password', [PasswordController::class, 'update']);
             Route::post('/password', [PasswordController::class, 'update']);
+            Route::post('/save-all', [GlobalSettingsController::class, 'saveAll']);
 
             Route::get('/timezones', [GlobalSettingsController::class, 'timezones']);
             Route::get('/global', [GlobalSettingsController::class, 'show']);
@@ -302,6 +303,7 @@ Route::prefix('superadmin')
 
             Route::patch('/password', [PasswordController::class, 'update']);
             Route::post('/password', [PasswordController::class, 'update']);
+            Route::post('/save-all', [GlobalSettingsController::class, 'saveAll']);
 
             /*
             |--------------------------------------------------------------------------
