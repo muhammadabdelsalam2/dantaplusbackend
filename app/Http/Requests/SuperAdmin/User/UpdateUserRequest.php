@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\SuperAdmin\User;
 
+use App\Support\UserRoleManager;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -21,13 +22,18 @@ class UpdateUserRequest extends FormRequest
         }
 
         if ($this->has('role')) {
-            $this->merge(['role' => \App\Support\UserRoleManager::normalize($this->input('role'))]);
+            $this->merge(['role' => UserRoleManager::normalize($this->input('role'))]);
+        }
+
+        if (! $this->has('material_company_id') && $this->has('company_id')) {
+            $this->merge(['material_company_id' => $this->input('company_id')]);
         }
     }
 
     public function rules(): array
     {
         $userId = $this->route('user')?->id ?? null;
+        $entityType = UserRoleManager::entityTypeForRole($this->input('role'));
 
         return [
             'name' => ['sometimes', 'string', 'max:255'],
@@ -48,7 +54,9 @@ class UpdateUserRequest extends FormRequest
                     }
                 },
             ],
-            'lab_id' => ['sometimes', 'nullable', 'integer', Rule::exists('dental_labs', 'id')],
+            'clinic_id' => [Rule::requiredIf($this->has('role') && $entityType === 'clinic'), 'nullable', 'integer', Rule::exists('clinics', 'id')],
+            'lab_id' => [Rule::requiredIf($this->has('role') && $entityType === 'lab'), 'nullable', 'integer', Rule::exists('dental_labs', 'id')],
+            'material_company_id' => [Rule::requiredIf($this->has('role') && $entityType === 'material_company'), 'nullable', 'integer', Rule::exists('material_companies', 'id')],
             'lab_name' => ['sometimes', 'nullable', 'string', 'max:255'],
         ];
     }

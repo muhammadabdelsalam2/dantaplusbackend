@@ -13,16 +13,22 @@ class UserRoleManager
     public const LEGACY_LAB_ROLE = 'lab';
     public const COMPANY_ROLES = [
         'material_company_admin',
-        'sales_rep',
-        'delivery_staff',
     ];
     public const CLINIC_ROLES = [
         'clinic_admin',
         'doctor',
+        'patient',
+        'demo_user',
         'nurse',
         'accountant',
         'receptionist',
         'staff',
+        'sales_rep',
+        'delivery_staff',
+    ];
+
+    public const MATERIAL_COMPANY_ROLES = [
+        'material_company_admin',
     ];
 
     public static function normalize(?string $role): ?string
@@ -65,7 +71,7 @@ class UserRoleManager
 
     public static function companyRoles(): array
     {
-        return self::COMPANY_ROLES;
+        return self::MATERIAL_COMPANY_ROLES;
     }
 
     public static function clinicRoles(): array
@@ -75,12 +81,35 @@ class UserRoleManager
 
     public static function isCompanyScopedRole(?string $role): bool
     {
-        return in_array(self::normalize($role), self::companyRoles(), true);
+        return in_array(self::normalize($role), self::MATERIAL_COMPANY_ROLES, true);
     }
 
     public static function isClinicScopedRole(?string $role): bool
     {
         return in_array(self::normalize($role), self::clinicRoles(), true);
+    }
+
+    public static function entityTypeForRole(?string $role): ?string
+    {
+        $role = self::normalize($role);
+
+        if ($role === null || in_array($role, ['super-admin', 'super_admin'], true)) {
+            return null;
+        }
+
+        if (self::isClinicScopedRole($role)) {
+            return 'clinic';
+        }
+
+        if (self::isLabScopedRole($role)) {
+            return 'lab';
+        }
+
+        if (self::isCompanyScopedRole($role)) {
+            return 'material_company';
+        }
+
+        return null;
     }
 
     public static function clinicAssignableRoles(): array

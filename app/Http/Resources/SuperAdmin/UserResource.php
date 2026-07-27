@@ -2,7 +2,6 @@
 
 namespace App\Http\Resources\SuperAdmin;
 
-use App\Support\UserRoleManager;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -22,16 +21,9 @@ class UserResource extends JsonResource
             $entityId = $this->patient->id ?? null;
         }
 
-        $role = UserRoleManager::primaryRole($this->resource);
-        $roleLabel = match ($role) {
-            'super-admin' => 'super_admin',
-            'Admin' => 'Admin',
-            'clinic_admin' => 'Admin',
-            'doctor' => 'Doctor',
-            'receptionist' => 'Receptionist',
-            'accountant' => 'Accountant',
-            default => $role,
-        };
+        $role = $this->relationLoaded('roles')
+            ? $this->roles->first()?->name
+            : $this->getRoleNames()->first();
 
         $entity = $this->clinic?->name ?? $this->company?->name ?? $this->lab?->name;
 
@@ -45,7 +37,7 @@ class UserResource extends JsonResource
                 'email' => $this->email,
                 'avatar_url' => $this->avatar_url,
             ],
-            'role' => $roleLabel,
+            'role' => $role,
             'entity' => $entity,
             'status' => $this->is_active ? 'Active' : 'Inactive',
             'last_login' => optional($this->last_login_at ?? $this->updated_at)->format('d/m/Y'),

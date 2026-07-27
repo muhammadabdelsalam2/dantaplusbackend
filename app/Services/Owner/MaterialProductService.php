@@ -31,6 +31,10 @@ class MaterialProductService
         $products = $this->materialProductRepository->paginateByCompany($companyId, $filters, $perPage);
 
         $data = [
+            'filters' => [
+                'categories' => config('material_market.product_category_items', []),
+            ],
+            'export_url' => url("/api/owner/material-market/{$companyId}/products/export"),
             'items' => collect($products->items())->map(fn (MaterialProduct $product) => [
                 'id' => $product->id,
                 'image_url' => $product->image_url,
@@ -213,31 +217,31 @@ public function export(int $companyId): StreamedResponse
     $company = $this->materialCompanyRepository->findById($companyId);
     abort_if(!$company, 404, 'Material company not found');
 
-    $fileName = Str::slug($company->name) . '-products.csv';
+    $fileName = Str::slug($company->name) . '-products.xls';
 
     return response()->streamDownload(function () use ($companyId) {
-        $handle = fopen('php://output', 'w');
-        fputcsv($handle, ['Image', 'Name', 'Category', 'Price', 'Stock', 'Status']);
+        echo '<table>';
+        echo '<tr><th>Image</th><th>Name</th><th>Category</th><th>Price</th><th>Stock</th><th>Status</th></tr>';
 
         MaterialProduct::query()
             ->where('company_id', $companyId)
             ->orderBy('id')
-            ->chunk(200, function ($products) use ($handle) {
+            ->chunk(200, function ($products) {
                 foreach ($products as $product) {
-                    fputcsv($handle, [
-                        $product->image_url,
-                        $product->name,
-                        $product->category,
-                        $product->price,
-                        $product->stock,
-                        $product->status,
-                    ]);
+                    echo '<tr>';
+                    echo '<td>' . e((string) $product->image_url) . '</td>';
+                    echo '<td>' . e((string) $product->name) . '</td>';
+                    echo '<td>' . e((string) $product->category) . '</td>';
+                    echo '<td>' . e((string) $product->price) . '</td>';
+                    echo '<td>' . e((string) $product->stock) . '</td>';
+                    echo '<td>' . e((string) $product->status) . '</td>';
+                    echo '</tr>';
                 }
             });
 
-        fclose($handle);
+        echo '</table>';
     }, $fileName, [
-        'Content-Type' => 'text/csv; charset=UTF-8',
+        'Content-Type' => 'application/vnd.ms-excel; charset=UTF-8',
     ]);
 }
 }

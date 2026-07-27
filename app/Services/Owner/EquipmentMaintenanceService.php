@@ -275,6 +275,7 @@ class EquipmentMaintenanceService
     public function smartAlerts(): array
     {
         return AiAlert::query()
+            ->with(['company:id,name', 'maintenanceRequest:id,clinic_id,request_code', 'maintenanceRequest.clinic:id,name'])
             ->where('is_reviewed', false)
             ->latest('id')
             ->limit(10)
@@ -307,6 +308,11 @@ class EquipmentMaintenanceService
             'message' => $alert->message,
             'severity' => $alert->severity,
             'companyId' => $alert->company_id,
+            'company' => $alert->company?->name,
+            'maintenance_request_id' => $alert->maintenance_request_id,
+            'request_id' => $alert->maintenanceRequest?->request_code,
+            'clinicId' => $alert->maintenanceRequest?->clinic_id,
+            'clinic' => $alert->maintenanceRequest?->clinic?->name,
             'timestamp' => optional($alert->created_at)->toISOString(),
             'isReviewed' => (bool) $alert->is_reviewed,
         ];

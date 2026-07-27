@@ -2,9 +2,7 @@
 
 namespace App\Services\SuperAdmin;
 
-use App\Enums\LabRole;
 use App\Mail\SystemAccessMail;
-use App\Models\DentalLab;
 use App\Models\User;
 use App\Repositories\Contracts\SuperAdmin\UserManagementRepositoryInterface;
 use App\Support\UserRoleManager;
@@ -14,6 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
+use Spatie\Permission\Models\Role;
 
 class UserManagementService
 {
@@ -24,6 +23,16 @@ class UserManagementService
     public function list(?string $q, ?string $role, ?string $status, int $perPage): LengthAwarePaginator
     {
         return $this->repo->paginateUsers($q, $role, $status, $perPage);
+    }
+
+    public function rolesFilter(): array
+    {
+        return Role::query()
+            ->where('guard_name', 'web')
+            ->orderBy('id')
+            ->pluck('name')
+            ->values()
+            ->all();
     }
 
     public function show(int $id): User
@@ -54,9 +63,10 @@ class UserManagementService
                 ]);
             }
 
-            $data = Arr::except($data, ['role', 'lab_name']);
+            $entityAssignments = $this->entityAssignmentsForRole($role, $data);
+            $data = Arr::except($data, ['role', 'lab_name', 'material_company_id']);
+            $data = array_merge($data, $entityAssignments);
             $data['role'] = UserRoleManager::isLabScopedRole($role) ? $role : null;
-            $data['lab_id'] = $this->resolveLabIdForCreate($role, $data, $actor);
 
             $plainPassword = $data['password'];
             $data['password'] = Hash::make($data['password']);
@@ -84,7 +94,8 @@ class UserManagementService
             $role = isset($data['role'])
                 ? UserRoleManager::normalize($data['role'])
                 : null;
-            $data = Arr::except($data, ['role', 'lab_name']);
+            $entityAssignments = $role !== null ? $this->entityAssignmentsForRole($role, $data) : [];
+            $data = Arr::except($data, ['role', 'lab_name', 'material_company_id']);
 
             // ✅ ممنوع تغيير role لسوبر أدمن
             if ($user->isSuperAdmin() && $role !== null) {
@@ -120,13 +131,8 @@ class UserManagementService
             }
 
             if ($role !== null) {
+                $data = array_merge($data, $entityAssignments);
                 $data['role'] = UserRoleManager::isLabScopedRole($role) ? $role : null;
-
-                if (UserRoleManager::isLabScopedRole($role)) {
-                    $data['lab_id'] = $this->resolveLabIdForUpdate($user, $role, $data);
-                } elseif ($user->lab_id !== null) {
-                    $data['lab_id'] = null;
-                }
             }
 
             $updated = $this->repo->updateUser($user, $data);
@@ -193,69 +199,30 @@ class UserManagementService
         $this->repo->deleteUser($user);
     }
 
-    /**
-     * @throws ValidationException
-     */
-    private function resolveLabIdForCreate(string $role, array $data, ?User $actor): ?int
+    private function entityAssignmentsForRole(string $role, array $data): array
     {
-        if (! UserRoleManager::isLabScopedRole($role)) {
-            return null;
-        }
-
-        if (! $actor?->isSuperAdmin()) {
-            throw ValidationException::withMessages([
-                'role' => ['Only super-admin can create lab-scoped users from this endpoint.'],
-            ]);
-        }
-
-        if (! empty($data['lab_id'])) {
-            return (int) $data['lab_id'];
-        }
-
-        if ($role !== LabRole::LabAdmin->value) {
-            throw ValidationException::withMessages([
-                'lab_id' => ['lab_id is required for this role.'],
-            ]);
-        }
-
-        return $this->createLabForAdmin($data)->id;
+        return match (UserRoleManager::entityTypeForRole($role)) {
+            'clinic' => [
+                'clinic_id' => (int) $data['clinic_id'],
+                'lab_id' => null,
+                'company_id' => null,
+            ],
+            'lab' => [
+                'clinic_id' => null,
+                'lab_id' => (int) $data['lab_id'],
+                'company_id' => null,
+            ],
+            'material_company' => [
+                'clinic_id' => null,
+                'lab_id' => null,
+                'company_id' => (int) ($data['material_company_id'] ?? $data['company_id']),
+            ],
+            default => [
+                'clinic_id' => null,
+                'lab_id' => null,
+                'company_id' => null,
+            ],
+        };
     }
 
-    /**
-     * @throws ValidationException
-     */
-    private function resolveLabIdForUpdate(User $user, string $role, array $data): ?int
-    {
-        if (! empty($data['lab_id'])) {
-            return (int) $data['lab_id'];
-        }
-
-        if ($user->lab_id) {
-            return $user->lab_id;
-        }
-
-        if ($role !== LabRole::LabAdmin->value) {
-            throw ValidationException::withMessages([
-                'lab_id' => ['lab_id is required for this role.'],
-            ]);
-        }
-
-        return $this->createLabForAdmin($data, $user)->id;
-    }
-
-    private function createLabForAdmin(array $data, ?User $user = null): DentalLab
-    {
-        $labName = trim((string) ($data['lab_name'] ?? $data['name'] ?? $user?->name ?? 'New Lab'));
-        $labEmail = $data['email'] ?? $user?->email;
-
-        return DentalLab::query()->create([
-            'name' => $labName,
-            'contact_person' => $data['name'] ?? $user?->name,
-            'email' => $labEmail,
-            'phone' => $data['phone'] ?? $user?->phone,
-            'status' => DentalLab::STATUS_ACTIVE,
-            'avg_delivery_days' => 0,
-            'date_added' => now()->toDateString(),
-        ]);
-    }
 }

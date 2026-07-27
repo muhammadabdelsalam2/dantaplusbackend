@@ -33,6 +33,7 @@ class DatabaseSeeder extends Seeder
             MaterialCompanySeeder::class,
             MaterialProductSeeder::class,
             MaterialOrderSeeder::class,
+            EquipmentSmartAlertSeeder::class,
             SupplierPortalSeeder::class,
             CaseSeeder::class,
             CaseMessageSeeder::class,

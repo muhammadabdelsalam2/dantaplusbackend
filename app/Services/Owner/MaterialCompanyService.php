@@ -27,11 +27,17 @@ class MaterialCompanyService
         $perPage = (int) ($filters['per_page'] ?? 15);
         $companies = $this->materialCompanyRepository->paginate($filters, $perPage);
 
-        $data = (new MaterialCompanyCollection($companies))->response()->getData(true);
-        $data['stats'] = $this->materialCompanyRepository->stats();
-        $data['filters'] = [
-            'countries' => $this->materialCompanyRepository->countries(),
-            'statuses' => ['Active', 'Inactive'],
+        $collection = (new MaterialCompanyCollection($companies))->response()->getData(true);
+        $data = [
+            'stats' => $this->materialCompanyRepository->stats(),
+            'filters' => [
+                'countries' => $this->materialCompanyRepository->countries(),
+                'statuses' => ['Active', 'Inactive'],
+            ],
+            'data' => [
+                'items' => $collection['data']['items'] ?? $collection['items'] ?? [],
+                'pagination' => $collection['data']['pagination'] ?? $collection['pagination'] ?? [],
+            ],
         ];
 
         return ServiceResult::success($data, 'Material companies fetched successfully');

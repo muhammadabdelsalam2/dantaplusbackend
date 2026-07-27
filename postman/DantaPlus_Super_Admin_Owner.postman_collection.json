@@ -9,6 +9,7 @@
     { "key": "clinic_id", "value": "1" },
     { "key": "user_id", "value": "1" },
     { "key": "company_id", "value": "1" },
+    { "key": "material_company_id", "value": "1" },
     { "key": "product_id", "value": "1" },
     { "key": "order_id", "value": "1" },
     { "key": "lab_id", "value": "1" },
@@ -82,7 +83,7 @@
       "item": [
         { "name": "List Users", "request": { "method": "GET", "url": "{{base_url}}/owner/users?q=&role=&status=&per_page=15" } },
         {
-          "name": "Create User",
+          "name": "Create User - Doctor (Clinic)",
           "request": {
             "method": "POST",
             "body": { "mode": "formdata", "formdata": [
@@ -91,9 +92,40 @@
               { "key": "phone", "value": "+201222222222", "type": "text" },
               { "key": "password", "value": "password123", "type": "text" },
               { "key": "is_active", "value": "true", "type": "text" },
-              { "key": "role", "value": "Doctor", "type": "text" },
-              { "key": "lab_id", "value": "", "type": "text" },
-              { "key": "lab_name", "value": "", "type": "text" }
+              { "key": "role", "value": "doctor", "type": "text" },
+              { "key": "clinic_id", "value": "{{clinic_id}}", "type": "text" }
+            ] },
+            "url": "{{base_url}}/owner/users"
+          }
+        },
+        {
+          "name": "Create User - Lab Technician (Lab)",
+          "request": {
+            "method": "POST",
+            "body": { "mode": "formdata", "formdata": [
+              { "key": "name", "value": "Lab Technician", "type": "text" },
+              { "key": "email", "value": "lab.tech@example.com", "type": "text" },
+              { "key": "phone", "value": "+201222222223", "type": "text" },
+              { "key": "password", "value": "password123", "type": "text" },
+              { "key": "is_active", "value": "true", "type": "text" },
+              { "key": "role", "value": "lab_technician", "type": "text" },
+              { "key": "lab_id", "value": "{{lab_id}}", "type": "text" }
+            ] },
+            "url": "{{base_url}}/owner/users"
+          }
+        },
+        {
+          "name": "Create User - Material Company Admin",
+          "request": {
+            "method": "POST",
+            "body": { "mode": "formdata", "formdata": [
+              { "key": "name", "value": "Company Admin", "type": "text" },
+              { "key": "email", "value": "company.admin@example.com", "type": "text" },
+              { "key": "phone", "value": "+201222222224", "type": "text" },
+              { "key": "password", "value": "password123", "type": "text" },
+              { "key": "is_active", "value": "true", "type": "text" },
+              { "key": "role", "value": "material_company_admin", "type": "text" },
+              { "key": "material_company_id", "value": "{{material_company_id}}", "type": "text" }
             ] },
             "url": "{{base_url}}/owner/users"
           }
@@ -108,9 +140,8 @@
               { "key": "phone", "value": "+201333333333", "type": "text" },
               { "key": "password", "value": "", "type": "text" },
               { "key": "is_active", "value": "true", "type": "text" },
-              { "key": "role", "value": "Receptionist", "type": "text" },
-              { "key": "lab_id", "value": "", "type": "text" },
-              { "key": "lab_name", "value": "", "type": "text" }
+              { "key": "role", "value": "receptionist", "type": "text" },
+              { "key": "clinic_id", "value": "{{clinic_id}}", "type": "text" }
             ] },
             "url": "{{base_url}}/owner/users/{{user_id}}"
           }
@@ -190,9 +221,9 @@
       "item": [
         { "name": "List Commissions", "request": { "method": "GET", "url": "{{base_url}}/owner/mc-commissions?search=&status=&per_page=15" } },
         {
-          "name": "Set Commission",
+          "name": "Set Commission (Form Data)",
           "request": {
-            "method": "PATCH",
+            "method": "POST",
             "body": { "mode": "formdata", "formdata": [
               { "key": "commission_percentage", "value": "10", "type": "text" }
             ] },

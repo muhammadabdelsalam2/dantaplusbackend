@@ -77,6 +77,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/material-orders/{order}', [MaterialOrderController::class, 'show']);
         Route::delete('/material-orders/{order}', [MaterialOrderController::class, 'destroy']);
         Route::get('/mc-commissions', [MaterialCommissionController::class, 'index']);
+        Route::post('/mc-commissions/{company}', [MaterialCompanyController::class, 'updateCommission']);
         Route::patch('/mc-commissions/{company}', [MaterialCompanyController::class, 'updateCommission']);
 
         Route::get('/invoices', [SubscriptionDashboardController::class, 'index']);

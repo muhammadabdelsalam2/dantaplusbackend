@@ -35,12 +35,14 @@ class MaterialOrderService
             'completed_orders' => MaterialOrder::query()->where('status', MaterialOrder::STATUS_COMPLETED)->count(),
             'total_sales' => round((float) MaterialOrder::query()->sum('amount_total'), 2),
         ],
-        'items' => $items,
-        'pagination' => [
-            'current_page' => $orders->currentPage(),
-            'last_page' => $orders->lastPage(),
-            'per_page' => $orders->perPage(),
-            'total' => $orders->total(),
+        'data' => [
+            'items' => $items,
+            'pagination' => [
+                'current_page' => $orders->currentPage(),
+                'last_page' => $orders->lastPage(),
+                'per_page' => $orders->perPage(),
+                'total' => $orders->total(),
+            ],
         ],
     ], 'Material orders fetched successfully');
 }
