@@ -19,6 +19,7 @@ class IndexNotificationsRequest extends FormRequest
             'date_from' => $this->input('date_from', $this->input('dateFrom')),
             'date_to' => $this->input('date_to', $this->input('dateTo')),
             'per_page' => $this->input('per_page', $this->input('perPage')),
+            'tab' => $this->normalizeTab($this->input('tab', 'all')),
         ]);
     }
 
@@ -26,7 +27,8 @@ class IndexNotificationsRequest extends FormRequest
     {
         return [
             'search' => ['nullable', 'string', 'max:255'],
-            'type' => ['nullable', Rule::in(['system', 'appointment', 'payment', 'custom', 'reminder', 'announcement'])],
+            'tab' => ['nullable', Rule::in(['all', 'warning', 'reached', 'branch_limit', 'user_limit', 'usage_limit'])],
+            'type' => ['nullable', Rule::in(['system', 'payment', 'custom', 'subscription', 'warning', 'reached', 'branch_limit', 'user_limit', 'usage_limit'])],
             'priority' => ['nullable', 'string', 'max:50'],
             'role' => ['nullable', Rule::in(['super_admin', 'owner', 'clinic', 'patient'])],
             'user_id' => ['nullable', 'integer', 'exists:users,id'],
@@ -37,5 +39,10 @@ class IndexNotificationsRequest extends FormRequest
             'page' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ];
+    }
+
+    private function normalizeTab(?string $tab): string
+    {
+        return strtolower(str_replace(' ', '_', (string) $tab));
     }
 }

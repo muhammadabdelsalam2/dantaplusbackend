@@ -2,6 +2,7 @@
 
 namespace App\Services\Owner;
 
+use App\Models\MaterialOrder;
 use App\Repositories\MaterialOrderRepository;
 use App\Support\ServiceResult;
 
@@ -19,9 +20,9 @@ class MaterialOrderService
     $items = collect($orders->items())->map(function ($o) {
         return [
             'id' => $o->id,
-            'code' => $o->order_code,
-            'clinic_name' => $o->clinic?->name,
-            'supplier_name' => $o->supplierCompany?->name,
+            'order_number' => $o->order_code,
+            'clinic' => $o->clinic?->name,
+            'company' => $o->supplierCompany?->name,
             'date' => $o->order_date,                 
             'amount' => (string) $o->amount_total,
             'status' => $o->status,
@@ -29,6 +30,11 @@ class MaterialOrderService
     })->all();
 
     return ServiceResult::success([
+        'stats' => [
+            'total_orders' => MaterialOrder::query()->count(),
+            'completed_orders' => MaterialOrder::query()->where('status', MaterialOrder::STATUS_COMPLETED)->count(),
+            'total_sales' => round((float) MaterialOrder::query()->sum('amount_total'), 2),
+        ],
         'items' => $items,
         'pagination' => [
             'current_page' => $orders->currentPage(),

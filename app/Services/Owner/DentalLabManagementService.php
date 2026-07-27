@@ -27,27 +27,14 @@ class DentalLabManagementService
         $items = collect($labs->items())->map(function ($lab) {
             return [
                 'id' => $lab->id,
-                'name' => $lab->name,
-                'contact_person' => $lab->contact_person,
-                'address' => $lab->address,
-                'city' => $lab->city,
-                'phone' => $lab->phone,
-                'email' => $lab->email,
-                'working_hours' => $lab->working_hours,
-                'avg_delivery_days' => $lab->avg_delivery_days,
-                'response_speed' => $lab->response_speed,
                 'status' => $lab->status,
+                'delivery_speed' => 'days ' . rtrim(rtrim((string) $lab->avg_delivery_days, '0'), '.'),
+                'active_clinics' => (int) $lab->active_clinics,
+                'rating' => $lab->rating !== null ? (float) $lab->rating : 0,
+                'city' => $lab->city,
+                'contact_person' => $lab->contact_person,
+                'lab_name' => $lab->name,
                 'logo_url' => $lab->logo_url,
-                'rating' => $lab->rating,
-                'is_external' => $lab->is_external,
-                'date_added' => $lab->date_added,
-                'on_time_percentage' => $lab->on_time_percentage,
-                'rejection_rate' => $lab->rejection_rate,
-                'created_at' => $lab->created_at,
-                'updated_at' => $lab->updated_at,
-                'deleted_at' => $lab->deleted_at,
-                'active_clinics' => $lab->active_clinics,
-                'services' => $lab->services,
             ];
         })->values();
 
@@ -60,6 +47,9 @@ class DentalLabManagementService
                 'total' => $labs->total(),
             ],
             'stats' => $this->dentalLabRepository->stats(),
+            'filters' => [
+                'statuses' => ['All Statuses', DentalLab::STATUS_ACTIVE, DentalLab::STATUS_INACTIVE],
+            ],
         ];
 
         return ServiceResult::success($data, 'Dental labs fetched successfully');

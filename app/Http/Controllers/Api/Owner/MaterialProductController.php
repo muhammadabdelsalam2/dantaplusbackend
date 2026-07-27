@@ -10,6 +10,7 @@ use App\Http\Requests\Owner\Material\UpdateMaterialProductStatusRequest;
 use App\Services\Owner\MaterialProductService;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 
 class MaterialProductController extends Controller
@@ -117,5 +118,10 @@ public function reject(Request $request, int $product)
     }
 
     return ApiResponse::success($result['data'], $result['message']);
+}
+
+public function export(int $company): StreamedResponse
+{
+    return $this->materialProductService->export($company);
 }
 }

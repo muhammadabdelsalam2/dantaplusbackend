@@ -19,6 +19,10 @@ return new class extends Migration
             }
         });
 
+        if (Schema::getConnection()->getDriverName() !== 'mysql') {
+            return;
+        }
+
    DB::statement("
     ALTER TABLE material_orders
     MODIFY status ENUM(
@@ -36,6 +40,7 @@ return new class extends Migration
 
     public function down(): void
     {
+        if (Schema::getConnection()->getDriverName() === 'mysql') {
         DB::statement("
             ALTER TABLE material_orders
             MODIFY status ENUM(
@@ -47,6 +52,7 @@ return new class extends Migration
                 'Cancelled'
             ) NOT NULL DEFAULT 'Pending'
         ");
+        }
 
         Schema::table('material_orders', function (Blueprint $table) {
             foreach (['supplier_note', 'modified_by_supplier'] as $column) {

@@ -17,7 +17,7 @@ class NotificationCenterController extends Controller
 
     public function index(IndexNotificationsRequest $request)
     {
-        $result = $this->service->listNotifications($request->validated());
+        $result = $this->service->listGlobalNotifications($request->validated());
 
         if (! $result['success']) {
             return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
@@ -28,7 +28,10 @@ class NotificationCenterController extends Controller
 
     public function store(StoreNotificationRequest $request)
     {
-        $result = $this->service->sendNotification($request->validated(), $request->user());
+        $data = $request->validated();
+        $data['role'] ??= 'clinic';
+
+        $result = $this->service->sendNotification($data, $request->user());
 
         if (! $result['success']) {
             return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
@@ -39,7 +42,10 @@ class NotificationCenterController extends Controller
 
     public function test(StoreNotificationRequest $request)
     {
-        $result = $this->service->sendNotification($request->validated(), $request->user(), true);
+        $data = $request->validated();
+        $data['role'] ??= 'clinic';
+
+        $result = $this->service->sendNotification($data, $request->user(), true);
 
         if (! $result['success']) {
             return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);

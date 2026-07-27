@@ -13,7 +13,7 @@ class MaintenanceCompanyRepository
             ->withCount([
                 'maintenanceRequests as total_requests',
                 'maintenanceRequests as completed_requests' => fn ($q) => $q
-                    ->whereIn('status', ['Resolved', 'Closed']),
+                    ->whereIn('status', ['Completed', 'Resolved', 'Closed']),
             ])
             ->when($filters['search'] ?? null, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
@@ -31,5 +31,23 @@ class MaintenanceCompanyRepository
     public function create(array $data): MaintenanceCompany
     {
         return MaintenanceCompany::create($data);
+    }
+
+    public function findById(int $id): ?MaintenanceCompany
+    {
+        return MaintenanceCompany::query()
+            ->withCount([
+                'maintenanceRequests as total_requests',
+                'maintenanceRequests as completed_requests' => fn ($q) => $q
+                    ->whereIn('status', ['Completed', 'Resolved', 'Closed']),
+            ])
+            ->find($id);
+    }
+
+    public function update(MaintenanceCompany $company, array $data): MaintenanceCompany
+    {
+        $company->update($data);
+
+        return $company->refresh();
     }
 }

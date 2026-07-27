@@ -31,9 +31,14 @@ class UserRoleManager
             return null;
         }
 
-        return $role === self::LEGACY_LAB_ROLE
-            ? LabRole::LabAdmin->value
-            : $role;
+        return match ($role) {
+            self::LEGACY_LAB_ROLE => LabRole::LabAdmin->value,
+            'super_admin' => 'super-admin',
+            'Doctor' => 'doctor',
+            'Receptionist' => 'receptionist',
+            'Accountant' => 'accountant',
+            default => $role,
+        };
     }
 
     public static function isLabScopedRole(?string $role): bool

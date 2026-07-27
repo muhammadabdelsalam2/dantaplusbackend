@@ -11,7 +11,7 @@ class NotificationLogRepository
     public function paginate(array $filters, int $perPage = 15): LengthAwarePaginator
     {
         return NotificationLog::query()
-            ->with(['clinic:id,name'])
+            ->with(['clinic:id,name', 'doctor.user:id,name'])
             ->when($filters['clinic_id'] ?? null, fn (Builder $q, $clinicId) => $q->where('clinic_id', $clinicId))
             ->when($filters['doctor_id'] ?? null, fn (Builder $q, $doctorId) => $q->where('doctor_id', $doctorId))
             ->when($filters['channel'] ?? null, fn (Builder $q, $channel) => $q->where('channel', $channel))

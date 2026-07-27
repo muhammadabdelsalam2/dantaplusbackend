@@ -5,6 +5,7 @@ namespace App\Services\Owner;
 use App\Models\AiAlert;
 use App\Models\MaintenanceCompany;
 use App\Models\OwnerMaintenanceRequest;
+use App\Models\Clinic;
 use App\Repositories\AiAlertRepository;
 use App\Repositories\MaintenanceCompanyRepository;
 use App\Repositories\OwnerMaintenanceRequestRepository;
@@ -27,23 +28,16 @@ class EquipmentMaintenanceService
 
        $items = collect($requests->items())->map(fn (OwnerMaintenanceRequest $request) => [
     'id' => $request->id,
-    'requestId' => $request->request_code,
-    'clinicId' => $request->clinic_id,
-    'clinicName' => $request->clinic?->name,
-    'equipment' => $request->equipment,
-    'issueDescription' => $request->issue_description,
-    'assignedCompanyId' => $request->assigned_company_id,
-    'assignedCompanyName' => $request->company?->name,
-    // 'assignedCompany' => $request->company ? [
-    //     'id' => $request->company->id,
-    //     'name' => $request->company->name,
-    // ] : null,
     'status' => $request->status,
-    'dateCreated' => optional($request->created_at)->toISOString(),
-    'lastUpdate' => optional($request->updated_at)->toISOString(),
+    'created' => optional($request->created_at)->format('d/m/Y'),
+    'assigned_company' => $request->company?->name ?? 'Unassigned',
+    'equipment' => $request->equipment,
+    'clinic' => $request->clinic?->name,
+    'request_id' => $request->request_code,
 ])->all();
 
         return ServiceResult::success([
+            'smart_alerts' => $this->smartAlerts(),
             'items' => $items,
             'pagination' => [
                 'current_page' => $requests->currentPage(),
@@ -51,7 +45,31 @@ class EquipmentMaintenanceService
                 'per_page' => $requests->perPage(),
                 'total' => $requests->total(),
             ],
+            'filters' => $this->maintenanceOptions(),
         ], 'Maintenance requests fetched successfully');
+    }
+
+    public function showRequest(int $id): array
+    {
+        $request = $this->maintenanceRequestRepository->findById($id);
+
+        if (! $request) {
+            return ServiceResult::error('Maintenance request not found', null, null, 404);
+        }
+
+        return ServiceResult::success([
+            'request_id' => $request->request_code,
+            'clinic' => $request->clinic?->name,
+            'equipment' => $request->equipment,
+            'issue' => $request->issue_description,
+            'assigned_company' => [
+                'id' => $request->assigned_company_id,
+                'name' => $request->company?->name ?? 'Unassigned',
+            ],
+            'status' => $request->status,
+            'editable_fields' => ['status', 'assigned_company_id'],
+            'options' => $this->maintenanceOptions(),
+        ], 'Maintenance request details fetched successfully');
     }
 
     public function createRequest(array $data): array
@@ -70,17 +88,16 @@ class EquipmentMaintenanceService
             $request->loadMissing('clinic:id,name');
 
             return ServiceResult::success([
-                'id' => $request->id,
-                'requestId' => $request->request_code,
-                'clinicId' => $request->clinic_id,
-                'clinicName' => $request->clinic?->name,
-                'equipment' => $request->equipment,
-                'issueDescription' => $request->issue_description,
-                'assignedCompanyId' => $request->assigned_company_id,
-                'status' => $request->status,
-                'dateCreated' => optional($request->created_at)->toISOString(),
-                'lastUpdate' => optional($request->updated_at)->toISOString(),
-            ], 'Maintenance request created successfully', 201);
+            'id' => $request->id,
+            'request_id' => $request->request_code,
+            'clinicId' => $request->clinic_id,
+            'clinic' => $request->clinic?->name,
+            'equipment' => $request->equipment,
+            'issue' => $request->issue_description,
+            'assigned_company_id' => $request->assigned_company_id,
+            'status' => $request->status,
+            'created' => optional($request->created_at)->format('d/m/Y'),
+        ], 'Maintenance request created successfully', 201);
         });
     }
 
@@ -97,15 +114,12 @@ class EquipmentMaintenanceService
 
         return ServiceResult::success([
             'id' => $updated->id,
-            'requestId' => $updated->request_code,
-            'clinicId' => $updated->clinic_id,
-            'clinicName' => $updated->clinic?->name,
+            'request_id' => $updated->request_code,
+            'clinic' => $updated->clinic?->name,
             'equipment' => $updated->equipment,
-            'issueDescription' => $updated->issue_description,
-            'assignedCompanyId' => $updated->assigned_company_id,
+            'issue' => $updated->issue_description,
+            'assigned_company_id' => $updated->assigned_company_id,
             'status' => $updated->status,
-            'dateCreated' => optional($updated->created_at)->toISOString(),
-            'lastUpdate' => optional($updated->updated_at)->toISOString(),
         ], 'Maintenance request updated successfully');
     }
 
@@ -131,26 +145,20 @@ class EquipmentMaintenanceService
 
             return [
                 'id' => $company->id,
-                'name' => $company->name,
-                'contactPerson' => $company->contact_person,
-                'phone' => $company->phone,
-                'email' => $company->email,
-                'totalRequests' => $totalRequests,
-                'completionRate' => $totalRequests > 0
+                'company' => $company->name,
+                'contact' => $company->contact_person,
+                'total_requests' => $totalRequests,
+                'completion_rate' => $totalRequests > 0
                     ? round(($completedRequests / $totalRequests) * 100, 2)
                     : 0,
-                'avgResponseTime' => isset($avgResponseMinutesByCompany[$company->id])
-                    ? round((float) $avgResponseMinutesByCompany[$company->id], 2)
-                    : 0,
-                'aiRating' => $company->ai_rating !== null ? (float) $company->ai_rating : null,
+                'ai_rating' => $company->ai_rating !== null ? (float) $company->ai_rating : null,
                 'status' => $company->status,
                 'logoUrl' => $company->logo_url ? asset($company->logo_url) : null,
-                'feedback' => $company->feedback ?? [],
-                'reports' => $company->reports ?? [],
             ];
         })->all();
 
         return ServiceResult::success([
+            'smart_alerts' => $this->smartAlerts(),
             'items' => $items,
             'pagination' => [
                 'current_page' => $companies->currentPage(),
@@ -158,7 +166,53 @@ class EquipmentMaintenanceService
                 'per_page' => $companies->perPage(),
                 'total' => $companies->total(),
             ],
+            'filters' => [
+                'statuses' => ['All Statuses', MaintenanceCompany::STATUS_ACTIVE, MaintenanceCompany::STATUS_INACTIVE],
+            ],
         ], 'Maintenance companies fetched successfully');
+    }
+
+    public function showCompany(int $id): array
+    {
+        $company = $this->maintenanceCompanyRepository->findById($id);
+
+        if (! $company) {
+            return ServiceResult::error('Maintenance company not found', null, null, 404);
+        }
+
+        $totalRequests = (int) ($company->total_requests ?? 0);
+        $completedRequests = (int) ($company->completed_requests ?? 0);
+        $avgResponseMinutes = OwnerMaintenanceRequest::query()
+            ->where('assigned_company_id', $company->id)
+            ->get(['created_at', 'updated_at'])
+            ->avg(fn ($row) => optional($row->created_at)?->diffInMinutes($row->updated_at) ?? 0);
+
+        return ServiceResult::success([
+            'id' => $company->id,
+            'company' => $company->name,
+            'contact_person' => $company->contact_person,
+            'phone' => $company->phone,
+            'email' => $company->email,
+            'ai_rating' => $company->ai_rating !== null ? (float) $company->ai_rating : null,
+            'performance' => [
+                'completion_percent' => $totalRequests > 0 ? round(($completedRequests / $totalRequests) * 100, 2) : 0,
+                'total_jobs' => $totalRequests,
+            ],
+            'avg_response_time' => [
+                'hours' => round(((float) $avgResponseMinutes) / 60, 2),
+            ],
+            'recent_feedback' => collect($company->feedback ?? [])
+                ->take(5)
+                ->map(fn ($feedback) => [
+                    'rating' => $feedback['rating'] ?? null,
+                    'clinic' => $feedback['clinic'] ?? $feedback['clinic_name'] ?? null,
+                    'comment' => $feedback['comment'] ?? null,
+                ])
+                ->values()
+                ->all(),
+            'status' => $company->status,
+            'editable_fields' => ['status'],
+        ], 'Maintenance company details fetched successfully');
     }
 
     public function createCompany(array $data): array
@@ -167,19 +221,32 @@ class EquipmentMaintenanceService
 
         return ServiceResult::success([
             'id' => $company->id,
-            'name' => $company->name,
-            'contactPerson' => $company->contact_person,
+            'company' => $company->name,
+            'contact' => $company->contact_person,
             'phone' => $company->phone,
             'email' => $company->email,
-            'totalRequests' => 0,
-            'completionRate' => 0,
-            'avgResponseTime' => 0,
-            'aiRating' => $company->ai_rating !== null ? (float) $company->ai_rating : null,
+            'total_requests' => 0,
+            'completion_rate' => 0,
+            'ai_rating' => $company->ai_rating !== null ? (float) $company->ai_rating : null,
             'status' => $company->status,
-            'logoUrl' => $company->logo_url ? asset($company->logo_url) : null,
-            'feedback' => $company->feedback ?? [],
-            'reports' => $company->reports ?? [],
         ], 'Maintenance company created successfully', 201);
+    }
+
+    public function updateCompanyStatus(int $id, string $status): array
+    {
+        $company = $this->maintenanceCompanyRepository->findById($id);
+
+        if (! $company) {
+            return ServiceResult::error('Maintenance company not found', null, null, 404);
+        }
+
+        $updated = $this->maintenanceCompanyRepository->update($company, ['status' => $status]);
+
+        return ServiceResult::success([
+            'id' => $updated->id,
+            'company' => $updated->name,
+            'status' => $updated->status,
+        ], 'Maintenance company status updated successfully');
     }
 
     public function reviewAlert(int $id): array
@@ -203,6 +270,32 @@ class EquipmentMaintenanceService
     private function generateRequestCode(): string
     {
         return 'MR-'.now()->format('Ymd').'-'.Str::upper(Str::random(5));
+    }
+
+    public function smartAlerts(): array
+    {
+        return AiAlert::query()
+            ->where('is_reviewed', false)
+            ->latest('id')
+            ->limit(10)
+            ->get()
+            ->map(fn (AiAlert $alert) => $this->mapAlert($alert))
+            ->values()
+            ->all();
+    }
+
+    private function maintenanceOptions(): array
+    {
+        return [
+            'statuses' => OwnerMaintenanceRequest::STATUSES,
+            'assigned_companies' => collect([['id' => null, 'name' => 'Unassigned']])
+                ->concat(MaintenanceCompany::query()->orderBy('name')->get(['id', 'name'])->map(fn ($company) => [
+                    'id' => $company->id,
+                    'name' => $company->name,
+                ]))
+                ->values()
+                ->all(),
+        ];
     }
 
     private function mapAlert(AiAlert $alert): array

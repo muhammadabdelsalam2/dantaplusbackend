@@ -4,6 +4,7 @@ namespace App\Services\Owner;
 
 use App\Http\Resources\SuperAdmin\MaterialCompanyCollection;
 use App\Http\Resources\SuperAdmin\MaterialCompanyResource;
+use App\Mail\SystemAccessMail;
 use App\Models\User;
 use App\Repositories\MaterialCompanyRepository;
 use App\Support\ServiceResult;
@@ -11,6 +12,7 @@ use App\Support\UserRoleManager;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -27,6 +29,10 @@ class MaterialCompanyService
 
         $data = (new MaterialCompanyCollection($companies))->response()->getData(true);
         $data['stats'] = $this->materialCompanyRepository->stats();
+        $data['filters'] = [
+            'countries' => $this->materialCompanyRepository->countries(),
+            'statuses' => ['Active', 'Inactive'],
+        ];
 
         return ServiceResult::success($data, 'Material companies fetched successfully');
     }
@@ -79,6 +85,15 @@ $createdUser = User::create([
 ]);
 
 $createdUser->syncRoles(['material_company_admin']);
+
+Mail::to($createdUser->email)->send(new SystemAccessMail(
+    $createdUser->name,
+    config('app.url'),
+    $createdUser->email,
+    $adminPassword,
+    null,
+    url('/company/dashboard')
+));
 
             $payload = (new MaterialCompanyResource($company))->resolve();
             $payload['login_account_created'] = $createdUser !== null;

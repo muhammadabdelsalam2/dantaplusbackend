@@ -38,17 +38,35 @@ return new class extends Migration {
             'attachment_path' => DB::raw("COALESCE(attachment_path, attachment_url)"),
         ]);
 
-        DB::statement('
-            UPDATE communication_conversations cc
-            INNER JOIN communication_messages cm ON cm.conversation_id = cc.id
-            SET cc.company_id = COALESCE(cc.company_id, cm.company_id)
-        ');
+        if (Schema::getConnection()->getDriverName() === 'mysql') {
+            DB::statement('
+                UPDATE communication_conversations cc
+                INNER JOIN communication_messages cm ON cm.conversation_id = cc.id
+                SET cc.company_id = COALESCE(cc.company_id, cm.company_id)
+            ');
 
-        DB::statement('
-            UPDATE communication_messages cm
-            INNER JOIN communication_conversations cc ON cc.id = cm.conversation_id
-            SET cm.company_id = COALESCE(cm.company_id, cc.company_id)
-        ');
+            DB::statement('
+                UPDATE communication_messages cm
+                INNER JOIN communication_conversations cc ON cc.id = cm.conversation_id
+                SET cm.company_id = COALESCE(cm.company_id, cc.company_id)
+            ');
+        } else {
+            DB::statement('
+                UPDATE communication_conversations
+                SET company_id = COALESCE(
+                    company_id,
+                    (SELECT company_id FROM communication_messages WHERE communication_messages.conversation_id = communication_conversations.id LIMIT 1)
+                )
+            ');
+
+            DB::statement('
+                UPDATE communication_messages
+                SET company_id = COALESCE(
+                    company_id,
+                    (SELECT company_id FROM communication_conversations WHERE communication_conversations.id = communication_messages.conversation_id LIMIT 1)
+                )
+            ');
+        }
     }
 
     public function down(): void

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\SuperAdmin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SuperAdmin\Subscription\IndexSubscriptionDashboardRequest;
 use App\Services\SuperAdmin\SubscriptionDashboardService;
+use Illuminate\Http\Request;
 
 class SubscriptionDashboardController extends Controller
 {
@@ -36,5 +37,23 @@ class SubscriptionDashboardController extends Controller
                 ],
             ],
         ]);
+    }
+
+    public function updateStatus(Request $request, string $invoice)
+    {
+        $result = $this->service->updateStatus($invoice, (string) $request->input('status'));
+
+        if (! ($result['success'] ?? false)) {
+            return response()->json([
+                'success' => false,
+                'message' => $result['message'],
+            ], $result['code'] ?? 400);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => $result['message'],
+            'data' => $result['data'],
+        ], $result['code']);
     }
 }

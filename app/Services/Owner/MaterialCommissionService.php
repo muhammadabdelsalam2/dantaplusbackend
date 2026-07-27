@@ -17,7 +17,15 @@ class MaterialCommissionService
         $rows = $this->materialCompanyRepository->commissionRows($filters, $perPage);
 
         $data = [
-            'items' => $rows->items(),
+            'items' => collect($rows->items())->map(fn ($row) => [
+                'id' => $row->id,
+                'last_update' => optional($row->last_commission_update ?? $row->updated_at)->format('d/m/Y'),
+                'commission_earned' => round((float) $row->commission_earned, 2),
+                'total_sales' => round((float) $row->total_sales, 2),
+                'commission_percentage' => (float) $row->commission_percentage,
+                'status' => $row->status,
+                'company' => $row->name,
+            ])->values()->all(),
             'pagination' => [
                 'current_page' => $rows->currentPage(),
                 'last_page' => $rows->lastPage(),

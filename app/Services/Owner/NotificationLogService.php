@@ -3,6 +3,8 @@
 namespace App\Services\Owner;
 
 use App\Models\NotificationLog;
+use App\Models\Clinic;
+use App\Models\User;
 use App\Repositories\NotificationLogRepository;
 use App\Support\ServiceResult;
 
@@ -18,14 +20,12 @@ class NotificationLogService
         $items = collect($logs->items())
             ->map(fn (NotificationLog $log) => [
                 'id' => $log->id,
-                'clinicId' => $log->clinic_id,
-                'clinicName' => $log->clinic?->name,
-                'doctorId' => $log->doctor_id,
-                'channel' => $log->channel,
+                'message' => $log->message_content,
                 'status' => $log->status,
-                'messageContent' => $log->message_content,
-                'sentAt' => optional($log->sent_at)->toISOString(),
-                'createdAt' => optional($log->created_at)->toISOString(),
+                'channel' => $log->channel,
+                'clinic' => $log->clinic?->name,
+                'doctor' => $log->doctor?->user?->name,
+                'date_sent' => optional($log->sent_at)->format('d/m/Y H:i'),
             ])
             ->values()
             ->all();
@@ -37,6 +37,25 @@ class NotificationLogService
                 'last_page' => $logs->lastPage(),
                 'per_page' => $logs->perPage(),
                 'total' => $logs->total(),
+            ],
+            'filters' => [
+                'channels' => collect(['All Channels'])
+                    ->concat(NotificationLog::query()->whereNotNull('channel')->distinct()->orderBy('channel')->pluck('channel'))
+                    ->values()
+                    ->all(),
+                'doctors' => User::query()
+                    ->whereHas('roles', fn ($query) => $query->where('name', 'doctor'))
+                    ->orderBy('name')
+                    ->get(['id', 'name'])
+                    ->map(fn (User $user) => ['id' => $user->id, 'name' => $user->name])
+                    ->values()
+                    ->all(),
+                'clinics' => Clinic::query()
+                    ->orderBy('name')
+                    ->get(['id', 'name'])
+                    ->map(fn (Clinic $clinic) => ['id' => $clinic->id, 'name' => $clinic->name])
+                    ->values()
+                    ->all(),
             ],
         ], 'Notification logs fetched successfully');
     }

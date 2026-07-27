@@ -10,6 +10,7 @@ use App\Repositories\NotificationRepository;
 use App\Support\ServiceResult;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 class NotificationService
 {
@@ -37,6 +38,43 @@ class NotificationService
             $this->buildCollectionPayload($notifications),
             'Notifications fetched successfully'
         );
+    }
+
+    public function listGlobalNotifications(array $filters = []): array
+    {
+        $perPage = (int) ($filters['per_page'] ?? 15);
+        $query = $this->filterNotifications($this->notificationRepository->query(), $filters);
+
+        if (! empty($filters['tab']) && $filters['tab'] !== 'all') {
+            $query->where('type', $this->mapGlobalTabToType($filters['tab']));
+        }
+
+        $notifications = $this->notificationRepository->paginateQuery($query, $perPage);
+
+        return ServiceResult::success([
+            'tabs' => ['All', 'Warning', 'Reached', 'Branch Limit', 'User Limit', 'Usage Limit'],
+            'items' => collect($notifications->items())
+                ->map(fn (Notification $notification) => [
+                    'id' => $notification->id,
+                    'status' => ucfirst((string) $notification->status),
+                    'date' => optional($notification->created_at)->format('H:i:s ,d/m/Y'),
+                    'delivery' => implode(', ', $this->normalizeStoredDeliveryMethods($notification)),
+                    'audience' => $this->mapAudience($notification),
+                    'type' => Str::headline((string) $notification->type),
+                    'title_message' => [
+                        'title' => $notification->title,
+                        'message' => $notification->message,
+                    ],
+                ])
+                ->values()
+                ->all(),
+            'pagination' => [
+                'current_page' => $notifications->currentPage(),
+                'last_page' => $notifications->lastPage(),
+                'per_page' => $notifications->perPage(),
+                'total' => $notifications->total(),
+            ],
+        ], 'Global notifications fetched successfully');
     }
 
     public function createNotification(array $data, ?User $sender = null, bool $isTest = false): Notification
@@ -236,6 +274,29 @@ class NotificationService
             'link' => $notification->link,
             'isTest' => (bool) $notification->is_test,
         ];
+    }
+
+    private function mapGlobalTabToType(string $tab): string
+    {
+        return match ($tab) {
+            'warning' => 'warning',
+            'reached' => 'reached',
+            'branch_limit' => 'branch_limit',
+            'user_limit' => 'user_limit',
+            'usage_limit' => 'usage_limit',
+            default => $tab,
+        };
+    }
+
+    private function mapAudience(Notification $notification): string
+    {
+        return match ($notification->role ?? $notification->audience_type) {
+            'clinic' => 'All Clinics',
+            'super_admin' => 'Super Admins',
+            'owner' => 'Owners',
+            'user' => 'User',
+            default => 'All Clinics',
+        };
     }
 
     private function resolveRecipients(array $data, ?User $sender = null): Collection

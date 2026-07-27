@@ -3,6 +3,7 @@
 namespace App\Services\SuperAdmin;
 
 use App\Enums\LabRole;
+use App\Mail\SystemAccessMail;
 use App\Models\DentalLab;
 use App\Models\User;
 use App\Repositories\Contracts\SuperAdmin\UserManagementRepositoryInterface;
@@ -11,6 +12,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 
 class UserManagementService
@@ -56,10 +58,18 @@ class UserManagementService
             $data['role'] = UserRoleManager::isLabScopedRole($role) ? $role : null;
             $data['lab_id'] = $this->resolveLabIdForCreate($role, $data, $actor);
 
+            $plainPassword = $data['password'];
             $data['password'] = Hash::make($data['password']);
 
             $user = $this->repo->createUser($data);
             $user->syncRoles([$role]);
+
+            Mail::to($user->email)->send(new SystemAccessMail(
+                $user->name,
+                config('app.url'),
+                $user->email,
+                $plainPassword
+            ));
 
             return $this->repo->findUserOrFail($user->id);
         });

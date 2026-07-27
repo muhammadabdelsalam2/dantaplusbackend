@@ -18,7 +18,7 @@ class StoreMaterialProductRequest extends FormRequest
         $this->merge([
             'company_id' => $this->route('company'),
             'status' => $this->has('status') ? strtolower($this->status) : null,
-            'category' => $this->has('category') ? strtolower($this->category) : null,
+            'category' => $this->has('category') ? strtolower(str_replace(' ', '_', $this->category)) : null,
         ]);
     }
 

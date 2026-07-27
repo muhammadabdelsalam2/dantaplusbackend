@@ -3,6 +3,7 @@
 namespace App\Services\Owner;
 
 use App\Models\FeedbackReport;
+use App\Models\Clinic;
 use App\Repositories\FeedbackReportRepository;
 use App\Support\ServiceResult;
 
@@ -18,16 +19,12 @@ class FeedbackReportService
         $items = collect($reports->items())
             ->map(fn (FeedbackReport $report) => [
                 'id' => $report->id,
-                'appointmentId' => $report->appointment_id,
-                'clinicId' => $report->clinic_id,
-                'clinicName' => $report->clinic?->name,
-                'patientId' => $report->patient_id,
-                'patientName' => $report->patient?->user?->name,
-                'rating' => $report->rating,
+                'testimonial' => (bool) $report->allow_testimonial,
                 'comment' => $report->comment,
-                'allowTestimonial' => (bool) $report->allow_testimonial,
-                'submittedAt' => optional($report->submitted_at)->toISOString(),
-                'createdAt' => optional($report->created_at)->toISOString(),
+                'rating' => $report->rating,
+                'clinic' => $report->clinic?->name,
+                'patient' => $report->patient?->user?->name,
+                'date' => optional($report->submitted_at)->format('d/m/Y'),
             ])
             ->values()
             ->all();
@@ -39,6 +36,15 @@ class FeedbackReportService
                 'last_page' => $reports->lastPage(),
                 'per_page' => $reports->perPage(),
                 'total' => $reports->total(),
+            ],
+            'filters' => [
+                'ratings' => ['All Ratings', '1 Star', '2 Stars', '3 Stars', '4 Stars', '5 Stars'],
+                'clinics' => Clinic::query()
+                    ->orderBy('name')
+                    ->get(['id', 'name'])
+                    ->map(fn (Clinic $clinic) => ['id' => $clinic->id, 'name' => $clinic->name])
+                    ->values()
+                    ->all(),
             ],
         ], 'Feedback reports fetched successfully');
     }

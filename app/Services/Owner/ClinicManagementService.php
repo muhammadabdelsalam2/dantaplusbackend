@@ -2,11 +2,13 @@
 
 namespace App\Services\Owner;
 
+use App\Mail\SystemAccessMail;
 use App\Models\User;
 use App\Repositories\ClinicRepository;
 use App\Support\ServiceResult;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Spatie\Permission\Models\Role;
 
 class ClinicManagementService
@@ -21,7 +23,19 @@ class ClinicManagementService
         $clinics = $this->clinicRepository->paginate($filters, $perPage);
 
         $data = [
-            'items' => $clinics->items(),
+            'items' => collect($clinics->items())->map(fn ($clinic) => [
+                'id' => $clinic->id,
+                'source' => $clinic->added_by ? 'Admin' : 'System Signup',
+                'date_added' => optional($clinic->created_at)->format('d/m/Y'),
+                'status' => $clinic->status,
+                'branches' => (int) $clinic->branches_count,
+                'subscription' => $clinic->subscription_plan,
+                'clinic' => [
+                    'name' => $clinic->name,
+                    'owner' => $clinic->owner_name,
+                    'email' => $clinic->email,
+                ],
+            ])->values()->all(),
             'pagination' => [
                 'current_page' => $clinics->currentPage(),
                 'last_page' => $clinics->lastPage(),
@@ -37,6 +51,7 @@ class ClinicManagementService
     {
         return DB::transaction(function () use ($data) {
             $modules = $data['modules'] ?? [];
+            $plainPassword = $data['admin_password'];
 
             $clinic = $this->clinicRepository->create([
                 'name' => $data['name'],
@@ -50,7 +65,7 @@ class ClinicManagementService
                 'start_date' => now(),
                 'expiry_date' => now()->addDays(30),
                 'max_users' => $data['max_users'],
-                'max_branches' => $data['max_branches'],
+                'max_branches' => $data['max_branches'] ?? 1,
             ]);
 
             if (!empty($modules)) {
@@ -65,12 +80,23 @@ class ClinicManagementService
             $adminUser = User::create([
                 'name' => $data['owner_name'],
                 'email' => $data['email'],
-                'password' => $data['admin_password'],
+                'password' => $plainPassword,
                 'clinic_id' => $clinic->id,
                 'is_active' => true,
             ]);
 
             $adminUser->assignRole($adminRole);
+
+            Mail::to($adminUser->email)->send(new SystemAccessMail(
+                $adminUser->name,
+                config('app.url'),
+                $adminUser->email,
+                $plainPassword,
+                [
+                    'plan' => $clinic->subscription_plan,
+                    'max_users' => $clinic->max_users,
+                ]
+            ));
 
             $clinic = $this->clinicRepository->findById(
                 $clinic->id,

@@ -47,7 +47,7 @@ class StoreClinicRequest extends FormRequest
             'subscription_plan' => ['required', 'in:Basic,Standard,Premium'],
             'payment_method' => ['required', 'in:Stripe,PayPal,Manual'],
             'max_users' => ['required', 'integer', 'min:0'],
-            'max_branches' => ['required', 'integer', 'min:0'],
+            'max_branches' => ['nullable', 'integer', 'min:0'],
             // 'modules' => ['', 'array', 'min:1'],
             // 'modules.*' => [
             //     'required',

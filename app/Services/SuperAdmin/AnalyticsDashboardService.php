@@ -15,10 +15,6 @@ class AnalyticsDashboardService
                 'mrr_chart' => $this->getMrrChart(),
                 'subscription_plans' => $this->getSubscriptionPlansBreakdown(),
                 'top_performing_clinics' => $this->getTopPerformingClinics(),
-                'stripe_integration' => [
-                    'connected' => false,
-                    'message' => 'Connect your Stripe account to see detailed payment analytics, churn rates, and lifetime value.',
-                ],
             ];
 
             return [
@@ -39,7 +35,7 @@ class AnalyticsDashboardService
 
     private function getKpis(): array
     {
-        $activeClinics = Clinic::where('status', 'active')->get();
+        $activeClinics = Clinic::where('status', 'Active')->get();
 
         $currentMrr = $activeClinics->sum(fn ($clinic) => $this->planPrice($clinic->subscription_plan));
         $lastMonthMrr = $this->calculateMrrForMonth(now()->subMonth());
@@ -49,7 +45,7 @@ class AnalyticsDashboardService
             : 0;
 
         $activeSubscribers = $activeClinics->count();
-        $lastMonthSubscribers = Clinic::where('status', 'active')
+        $lastMonthSubscribers = Clinic::where('status', 'Active')
             ->where('start_date', '<=', now()->subMonth())
             ->count();
 
@@ -80,7 +76,7 @@ class AnalyticsDashboardService
             ],
             'average_clinic_lifespan' => [
                 'value_months' => $avgLifespanMonths,
-                'change_months' => 0.5, // TODO: قارنها بـ snapshot الشهر اللي فات لو عندك جدول history
+                'change_months' => 0,
             ],
         ];
     }
@@ -99,7 +95,7 @@ class AnalyticsDashboardService
 
     private function calculateMrrForMonth(Carbon $month): float
     {
-        return Clinic::where('status', 'active')
+        return Clinic::where('status', 'Active')
             ->where('start_date', '<=', $month->copy()->endOfMonth())
             ->get()
             ->sum(fn ($clinic) => $this->planPrice($clinic->subscription_plan));
@@ -109,16 +105,13 @@ class AnalyticsDashboardService
     {
         
         return match ($plan) {
-            'basic' => 99,
-            'standard' => 149,
-            'premium' => 249,
-            default => 0,
+            default => (float) config('subscriptions.plan_prices.' . strtolower((string) $plan), 0),
         };
     }
 
     private function getSubscriptionPlansBreakdown(): array
     {
-        return Clinic::where('status', 'active')
+        return Clinic::where('status', 'Active')
             ->selectRaw('subscription_plan, count(*) as total')
             ->groupBy('subscription_plan')
             ->get()

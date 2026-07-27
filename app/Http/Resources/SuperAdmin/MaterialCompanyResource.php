@@ -27,14 +27,7 @@ class MaterialCompanyResource extends JsonResource
             'status' => $this->status,
             'is_featured' => (bool) $this->is_featured,
             'rating' => $this->rating,
-            'last_commission_update' => $this->last_commission_update,
-            'created_at' => $this->created_at,
-            'updated_at' => $this->updated_at,
-
             'total_products' => $this->whenCounted('products'),
-            'total_requests' => $this->when(isset($this->total_requests), $this->total_requests),
-            'completed_requests' => $this->when(isset($this->completed_requests), $this->completed_requests),
-
             'products' => MaterialProductResource::collection($this->whenLoaded('products')),
         ];
     }

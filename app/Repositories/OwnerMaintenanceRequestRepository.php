@@ -28,7 +28,9 @@ class OwnerMaintenanceRequestRepository
 
     public function findById(int $id): ?OwnerMaintenanceRequest
     {
-        return OwnerMaintenanceRequest::query()->find($id);
+        return OwnerMaintenanceRequest::query()
+            ->with(['clinic:id,name', 'company:id,name'])
+            ->find($id);
     }
 
     public function create(array $data): OwnerMaintenanceRequest

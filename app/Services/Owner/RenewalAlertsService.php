@@ -3,7 +3,9 @@
 namespace App\Services\Owner;
 
 use App\Models\Clinic;
+use App\Models\Notification;
 use App\Support\ServiceResult;
+use Illuminate\Support\Facades\Mail;
 
 class RenewalAlertsService
 {
@@ -63,16 +65,10 @@ class RenewalAlertsService
 
         $items = collect($rows->items())->map(fn (Clinic $clinic) => [
             'id' => $clinic->id,
-            'clinicName' => $clinic->name,
-            'ownerName' => $clinic->owner_name,
-            'email' => $clinic->email,
-            'phone' => $clinic->phone,
-            'plan' => $clinic->subscription_plan,
-            'status' => $clinic->status,
-            'paymentMethod' => $clinic->payment_method,
-            'expiryDate' => optional($clinic->expiry_date)?->toDateString(),
-            'startDate' => optional($clinic->start_date)?->toDateString(),
-            'daysToExpiry' => $clinic->expiry_date ? $today->diffInDays($clinic->expiry_date, false) : null,
+            'clinic_name' => $clinic->name,
+            'avatar' => $this->avatar($clinic->name),
+            'expires_in' => $this->expiryLabel($clinic, $today),
+            'can_send_reminder' => true,
         ])->all();
 
         return ServiceResult::success([
@@ -85,9 +81,9 @@ class RenewalAlertsService
                 'total' => $rows->total(),
             ],
             'summary' => [
-                'expiring_soon' => $this->countExpiringSoon($baseQuery, $today, $days),
-                'overdue_payments' => $this->countOverdue($baseQuery, $today),
                 'recently_renewed' => $this->countRenewed($baseQuery, $today, $days),
+                'overdue_payments' => $this->countOverdue($baseQuery, $today),
+                'expiring_soon' => $this->countExpiringSoon($baseQuery, $today, $days),
             ],
         ], 'Renewal alerts fetched successfully');
     }
@@ -109,11 +105,63 @@ class RenewalAlertsService
             'sentAt' => $sentAt,
         ])->values()->all();
 
+        foreach ($clinics as $clinic) {
+            Notification::query()->create([
+                'title' => 'Subscription Renewal Reminder',
+                'message' => $data['message'],
+                'type' => 'subscription',
+                'status' => 'sent',
+                'audience_type' => 'clinic',
+                'audience_id' => $clinic->id,
+                'priority' => 'normal',
+                'delivery_method' => [$data['channel']],
+                'delivery_methods' => [$data['channel']],
+                'role' => 'clinic',
+                'is_read' => false,
+                'sender_id' => auth()->id(),
+                'sender_name' => auth()->user()?->name,
+            ]);
+
+            if ($data['channel'] === 'email' && $clinic->email) {
+                Mail::raw($data['message'], fn ($message) => $message
+                    ->to($clinic->email)
+                    ->subject('Subscription Renewal Reminder'));
+            }
+        }
+
+        $message = $clinics->count() === 1
+            ? 'Reminder sent to ' . $clinics->first()->name
+            : 'Reminders sent successfully';
+
         return ServiceResult::success([
             'requested' => count($data['clinic_ids']),
             'sent' => count($deliveries),
             'deliveries' => $deliveries,
-        ], 'Renewal reminders queued successfully', 201);
+        ], $message, 201);
+    }
+
+    private function avatar(string $name): string
+    {
+        return collect(explode(' ', trim($name)))
+            ->filter()
+            ->take(2)
+            ->map(fn ($part) => strtoupper(substr($part, 0, 1)))
+            ->implode('');
+    }
+
+    private function expiryLabel(Clinic $clinic, $today): string
+    {
+        if (! $clinic->expiry_date) {
+            return 'No expiry date';
+        }
+
+        $days = $today->diffInDays($clinic->expiry_date, false);
+
+        if ($days < 0) {
+            return 'Expired ' . abs($days) . ' days ago';
+        }
+
+        return 'Expires in ' . $days . ' days';
     }
 
     private function countExpiringSoon($query, $today, int $days): int

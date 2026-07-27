@@ -2,17 +2,12 @@
 
 namespace App\Services\SuperAdmin;
 
+use App\Models\Clinic;
 use App\Repositories\Contracts\SuperAdmin\SubscriptionDashboardRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class SubscriptionDashboardService
 {
-    private const PLAN_AMOUNTS = [
-        'Basic' => 500.00,
-        'Standard' => 1000.00,
-        'Premium' => 1500.00,
-    ];
-
     public function __construct(
         private SubscriptionDashboardRepositoryInterface $repo
     ) {}
@@ -32,10 +27,10 @@ class SubscriptionDashboardService
             ->count();
 
         return [
-            'summary' => [
-                'total_subscription_revenue' => $this->normalizeMoney($totalRevenue),
-                'outstanding_payments' => $this->normalizeMoney($outstandingPayments),
+            'cards' => [
                 'active_subscriptions' => $activeSubscriptions,
+                'outstanding_payments' => $this->normalizeMoney($outstandingPayments),
+                'total_subscription_revenue' => $this->normalizeMoney($totalRevenue),
             ],
         ];
     }
@@ -58,17 +53,9 @@ class SubscriptionDashboardService
                 'client' => $clinic->name,
                 'type' => 'Clinic',
                 'plan' => $clinic->subscription_plan,
-                'due_date' => optional($clinic->expiry_date)?->toDateString(),
+                'due_date' => optional($clinic->expiry_date)?->format('d/m/Y'),
                 'amount' => $this->normalizeMoney($this->planAmount($clinic->subscription_plan)),
                 'status' => $this->mapClinicStatusToDashboardStatus($clinic->status),
-
-                // useful extra fields
-                'clinic_id' => $clinic->id,
-                'owner_name' => $clinic->owner_name,
-                'email' => $clinic->email,
-                'payment_method' => $clinic->payment_method,
-                'start_date' => optional($clinic->start_date)?->toDateString(),
-                'clinic_status' => $clinic->status,
             ];
         });
 
@@ -79,7 +66,7 @@ class SubscriptionDashboardService
 
     private function planAmount(?string $plan): float
     {
-        return (float) (self::PLAN_AMOUNTS[$plan] ?? 0);
+        return (float) config('subscriptions.plan_prices.' . strtolower((string) $plan), 0);
     }
 
     private function normalizeMoney(float|int $value): float
@@ -109,6 +96,52 @@ class SubscriptionDashboardService
             'Pending' => ['Trial'],
             'Overdue' => ['Expired', 'Suspended'],
             default => null,
+        };
+    }
+
+    public function updateStatus(string $invoiceId, string $status): array
+    {
+        $clinicId = $this->extractClinicIdFromInvoiceId($invoiceId);
+
+        if ($clinicId === null) {
+            return ['success' => false, 'message' => 'Invoice not found', 'code' => 404];
+        }
+
+        $clinic = Clinic::query()->find($clinicId);
+
+        if (! $clinic) {
+            return ['success' => false, 'message' => 'Invoice not found', 'code' => 404];
+        }
+
+        $clinic->update(['status' => $this->mapDashboardStatusToClinicStatus($status)]);
+
+        return [
+            'success' => true,
+            'message' => 'Invoice status updated successfully',
+            'code' => 200,
+            'data' => [
+                'invoice_id' => $this->makeInvoiceId($clinic->id),
+                'status' => $status,
+            ],
+        ];
+    }
+
+    private function extractClinicIdFromInvoiceId(string $invoiceId): ?int
+    {
+        if (preg_match('/INV-CL-(\d+)/', $invoiceId, $matches) !== 1) {
+            return null;
+        }
+
+        return (int) $matches[1];
+    }
+
+    private function mapDashboardStatusToClinicStatus(string $status): string
+    {
+        return match ($status) {
+            'Paid' => 'Active',
+            'Overdue' => 'Expired',
+            'Partially Paid', 'Pending' => 'Trial',
+            default => 'Trial',
         };
     }
 }

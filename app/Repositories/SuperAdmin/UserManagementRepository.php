@@ -22,16 +22,17 @@ class UserManagementRepository implements UserManagementRepositoryInterface
             ->when($status === 'active', fn ($query) => $query->where('is_active', 1))
             ->when($status === 'inactive', fn ($query) => $query->where('is_active', 0))
             ->when($role, function ($query) use ($role) {
+                $role = $role === 'super_admin' ? 'super-admin' : $role;
                 $query->whereHas('roles', fn ($r) => $r->where('name', $role));
             })
-            ->with(['roles:id,name','doctor:id,user_id','patient:id,user_id'])
+            ->with(['roles:id,name','clinic:id,name','company:id,name','lab:id,name','doctor:id,user_id','patient:id,user_id'])
             ->latest('id')
             ->paginate(max(1, min($perPage, 100)));
     }
 
     public function findUserOrFail(int $id): User
     {
-        return User::with(['roles:id,name','doctor:id,user_id','patient:id,user_id'])->findOrFail($id);
+        return User::with(['roles:id,name','clinic:id,name','company:id,name','lab:id,name','doctor:id,user_id','patient:id,user_id'])->findOrFail($id);
     }
 
     public function createUser(array $data): User

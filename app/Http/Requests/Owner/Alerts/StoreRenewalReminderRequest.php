@@ -21,4 +21,11 @@ class StoreRenewalReminderRequest extends FormRequest
             'message' => ['required', 'string', 'max:2000'],
         ];
     }
+
+    protected function prepareForValidation(): void
+    {
+        if ($this->filled('clinic_id') && ! $this->filled('clinic_ids')) {
+            $this->merge(['clinic_ids' => [(int) $this->input('clinic_id')]]);
+        }
+    }
 }

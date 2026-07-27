@@ -16,10 +16,15 @@ class UpdateMaintenanceRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'equipment' => ['sometimes', 'string', 'max:255'],
-            'issue_description' => ['sometimes', 'string', 'max:2000'],
             'assigned_company_id' => ['sometimes', 'nullable', 'integer', 'exists:maintenance_companies,id'],
             'status' => ['sometimes', Rule::in(OwnerMaintenanceRequestModel::STATUSES)],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if ($this->input('status') === 'Resolved') {
+            $this->merge(['status' => OwnerMaintenanceRequestModel::STATUS_COMPLETED]);
+        }
     }
 }

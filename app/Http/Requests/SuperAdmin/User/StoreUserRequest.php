@@ -19,6 +19,10 @@ class StoreUserRequest extends FormRequest
                 'is_active' => filter_var($this->input('is_active'), FILTER_VALIDATE_BOOLEAN),
             ]);
         }
+
+        if ($this->has('role')) {
+            $this->merge(['role' => \App\Support\UserRoleManager::normalize($this->input('role'))]);
+        }
     }
 
     public function rules(): array

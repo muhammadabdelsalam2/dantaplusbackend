@@ -51,4 +51,24 @@ class StoreMaterialCompanyRequest extends FormRequest
             'rating' => ['nullable', 'integer', 'min:1', 'max:5'],
         ];
     }
+
+    protected function prepareForValidation(): void
+    {
+        $data = [];
+
+        if ($this->has('status') && ! in_array($this->input('status'), [MaterialCompany::STATUS_ACTIVE, MaterialCompany::STATUS_INACTIVE], true)) {
+            $data['status'] = $this->boolean('status') ? MaterialCompany::STATUS_ACTIVE : MaterialCompany::STATUS_INACTIVE;
+        }
+
+        if ($this->has('categories') && is_array($this->input('categories'))) {
+            $data['categories'] = collect($this->input('categories'))
+                ->map(fn ($category) => strtolower(str_replace(' ', '_', (string) $category)))
+                ->values()
+                ->all();
+        }
+
+        if ($data !== []) {
+            $this->merge($data);
+        }
+    }
 }

@@ -25,4 +25,15 @@ class IndexMaterialProductRequest extends FormRequest
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ];
     }
+
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('category')) {
+            $this->merge(['category' => strtolower(str_replace(' ', '_', $this->input('category')))]);
+        }
+
+        if ($this->has('status')) {
+            $this->merge(['status' => strtolower($this->input('status'))]);
+        }
+    }
 }

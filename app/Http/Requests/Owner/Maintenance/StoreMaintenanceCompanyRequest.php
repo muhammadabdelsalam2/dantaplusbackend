@@ -21,10 +21,27 @@ class StoreMaintenanceCompanyRequest extends FormRequest
             'phone' => ['nullable', 'string', 'max:50'],
             'email' => ['nullable', 'email', 'max:255'],
             'status' => ['nullable', Rule::in([MaintenanceCompany::STATUS_ACTIVE, MaintenanceCompany::STATUS_INACTIVE])],
-            'logo_url' => ['nullable', 'string', 'max:2048'],
-            'ai_rating' => ['nullable', 'numeric', 'min:0', 'max:5'],
-            'feedback' => ['nullable', 'array'],
-            'reports' => ['nullable', 'array'],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $data = [];
+
+        if ($this->has('company_name')) {
+            $data['name'] = $this->input('company_name');
+        }
+
+        if ($this->has('contact_person')) {
+            $data['contact_person'] = $this->input('contact_person');
+        }
+
+        if ($this->has('status') && ! in_array($this->input('status'), [MaintenanceCompany::STATUS_ACTIVE, MaintenanceCompany::STATUS_INACTIVE], true)) {
+            $data['status'] = $this->boolean('status') ? MaintenanceCompany::STATUS_ACTIVE : MaintenanceCompany::STATUS_INACTIVE;
+        }
+
+        if ($data !== []) {
+            $this->merge($data);
+        }
     }
 }

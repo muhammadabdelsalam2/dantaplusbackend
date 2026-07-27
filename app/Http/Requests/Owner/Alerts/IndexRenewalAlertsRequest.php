@@ -21,4 +21,11 @@ class IndexRenewalAlertsRequest extends FormRequest
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ];
     }
+
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('tab')) {
+            $this->merge(['tab' => strtolower(str_replace(' ', '_', $this->input('tab')))]);
+        }
+    }
 }

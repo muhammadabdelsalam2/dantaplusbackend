@@ -10,6 +10,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class MaterialProductService
 {
@@ -30,7 +31,16 @@ class MaterialProductService
         $products = $this->materialProductRepository->paginateByCompany($companyId, $filters, $perPage);
 
         $data = [
-            'items' => $products->items(),
+            'items' => collect($products->items())->map(fn (MaterialProduct $product) => [
+                'id' => $product->id,
+                'image_url' => $product->image_url,
+                'brand' => $product->brand,
+                'name' => $product->name,
+                'category' => $product->category,
+                'price' => (float) $product->price,
+                'stock' => (int) $product->stock,
+                'status' => $product->status,
+            ])->values()->all(),
             'pagination' => [
                 'current_page' => $products->currentPage(),
                 'last_page' => $products->lastPage(),
@@ -196,5 +206,38 @@ public function rejectProduct(int $productId, string $reason): array
     ]);
 
     return ServiceResult::success($product->fresh(), 'Product rejected successfully');
+}
+
+public function export(int $companyId): StreamedResponse
+{
+    $company = $this->materialCompanyRepository->findById($companyId);
+    abort_if(!$company, 404, 'Material company not found');
+
+    $fileName = Str::slug($company->name) . '-products.csv';
+
+    return response()->streamDownload(function () use ($companyId) {
+        $handle = fopen('php://output', 'w');
+        fputcsv($handle, ['Image', 'Name', 'Category', 'Price', 'Stock', 'Status']);
+
+        MaterialProduct::query()
+            ->where('company_id', $companyId)
+            ->orderBy('id')
+            ->chunk(200, function ($products) use ($handle) {
+                foreach ($products as $product) {
+                    fputcsv($handle, [
+                        $product->image_url,
+                        $product->name,
+                        $product->category,
+                        $product->price,
+                        $product->stock,
+                        $product->status,
+                    ]);
+                }
+            });
+
+        fclose($handle);
+    }, $fileName, [
+        'Content-Type' => 'text/csv; charset=UTF-8',
+    ]);
 }
 }

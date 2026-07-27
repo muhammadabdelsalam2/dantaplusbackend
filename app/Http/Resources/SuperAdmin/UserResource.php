@@ -22,21 +22,33 @@ class UserResource extends JsonResource
             $entityId = $this->patient->id ?? null;
         }
 
+        $role = UserRoleManager::primaryRole($this->resource);
+        $roleLabel = match ($role) {
+            'super-admin' => 'super_admin',
+            'Admin' => 'Admin',
+            'clinic_admin' => 'Admin',
+            'doctor' => 'Doctor',
+            'receptionist' => 'Receptionist',
+            'accountant' => 'Accountant',
+            default => $role,
+        };
+
+        $entity = $this->clinic?->name ?? $this->company?->name ?? $this->lab?->name;
+
         return [
             'id' => $this->id,
             'name' => $this->name,
             'email' => $this->email,
-            'phone' => $this->phone,
             'is_active' => (bool) $this->is_active,
-            'role' => UserRoleManager::primaryRole($this->resource),
-            'roles' => $this->getRoleNames()->values()->all(),
-            'lab_id' => $this->lab_id,
-            'entity' => [
-                'type' => $entityType,
-                'id' => $entityId,
+            'user' => [
+                'name' => $this->name,
+                'email' => $this->email,
+                'avatar_url' => $this->avatar_url,
             ],
-            'created_at' => optional($this->created_at)->toISOString(),
-            'updated_at' => optional($this->updated_at)->toISOString(),
+            'role' => $roleLabel,
+            'entity' => $entity,
+            'status' => $this->is_active ? 'Active' : 'Inactive',
+            'last_login' => optional($this->last_login_at ?? $this->updated_at)->format('d/m/Y'),
         ];
     }
 }

@@ -33,6 +33,24 @@ class UserController extends Controller
                     'total' => $users->total(),
                     'last_page' => $users->lastPage(),
                 ],
+                'filters' => [
+                    'roles' => [
+                        'All Roles',
+                        'super_admin',
+                        'Admin',
+                        'Doctor',
+                        'Receptionist',
+                        'Accountant',
+                        'demo_user',
+                        'lab_admin',
+                        'lab_technician',
+                        'delivery_rep',
+                        'material_company_admin',
+                        'sales_rep',
+                        'delivery_staff',
+                    ],
+                    'statuses' => ['Active', 'Inactive'],
+                ],
             ],
         ]);
     }

@@ -22,7 +22,7 @@ class UpdateMaterialProductRequest extends FormRequest
         }
 
         if ($this->has('category')) {
-            $data['category'] = strtolower($this->category);
+            $data['category'] = strtolower(str_replace(' ', '_', $this->category));
         }
 
         $this->merge($data);
