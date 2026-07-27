@@ -11,13 +11,9 @@ class UpdateNotificationSettingsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'enable_email_notifications' => ['sometimes', 'boolean'],
+            'enable_system_email_notifications' => ['sometimes', 'boolean'],
             'enable_sms_whatsapp_notifications' => ['sometimes', 'boolean'],
             'notification_sounds' => ['sometimes', 'boolean'],
-
-            // coming soon fields (store anyway)
-            'twilio_sid' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'twilio_token' => ['sometimes', 'nullable', 'string', 'max:255'], // encrypted recommended
         ];
     }
 }

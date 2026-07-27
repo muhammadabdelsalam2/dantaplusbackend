@@ -20,8 +20,10 @@ class UpdateGlobalSettingsRequest extends FormRequest
             // uploads (either file or base64)
             'logo_file' => ['sometimes', 'file', 'image', 'max:5120'],
             'logo_base64' => ['sometimes', 'string'],
+            'logo_filename' => ['sometimes', 'string', 'max:255'],
             'favicon_file' => ['sometimes', 'file', 'max:2048'], // allow ico/png
             'favicon_base64' => ['sometimes', 'string'],
+            'favicon_filename' => ['sometimes', 'string', 'max:255'],
 
             'default_currency' => ['sometimes', 'string', 'max:10'],
             'default_language' => ['sometimes', 'string', 'max:10'],

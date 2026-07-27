@@ -178,6 +178,49 @@ Route::post('/products/{product}/reject', [MaterialProductController::class, 're
             Route::get('/renewal', [RenewalAlertsController::class, 'index']);
             Route::post('/renewal/reminders', [RenewalAlertsController::class, 'sendReminder']);
         });
+
+        Route::prefix('settings')->group(function () {
+            Route::get('/profile', [ProfileController::class, 'show']);
+            Route::patch('/profile', [ProfileController::class, 'update']);
+            Route::post('/profile', [ProfileController::class, 'update']);
+            Route::post('/profile/photo', [ProfileController::class, 'uploadPhoto']);
+            Route::patch('/password', [PasswordController::class, 'update']);
+            Route::post('/password', [PasswordController::class, 'update']);
+
+            Route::get('/global', [GlobalSettingsController::class, 'show']);
+            Route::patch('/global', [GlobalSettingsController::class, 'update']);
+            Route::post('/global', [GlobalSettingsController::class, 'update']);
+
+            Route::get('/whatsapp', [WhatsappSettingsController::class, 'show']);
+            Route::patch('/whatsapp', [WhatsappSettingsController::class, 'update']);
+            Route::post('/whatsapp', [WhatsappSettingsController::class, 'update']);
+            Route::post('/whatsapp/reconnect', [WhatsappSettingsController::class, 'reconnect']);
+            Route::post('/whatsapp/test-message', [WhatsappSettingsController::class, 'testMessage']);
+            Route::get('/whatsapp/templates', [WhatsappSettingsController::class, 'listTemplates']);
+            Route::put('/whatsapp/templates/{templateKey}', [WhatsappSettingsController::class, 'upsertTemplate']);
+            Route::post('/whatsapp/templates/{templateKey}', [WhatsappSettingsController::class, 'upsertTemplate']);
+
+            Route::get('/billing/plans', [BillingPlansController::class, 'show']);
+            Route::patch('/billing/plans', [BillingPlansController::class, 'update']);
+            Route::post('/billing/plans', [BillingPlansController::class, 'update']);
+
+            Route::get('/user-management', [UserManagementSettingsController::class, 'show']);
+            Route::patch('/user-management', [UserManagementSettingsController::class, 'update']);
+            Route::post('/user-management', [UserManagementSettingsController::class, 'update']);
+
+            Route::get('/notifications', [NotificationSettingsController::class, 'show']);
+            Route::patch('/notifications', [NotificationSettingsController::class, 'update']);
+            Route::post('/notifications', [NotificationSettingsController::class, 'update']);
+
+            Route::get('/backup', [BackupSettingsController::class, 'show']);
+            Route::patch('/backup', [BackupSettingsController::class, 'update']);
+            Route::post('/backup', [BackupSettingsController::class, 'update']);
+            Route::post('/backup/manual', [BackupSettingsController::class, 'manual']);
+
+            Route::get('/customization', [CustomizationSettingsController::class, 'show']);
+            Route::patch('/customization', [CustomizationSettingsController::class, 'update']);
+            Route::post('/customization', [CustomizationSettingsController::class, 'update']);
+        });
     });
     // https://danta.matgary.io
 });
@@ -247,6 +290,7 @@ Route::prefix('superadmin')
 
             Route::get('/profile', [ProfileController::class, 'show']);
             Route::patch('/profile', [ProfileController::class, 'update']);
+            Route::post('/profile', [ProfileController::class, 'update']);
             Route::post('/profile/photo', [ProfileController::class, 'uploadPhoto']);
 
             /*
@@ -256,6 +300,7 @@ Route::prefix('superadmin')
             */
 
             Route::patch('/password', [PasswordController::class, 'update']);
+            Route::post('/password', [PasswordController::class, 'update']);
 
             /*
             |--------------------------------------------------------------------------
@@ -265,6 +310,7 @@ Route::prefix('superadmin')
 
             Route::get('/global', [GlobalSettingsController::class, 'show']);
             Route::patch('/global', [GlobalSettingsController::class, 'update']);
+            Route::post('/global', [GlobalSettingsController::class, 'update']);
 
             /*
             |--------------------------------------------------------------------------
@@ -274,6 +320,7 @@ Route::prefix('superadmin')
 
             Route::get('/user-management', [UserManagementSettingsController::class, 'show']);
             Route::patch('/user-management', [UserManagementSettingsController::class, 'update']);
+            Route::post('/user-management', [UserManagementSettingsController::class, 'update']);
 
             /*
             |--------------------------------------------------------------------------
@@ -283,6 +330,7 @@ Route::prefix('superadmin')
 
             Route::get('/notifications', [NotificationSettingsController::class, 'show']);
             Route::patch('/notifications', [NotificationSettingsController::class, 'update']);
+            Route::post('/notifications', [NotificationSettingsController::class, 'update']);
 
             /*
             |--------------------------------------------------------------------------
@@ -292,6 +340,7 @@ Route::prefix('superadmin')
 
             Route::get('/customization', [CustomizationSettingsController::class, 'show']);
             Route::patch('/customization', [CustomizationSettingsController::class, 'update']);
+            Route::post('/customization', [CustomizationSettingsController::class, 'update']);
 
             /*
             |--------------------------------------------------------------------------
@@ -301,10 +350,12 @@ Route::prefix('superadmin')
 
             Route::get('/whatsapp', [WhatsappSettingsController::class, 'show']);
             Route::patch('/whatsapp', [WhatsappSettingsController::class, 'update']);
+            Route::post('/whatsapp', [WhatsappSettingsController::class, 'update']);
             Route::post('/whatsapp/reconnect', [WhatsappSettingsController::class, 'reconnect']);
             Route::post('/whatsapp/test-message', [WhatsappSettingsController::class, 'testMessage']);
             Route::get('/whatsapp/templates', [WhatsappSettingsController::class, 'listTemplates']);
             Route::put('/whatsapp/templates/{templateKey}', [WhatsappSettingsController::class, 'upsertTemplate']);
+            Route::post('/whatsapp/templates/{templateKey}', [WhatsappSettingsController::class, 'upsertTemplate']);
 
             /*
             |--------------------------------------------------------------------------
@@ -314,6 +365,7 @@ Route::prefix('superadmin')
 
             Route::get('/billing/plans', [BillingPlansController::class, 'show']);
             Route::patch('/billing/plans', [BillingPlansController::class, 'update']);
+            Route::post('/billing/plans', [BillingPlansController::class, 'update']);
 
             /*
             |--------------------------------------------------------------------------
@@ -323,6 +375,7 @@ Route::prefix('superadmin')
 
             Route::get('/backup', [BackupSettingsController::class, 'show']);
             Route::patch('/backup', [BackupSettingsController::class, 'update']);
+            Route::post('/backup', [BackupSettingsController::class, 'update']);
             Route::post('/backup/manual', [BackupSettingsController::class, 'manual']);
         });
     });

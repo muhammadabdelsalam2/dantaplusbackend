@@ -19,30 +19,14 @@ class ProfileController extends Controller
 
     public function show(Request $request)
     {
-        $user = $request->user();
-
-        return ApiResponse::success([
-            'id' => $user->id,
-            'name' => $user->name,
-            'suggested_username' => $this->settingsService->getSuggestedUsername($user),
-            'email' => $user->email,
-            'roles' => $user->getRoleNames(),
-            'is_active' => (bool)($user->is_active ?? true),
-        ]);
+        return ApiResponse::success($this->settingsService->profilePayload($request->user()));
     }
 
     public function update(UpdateProfileRequest $request)
     {
         $user = $this->settingsService->updateProfile($request->user(), $request->validated());
 
-        return ApiResponse::success([
-            'id' => $user->id,
-            'name' => $user->name,
-            'suggested_username' => $this->settingsService->getSuggestedUsername($user),
-            'email' => $user->email,
-            'roles' => $user->getRoleNames(),
-            'is_active' => (bool)($user->is_active ?? true),
-        ], 'Profile updated');
+        return ApiResponse::success($this->settingsService->profilePayload($user), 'Profile updated');
     }
 
     public function uploadPhoto(UploadProfilePhotoRequest $request)
@@ -51,7 +35,8 @@ class ProfileController extends Controller
 
         if ($request->hasFile('file')) {
             $upload = $this->settingsService->uploadPublicFile($request->file('file'), 'profile');
-            return ApiResponse::success($upload, 'Photo uploaded');
+            $user = $this->settingsService->updateAvatar($request->user(), $upload);
+            return ApiResponse::success($this->settingsService->profilePayload($user), 'Photo uploaded');
         }
 
         if (!empty($data['file_base64'])) {
@@ -60,7 +45,8 @@ class ProfileController extends Controller
                 'profile',
                 $data['filename'] ?? 'profile.png'
             );
-            return ApiResponse::success($upload, 'Photo uploaded');
+            $user = $this->settingsService->updateAvatar($request->user(), $upload);
+            return ApiResponse::success($this->settingsService->profilePayload($user), 'Photo uploaded');
         }
 
         return ApiResponse::error('No file provided', 422);

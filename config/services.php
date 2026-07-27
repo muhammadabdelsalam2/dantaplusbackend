@@ -55,6 +55,16 @@ return [
         ],
     ],
 
+    'wasender' => [
+        'base_url' => env('WASENDER_BASE_URL', 'https://api.wasender.example.com'),
+        'api_key' => env('WASENDER_API_KEY'),
+        'device_id' => env('WASENDER_DEVICE_ID'),
+    ],
+
+    'stripe' => [
+        'dashboard_url' => env('STRIPE_DASHBOARD_URL', 'https://dashboard.stripe.com/'),
+    ],
+
     'sms' => [
         'endpoint' => env('SMS_ENDPOINT'),
         'api_key' => env('SMS_API_KEY'),

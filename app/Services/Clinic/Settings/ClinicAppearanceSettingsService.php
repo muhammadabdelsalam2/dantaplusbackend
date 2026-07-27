@@ -4,6 +4,7 @@ namespace App\Services\Clinic\Settings;
 
 use App\Http\Resources\Clinic\Settings\AppearanceSettingsResource;
 use App\Models\AppearanceSetting;
+use App\Models\Setting;
 use App\Support\ServiceResult;
 
 class ClinicAppearanceSettingsService
@@ -54,11 +55,21 @@ class ClinicAppearanceSettingsService
 
     private function settingForClinic(int $clinicId): AppearanceSetting
     {
+        $platformCustomization = Setting::query()
+            ->where('scope_type', 'platform')
+            ->whereNull('scope_id')
+            ->where('group', 'customization')
+            ->get(['key', 'value'])
+            ->pluck('value', 'key');
+
+        $theme = $platformCustomization->get('dashboard_theme', 'light');
+        $theme = $theme === 'auto' ? 'light' : $theme;
+
         return AppearanceSetting::query()->firstOrCreate(
             ['clinic_id' => $clinicId],
             [
-                'theme' => 'light',
-                'primary_color' => '#4F46E5',
+                'theme' => in_array($theme, ['light', 'dark'], true) ? $theme : 'light',
+                'primary_color' => strtoupper((string) $platformCustomization->get('accent_color', '#6C5CE7')),
                 'language' => 'en',
             ]
         );

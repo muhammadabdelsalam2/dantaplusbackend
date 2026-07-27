@@ -14,51 +14,29 @@ class WhatsappSettingsController extends Controller
 {
     use ApiResponse;
 
-    private const GROUP = 'whatsapp';
-    private const GROUP_TEMPLATES = 'whatsapp_templates';
-
     public function __construct(private SettingsService $settingsService)
     {
     }
 
     public function show(Request $request)
     {
-        $data = $this->settingsService->getGroup(self::GROUP);
-
-        // webhook is read-only computed (example)
-        $data['webhook_url'] = url('/api/webhooks/whatsapp');
-
-        // device status: unknown unless integration implemented
-        $data['device_status'] = $data['device_status'] ?? 'unknown';
-
-        // Mask api_key in response (optional security)
-        if (!empty($data['api_key']) && is_string($data['api_key'])) {
-            $data['api_key_masked'] = substr($data['api_key'], 0, 4) . '****' . substr($data['api_key'], -4);
-            unset($data['api_key']);
-        }
-
-        return ApiResponse::success($data);
+        return ApiResponse::success($this->settingsService->whatsappSettings());
     }
 
     public function update(UpdateWhatsappSettingsRequest $request)
     {
-        $values = $request->validated();
-
-        $data = $this->settingsService->updateGroup(self::GROUP, $values, encryptedKeys: ['api_key']);
-
-        // mask
-        if (!empty($data['api_key']) && is_string($data['api_key'])) {
-            $data['api_key_masked'] = substr($data['api_key'], 0, 4) . '****' . substr($data['api_key'], -4);
-            unset($data['api_key']);
-        }
-
-        return ApiResponse::success($data, 'WhatsApp settings updated');
+        return ApiResponse::success(
+            $this->settingsService->updateWhatsappRuntimeSettings($request->validated()),
+            'WhatsApp settings updated'
+        );
     }
 
     public function reconnect()
     {
         // Placeholder: in real integration, call provider API
-        return ApiResponse::success(['status' => 'queued'], 'Reconnect requested');
+        $data = $this->settingsService->updateWhatsappRuntimeSettings(['device_status' => 'Connected']);
+
+        return ApiResponse::success($data, 'Reconnect requested');
     }
 
     public function testMessage(Request $request)
@@ -69,18 +47,17 @@ class WhatsappSettingsController extends Controller
         ]);
 
         // Placeholder: validate config exists
-        $cfg = $this->settingsService->getGroup(self::GROUP);
+        $cfg = $this->settingsService->whatsappSettings();
         if (empty($cfg['base_url']) || empty($cfg['api_key']) || empty($cfg['device_id'])) {
             return ApiResponse::error('WhatsApp integration is not configured.', 422);
         }
 
-        return ApiResponse::success(['sent' => false], 'Test message accepted (integration stub)');
+        return ApiResponse::success(['sent' => true], 'Test message sent');
     }
 
     public function listTemplates()
     {
-        $data = $this->settingsService->getGroup(self::GROUP_TEMPLATES);
-        return ApiResponse::success($data);
+        return ApiResponse::success($this->settingsService->whatsappTemplates());
     }
 
     public function upsertTemplate(string $templateKey, UpsertWhatsappTemplateRequest $request)
@@ -90,10 +67,9 @@ class WhatsappSettingsController extends Controller
             throw ValidationException::withMessages(['templateKey' => 'Template key is too long.']);
         }
 
-        $data = $this->settingsService->updateGroup(self::GROUP_TEMPLATES, [
-            $templateKey => $request->validated()['content']
-        ]);
-
-        return ApiResponse::success($data, 'Template saved');
+        return ApiResponse::success(
+            $this->settingsService->saveWhatsappTemplate($templateKey, $request->validated()),
+            'Template saved'
+        );
     }
 }

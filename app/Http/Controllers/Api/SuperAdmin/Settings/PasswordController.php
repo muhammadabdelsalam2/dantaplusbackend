@@ -17,10 +17,12 @@ class PasswordController extends Controller
 
     public function update(ChangePasswordRequest $request)
     {
+        $validated = $request->validated();
+
         $this->settingsService->changePassword(
             $request->user(),
-            $request->validated()['current_password'],
-            $request->validated()['password'],
+            $validated['current_password'],
+            $validated['new_password'] ?? $validated['password'],
         );
 
         return ApiResponse::success(null, 'Password updated');

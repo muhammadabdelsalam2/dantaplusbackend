@@ -1,0 +1,397 @@
+{
+  "info": {
+    "name": "DantaPlus Super Admin Settings",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000/api"
+    },
+    {
+      "key": "token",
+      "value": ""
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Settings",
+      "item": [
+        {
+          "name": "My Profile",
+          "item": [
+            {
+              "name": "Get Profile",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/owner/settings/profile"
+              }
+            },
+            {
+              "name": "Save Profile Changes",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/owner/settings/profile",
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "full_name",
+                      "value": "Moamen Ahmed",
+                      "type": "text"
+                    },
+                    {
+                      "key": "username",
+                      "value": "moamenahmed54321",
+                      "type": "text"
+                    },
+                    {
+                      "key": "email",
+                      "value": "moamenahmed54321@gmail.com",
+                      "type": "text"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Change Photo",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/owner/settings/profile/photo",
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "file",
+                      "type": "file",
+                      "src": ""
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Update Password",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/owner/settings/password",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"current_password\":\"password123\",\"new_password\":\"newPassword123\",\"new_password_confirmation\":\"newPassword123\"}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "General Settings",
+          "item": [
+            {
+              "name": "Get General Settings",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/owner/settings/global"
+              }
+            },
+            {
+              "name": "Save General Settings",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/owner/settings/global",
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "system_name",
+                      "value": "Denta+ SaaS",
+                      "type": "text"
+                    },
+                    {
+                      "key": "support_email",
+                      "value": "support@dentaplus.com",
+                      "type": "text"
+                    },
+                    {
+                      "key": "support_phone",
+                      "value": "1-800-555-DENT",
+                      "type": "text"
+                    },
+                    {
+                      "key": "timezone",
+                      "value": "America/New_York",
+                      "type": "text"
+                    },
+                    {
+                      "key": "default_language",
+                      "value": "English",
+                      "type": "text"
+                    },
+                    {
+                      "key": "default_currency",
+                      "value": "USD",
+                      "type": "text"
+                    },
+                    {
+                      "key": "logo_file",
+                      "type": "file",
+                      "src": ""
+                    },
+                    {
+                      "key": "favicon_file",
+                      "type": "file",
+                      "src": ""
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "WhatsApp Integration",
+          "item": [
+            {
+              "name": "Get WhatsApp Settings",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/owner/settings/whatsapp"
+              }
+            },
+            {
+              "name": "Save WhatsApp Runtime Settings",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/owner/settings/whatsapp",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"device_status\":\"Connected\"}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "Reconnect Device",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/owner/settings/whatsapp/reconnect"
+              }
+            },
+            {
+              "name": "Send Test Message",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/owner/settings/whatsapp/test-message",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"to\":\"+201000000000\",\"message\":\"Test message from Denta+\"}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "List Message Templates",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/owner/settings/whatsapp/templates"
+              }
+            },
+            {
+              "name": "Save Queue Arrival Template",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/owner/settings/whatsapp/templates/queue_arrival",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"name\":\"Queue Arrival\",\"content\":\"Hello {{patient_name}}, your turn is approaching at {{clinic_name}}.\"}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Subscription & Billing",
+          "item": [
+            {
+              "name": "Get Billing Plans",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/owner/settings/billing/plans"
+              }
+            },
+            {
+              "name": "Save Billing Plans",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/owner/settings/billing/plans",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"premium\":{\"plan_name\":\"Premium\",\"yearly_price\":990,\"monthly_price\":99,\"description\":\"All features for large-scale operations.\"},\"standard\":{\"plan_name\":\"Standard\",\"yearly_price\":590,\"monthly_price\":59,\"description\":\"Advanced features for growing clinics.\"},\"basic\":{\"plan_name\":\"Basic\",\"yearly_price\":290,\"monthly_price\":29,\"description\":\"Essential features for small clinics.\"}}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "View All Active Subscriptions",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/owner/invoices"
+              }
+            }
+          ]
+        },
+        {
+          "name": "User Management",
+          "item": [
+            {
+              "name": "Get User Management Settings",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/owner/settings/user-management"
+              }
+            },
+            {
+              "name": "Save User Management Settings",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/owner/settings/user-management",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"allow_new_signups\":true,\"allow_trial_accounts\":true}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Notification Settings",
+          "item": [
+            {
+              "name": "Get Notification Settings",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/owner/settings/notifications"
+              }
+            },
+            {
+              "name": "Save Notification Settings",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/owner/settings/notifications",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"enable_system_email_notifications\":true,\"enable_sms_whatsapp_notifications\":false,\"notification_sounds\":true}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Backup & System",
+          "item": [
+            {
+              "name": "Get Backup Settings",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/owner/settings/backup"
+              }
+            },
+            {
+              "name": "Save Backup Settings",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/owner/settings/backup",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"auto_backup_frequency\":\"daily\"}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "Create Manual Backup Now",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/owner/settings/backup/manual"
+              }
+            }
+          ]
+        },
+        {
+          "name": "System Customization",
+          "item": [
+            {
+              "name": "Get Customization Settings",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/owner/settings/customization"
+              }
+            },
+            {
+              "name": "Save Customization Settings",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/owner/settings/customization",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"dashboard_theme\":\"auto\",\"accent_color\":\"#6C5CE7\"}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

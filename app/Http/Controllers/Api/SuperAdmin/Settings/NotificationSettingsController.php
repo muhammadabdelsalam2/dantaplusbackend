@@ -11,34 +11,22 @@ class NotificationSettingsController extends Controller
 {
     use ApiResponse;
 
-    private const GROUP = 'notifications';
-
     public function __construct(private SettingsService $settingsService)
     {
     }
 
     public function show()
     {
-        $data = $this->settingsService->getGroup(self::GROUP);
-
-        // mask token if exists
-        if (!empty($data['twilio_token']) && is_string($data['twilio_token'])) {
-            $data['twilio_token_masked'] = substr($data['twilio_token'], 0, 4) . '****' . substr($data['twilio_token'], -4);
-            unset($data['twilio_token']);
-        }
-
-        return ApiResponse::success($data);
+        return ApiResponse::success($this->settingsService->notificationSettings());
     }
 
     public function update(UpdateNotificationSettingsRequest $request)
     {
-        $data = $this->settingsService->updateGroup(self::GROUP, $request->validated(), encryptedKeys: ['twilio_token']);
+        $this->settingsService->updateGroup('notifications', $request->validated());
 
-        if (!empty($data['twilio_token']) && is_string($data['twilio_token'])) {
-            $data['twilio_token_masked'] = substr($data['twilio_token'], 0, 4) . '****' . substr($data['twilio_token'], -4);
-            unset($data['twilio_token']);
-        }
-
-        return ApiResponse::success($data, 'Notification settings updated');
+        return ApiResponse::success(
+            $this->settingsService->notificationSettings(),
+            'Notification settings updated'
+        );
     }
 }

@@ -11,26 +11,28 @@ class BackupSettingsController extends Controller
 {
     use ApiResponse;
 
-    private const GROUP = 'backup';
-
     public function __construct(private SettingsService $settingsService)
     {
     }
 
     public function show()
     {
-        return ApiResponse::success($this->settingsService->getGroup(self::GROUP));
+        return ApiResponse::success($this->settingsService->backupSettings());
     }
 
     public function update(UpdateBackupSettingsRequest $request)
     {
-        $data = $this->settingsService->updateGroup(self::GROUP, $request->validated());
-        return ApiResponse::success($data, 'Backup settings updated');
+        $this->settingsService->updateGroup('backup', $request->validated());
+
+        return ApiResponse::success($this->settingsService->backupSettings(), 'Backup settings updated');
     }
 
     public function manual()
     {
         // Placeholder: In production, you can dispatch a job
-        return ApiResponse::success(['status' => 'queued'], 'Manual backup requested');
+        return ApiResponse::success([
+            'status' => 'queued',
+            'requested_at' => now()->toISOString(),
+        ], 'Manual backup requested');
     }
 }

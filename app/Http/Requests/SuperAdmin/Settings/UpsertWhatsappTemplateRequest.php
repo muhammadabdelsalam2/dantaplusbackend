@@ -11,6 +11,7 @@ class UpsertWhatsappTemplateRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'name' => ['sometimes', 'string', 'max:100'],
             'content' => ['required', 'string', 'min:1', 'max:5000'],
         ];
     }

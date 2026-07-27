@@ -17,8 +17,16 @@ class UpdateProfileRequest extends FormRequest
         $userId = $this->user()?->id;
 
         return [
-            'name'  => ['sometimes', 'string', 'min:2', 'max:255'],
+            'full_name'  => ['sometimes', 'string', 'min:2', 'max:255'],
+            'username' => ['sometimes', 'nullable', 'string', 'max:255', Rule::unique('users', 'username')->ignore($userId)],
             'email' => ['sometimes', 'email', 'max:255', Rule::unique('users', 'email')->ignore($userId)],
         ];
+    }
+
+    protected function passedValidation(): void
+    {
+        if ($this->has('full_name')) {
+            $this->merge(['name' => $this->input('full_name')]);
+        }
     }
 }
