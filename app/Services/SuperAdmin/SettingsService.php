@@ -6,6 +6,7 @@ use App\Repositories\Contracts\SuperAdmin\SettingsRepositoryInterface;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -151,11 +152,18 @@ class SettingsService
             'default_language' => $data['default_language'] ?? 'English',
             'default_currency' => $data['default_currency'] ?? 'USD',
             'filters' => [
-                'timezones' => \DateTimeZone::listIdentifiers(),
                 'languages' => ['English', 'Arabic'],
                 'currencies' => ['USD', 'EGP', 'SAR', 'AED'],
             ],
         ];
+    }
+
+    public function timezones(): array
+    {
+        return Cache::rememberForever(
+            'super_admin.settings.timezones',
+            fn () => \DateTimeZone::listIdentifiers()
+        );
     }
 
     public function updateGeneralSettings(array $values): array

@@ -110,6 +110,13 @@
               }
             },
             {
+              "name": "Get Timezones",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/owner/settings/timezones"
+              }
+            },
+            {
               "name": "Save General Settings",
               "request": {
                 "method": "POST",

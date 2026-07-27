@@ -18,6 +18,13 @@ class GlobalSettingsController extends Controller
         return ApiResponse::success($this->settingsService->generalSettings());
     }
 
+    public function timezones()
+    {
+        return ApiResponse::success([
+            'timezones' => $this->settingsService->timezones(),
+        ]);
+    }
+
     public function update(UpdateGlobalSettingsRequest $request)
     {
         $values = $request->validated();
