@@ -94,11 +94,11 @@ $createdUser->syncRoles(['material_company_admin']);
 
 Mail::to($createdUser->email)->send(new SystemAccessMail(
     $createdUser->name,
-    config('app.url'),
+    config('app.frontend_url'),
     $createdUser->email,
     $adminPassword,
     null,
-    url('/company/dashboard')
+    rtrim(config('app.frontend_url'), '/') . '/company/dashboard'
 ));
 
             $payload = (new MaterialCompanyResource($company))->resolve();

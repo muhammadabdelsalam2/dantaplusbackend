@@ -240,7 +240,9 @@ class UserManagementTest extends TestCase
 
         $doctorRes->assertCreated()
             ->assertJsonPath('data.role', 'doctor')
-            ->assertJsonPath('data.entity', $clinic->name);
+            ->assertJsonPath('data.entity.type', 'clinic')
+            ->assertJsonPath('data.entity.id', $clinic->id)
+            ->assertJsonPath('data.entity.name', $clinic->name);
 
         $user = User::where('email', 'clinic.doctor@example.com')->firstOrFail();
         $this->assertSame($clinic->id, $user->clinic_id);
@@ -254,7 +256,9 @@ class UserManagementTest extends TestCase
 
         $labRes->assertOk()
             ->assertJsonPath('data.role', 'lab_technician')
-            ->assertJsonPath('data.entity', $lab->name);
+            ->assertJsonPath('data.entity.type', 'lab')
+            ->assertJsonPath('data.entity.id', $lab->id)
+            ->assertJsonPath('data.entity.name', $lab->name);
 
         $user->refresh();
         $this->assertNull($user->clinic_id);
@@ -268,7 +272,9 @@ class UserManagementTest extends TestCase
 
         $companyRes->assertOk()
             ->assertJsonPath('data.role', 'material_company_admin')
-            ->assertJsonPath('data.entity', $company->name);
+            ->assertJsonPath('data.entity.type', 'material_company')
+            ->assertJsonPath('data.entity.id', $company->id)
+            ->assertJsonPath('data.entity.name', $company->name);
 
         $user->refresh();
         $this->assertNull($user->clinic_id);

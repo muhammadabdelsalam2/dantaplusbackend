@@ -28,14 +28,28 @@ class UserManagementRepository implements UserManagementRepositoryInterface
 
                 $query->whereHas('roles', fn ($r) => $r->where('name', $role));
             })
-            ->with(['roles:id,name','clinic:id,name','company:id,name','lab:id,name','doctor:id,user_id','patient:id,user_id'])
+            ->with([
+                'roles:id,name',
+                'clinic:id,name,email,phone,address',
+                'company:id,name,email,phone,city,country',
+                'lab:id,name,email,phone,city',
+                'doctor:id,user_id',
+                'patient:id,user_id',
+            ])
             ->latest('id')
             ->paginate(max(1, min($perPage, 100)));
     }
 
     public function findUserOrFail(int $id): User
     {
-        return User::with(['roles:id,name','clinic:id,name','company:id,name','lab:id,name','doctor:id,user_id','patient:id,user_id'])->findOrFail($id);
+        return User::with([
+            'roles:id,name',
+            'clinic:id,name,email,phone,address',
+            'company:id,name,email,phone,city,country',
+            'lab:id,name,email,phone,city',
+            'doctor:id,user_id',
+            'patient:id,user_id',
+        ])->findOrFail($id);
     }
 
     public function createUser(array $data): User

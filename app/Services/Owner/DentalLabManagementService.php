@@ -39,16 +39,18 @@ class DentalLabManagementService
         })->values();
 
         $data = [
-            'items' => $items,
-            'pagination' => [
-                'current_page' => $labs->currentPage(),
-                'last_page' => $labs->lastPage(),
-                'per_page' => $labs->perPage(),
-                'total' => $labs->total(),
-            ],
             'stats' => $this->dentalLabRepository->stats(),
             'filters' => [
                 'statuses' => ['All Statuses', DentalLab::STATUS_ACTIVE, DentalLab::STATUS_INACTIVE],
+            ],
+            'data' => [
+                'items' => $items,
+                'pagination' => [
+                    'current_page' => $labs->currentPage(),
+                    'last_page' => $labs->lastPage(),
+                    'per_page' => $labs->perPage(),
+                    'total' => $labs->total(),
+                ],
             ],
         ];
 

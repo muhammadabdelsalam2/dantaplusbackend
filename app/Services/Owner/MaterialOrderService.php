@@ -30,11 +30,7 @@ class MaterialOrderService
     })->all();
 
     return ServiceResult::success([
-        'stats' => [
-            'total_orders' => MaterialOrder::query()->count(),
-            'completed_orders' => MaterialOrder::query()->where('status', MaterialOrder::STATUS_COMPLETED)->count(),
-            'total_sales' => round((float) MaterialOrder::query()->sum('amount_total'), 2),
-        ],
+        'stats' => $this->stats(),
         'data' => [
             'items' => $items,
             'pagination' => [
@@ -46,6 +42,21 @@ class MaterialOrderService
         ],
     ], 'Material orders fetched successfully');
 }
+
+    private function stats(): array
+    {
+        return [
+            'outstanding_invoices' => MaterialOrder::query()
+                ->whereIn('payment_status', ['Pending', 'pending', 'pending_cash', 'pending_payment', 'pending_invoice'])
+                ->where('status', '!=', MaterialOrder::STATUS_CANCELLED)
+                ->count(),
+            'total_material_revenue' => round((float) MaterialOrder::query()
+                ->where('status', MaterialOrder::STATUS_COMPLETED)
+                ->selectRaw('COALESCE(SUM(COALESCE(total_amount, amount_total, 0)), 0) as total')
+                ->value('total'), 2),
+            'total_orders_platform_wide' => MaterialOrder::query()->count(),
+        ];
+    }
 
     public function show(int $orderId): array
     {

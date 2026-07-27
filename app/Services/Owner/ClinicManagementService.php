@@ -89,7 +89,7 @@ class ClinicManagementService
 
             Mail::to($adminUser->email)->send(new SystemAccessMail(
                 $adminUser->name,
-                config('app.url'),
+                config('app.frontend_url'),
                 $adminUser->email,
                 $plainPassword,
                 [

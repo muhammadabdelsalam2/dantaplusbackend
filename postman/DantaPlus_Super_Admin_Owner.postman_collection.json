@@ -83,6 +83,58 @@
       "item": [
         { "name": "List Users", "request": { "method": "GET", "url": "{{base_url}}/owner/users?q=&role=&status=&per_page=15" } },
         {
+          "name": "Show User Details - Doctor Entity",
+          "request": { "method": "GET", "url": "{{base_url}}/owner/users/{{user_id}}" },
+          "response": [
+            {
+              "name": "Doctor with Clinic entity",
+              "originalRequest": { "method": "GET", "url": "{{base_url}}/owner/users/{{user_id}}" },
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"status\": \"success\",\n  \"success\": true,\n  \"message\": \"Success\",\n  \"data\": {\n    \"id\": 12,\n    \"name\": \"John Carter\",\n    \"email\": \"john.carter@example.com\",\n    \"is_active\": true,\n    \"user\": {\n      \"name\": \"John Carter\",\n      \"email\": \"john.carter@example.com\",\n      \"avatar_url\": null\n    },\n    \"role\": \"doctor\",\n    \"entity\": {\n      \"type\": \"clinic\",\n      \"id\": 1,\n      \"name\": \"Bright Smiles Dental\",\n      \"email\": \"clinic@example.com\",\n      \"phone\": \"+201000000000\",\n      \"address\": \"Cairo\"\n    },\n    \"status\": \"Active\",\n    \"last_login\": \"26/07/2026\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Show User Details - Lab Technician Entity",
+          "request": { "method": "GET", "url": "{{base_url}}/owner/users/{{user_id}}" },
+          "response": [
+            {
+              "name": "Lab technician with Lab entity",
+              "originalRequest": { "method": "GET", "url": "{{base_url}}/owner/users/{{user_id}}" },
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"status\": \"success\",\n  \"success\": true,\n  \"message\": \"Success\",\n  \"data\": {\n    \"id\": 18,\n    \"name\": \"Lab Technician\",\n    \"email\": \"lab.tech@example.com\",\n    \"is_active\": true,\n    \"user\": {\n      \"name\": \"Lab Technician\",\n      \"email\": \"lab.tech@example.com\",\n      \"avatar_url\": null\n    },\n    \"role\": \"lab_technician\",\n    \"entity\": {\n      \"type\": \"lab\",\n      \"id\": 1,\n      \"name\": \"Precision Dental Labs\",\n      \"email\": \"lab@example.com\",\n      \"phone\": \"+201000000001\",\n      \"city\": \"Metropolis\"\n    },\n    \"status\": \"Active\",\n    \"last_login\": \"26/07/2026\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Show User Details - Material Company Entity",
+          "request": { "method": "GET", "url": "{{base_url}}/owner/users/{{user_id}}" },
+          "response": [
+            {
+              "name": "Material company admin with Company entity",
+              "originalRequest": { "method": "GET", "url": "{{base_url}}/owner/users/{{user_id}}" },
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"status\": \"success\",\n  \"success\": true,\n  \"message\": \"Success\",\n  \"data\": {\n    \"id\": 22,\n    \"name\": \"Company Admin\",\n    \"email\": \"company.admin@example.com\",\n    \"is_active\": true,\n    \"user\": {\n      \"name\": \"Company Admin\",\n      \"email\": \"company.admin@example.com\",\n      \"avatar_url\": null\n    },\n    \"role\": \"material_company_admin\",\n    \"entity\": {\n      \"type\": \"material_company\",\n      \"id\": 1,\n      \"name\": \"3M Dental\",\n      \"email\": \"dental@3m.com\",\n      \"phone\": \"1-800-634-2249\",\n      \"city\": \"St. Paul, MN\",\n      \"country\": \"United States\"\n    },\n    \"status\": \"Active\",\n    \"last_login\": \"26/07/2026\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Show User Details - Super Admin No Entity",
+          "request": { "method": "GET", "url": "{{base_url}}/owner/users/{{user_id}}" },
+          "response": [
+            {
+              "name": "Super admin with null entity",
+              "originalRequest": { "method": "GET", "url": "{{base_url}}/owner/users/{{user_id}}" },
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"status\": \"success\",\n  \"success\": true,\n  \"message\": \"Success\",\n  \"data\": {\n    \"id\": 1,\n    \"name\": \"Moamen Ahmed\",\n    \"email\": \"owner@example.com\",\n    \"is_active\": true,\n    \"user\": {\n      \"name\": \"Moamen Ahmed\",\n      \"email\": \"owner@example.com\",\n      \"avatar_url\": null\n    },\n    \"role\": \"super_admin\",\n    \"entity\": null,\n    \"status\": \"Active\",\n    \"last_login\": \"26/07/2026\"\n  }\n}"
+            }
+          ]
+        },
+        {
           "name": "Create User - Doctor (Clinic)",
           "request": {
             "method": "POST",

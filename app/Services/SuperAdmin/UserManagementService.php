@@ -76,7 +76,7 @@ class UserManagementService
 
             Mail::to($user->email)->send(new SystemAccessMail(
                 $user->name,
-                config('app.url'),
+                config('app.frontend_url'),
                 $user->email,
                 $plainPassword
             ));
