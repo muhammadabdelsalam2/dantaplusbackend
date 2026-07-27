@@ -10,10 +10,6 @@ return new class extends Migration
     {
         $clinicAdminRole = Role::firstOrCreate(['name' => 'clinic_admin', 'guard_name' => 'web']);
 
-        if (! Role::query()->where('name', 'Admin')->where('guard_name', 'web')->exists()) {
-            return;
-        }
-
         User::role('Admin')->get()->each(function (User $user) use ($clinicAdminRole) {
             $user->removeRole('Admin');
             $user->assignRole($clinicAdminRole);
