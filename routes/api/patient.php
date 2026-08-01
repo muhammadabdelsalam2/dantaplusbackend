@@ -100,6 +100,7 @@ Route::prefix('patient')
         Route::middleware('permission:patients.update')->post('/{id}', [ClinicPatientController::class, 'update']);
 
         Route::middleware('permission:patients.view')->get('/{id}/dental-chart', [ClinicPatientController::class, 'dentalChart']);
+        Route::middleware('permission:patients.update')->patch('/{id}/dental-chart/presence', [ClinicPatientController::class, 'updateToothPresence']);
         Route::middleware('permission:patients.update')->post('/{id}/dental-chart/procedures', [ClinicPatientController::class, 'storeDentalChart']);
 
         Route::middleware('permission:patients.view')->get('/{id}/analytics/financial-performance', [ClinicPatientController::class, 'financialPerformance']);
@@ -109,15 +110,18 @@ Route::prefix('patient')
 
         Route::middleware('permission:patients.view')->get('/{id}/radiology', [ClinicPatientController::class, 'radiology']);
         Route::middleware('permission:patients.update')->post('/{id}/radiology', [ClinicPatientController::class, 'uploadRadiology']);
+        Route::middleware('permission:patients.view')->get('/{id}/radiology/appointments-select', [ClinicPatientController::class, 'radiologyAppointmentSelect']);
+        Route::middleware('permission:patients.view')->get('/{id}/radiology/treatments-select', [ClinicPatientController::class, 'radiologyTreatmentSelect']);
+        Route::middleware('permission:patients.update')->post('/{id}/radiology/reports', [ClinicPatientController::class, 'generateRadiologyReport']);
         Route::middleware('permission:patients.view')->get('/{id}/radiology/{recordId}/report', [ClinicPatientController::class, 'radiologyReport']);
         Route::middleware('permission:patients.view')->get('/{id}/radiology/search', [ClinicPatientController::class, 'radiology']);
         Route::middleware('permission:patients.view')->get('/{id}/radiology/filter', [ClinicPatientController::class, 'radiology']);
         Route::middleware('permission:patients.view')->post('/{id}/radiology/compare', [ClinicPatientController::class, 'radiologyCompare']);
 
-        Route::middleware('permission:treatments.manage')->get('/{id}/treatments', [ClinicPatientController::class, 'treatmentsHistory']);
-        Route::middleware('permission:treatments.manage')->post('/{id}/treatments', [ClinicPatientController::class, 'storeTreatment']);
-        Route::middleware('permission:treatments.manage')->get('/treatments/services', [ClinicPatientController::class, 'treatmentServices']);
-        Route::middleware('permission:treatments.manage')->get('/treatments/dentists', [ClinicPatientController::class, 'treatmentDentists']);
+        Route::middleware('permission:patients.view')->get('/{id}/treatments', [ClinicPatientController::class, 'treatmentsHistory']);
+        Route::middleware('permission:patients.update')->post('/{id}/treatments', [ClinicPatientController::class, 'storeTreatment']);
+        Route::middleware('permission:patients.view')->get('/treatments/services', [ClinicPatientController::class, 'treatmentServices']);
+        Route::middleware('permission:patients.view')->get('/treatments/dentists', [ClinicPatientController::class, 'treatmentDentists']);
 
         Route::middleware('permission:billing.manage')->get('/{id}/billing/invoices', [ClinicPatientController::class, 'invoices']);
         Route::middleware('permission:billing.manage')->post('/{id}/billing/invoices/{invoiceId}/payments', [ClinicPatientController::class, 'addPayment']);

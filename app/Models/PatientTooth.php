@@ -15,8 +15,21 @@ class PatientTooth extends Model
         'clinic_id',
         'tooth_number',
         'status',
+        'is_present',
+        'target_area',
+        'procedure_id',
+        'treating_doctor_id',
+        'billing_method',
+        'clinical_notes',
         'notes',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'is_present' => 'boolean',
+        ];
+    }
 
     public function patient(): BelongsTo
     {
@@ -26,5 +39,15 @@ class PatientTooth extends Model
     public function clinic(): BelongsTo
     {
         return $this->belongsTo(Clinic::class);
+    }
+
+    public function procedure(): BelongsTo
+    {
+        return $this->belongsTo(Service::class, 'procedure_id');
+    }
+
+    public function treatingDoctor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'treating_doctor_id');
     }
 }

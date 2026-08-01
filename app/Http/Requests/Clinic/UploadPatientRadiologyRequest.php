@@ -16,6 +16,10 @@ class UploadPatientRadiologyRequest extends FormRequest
         return [
             'modality' => ['required', 'in:Periapical,Bitewing,Panoramic,CBCT'],
             'teeth' => ['nullable', 'string', 'max:255'],
+            'date' => ['nullable', 'date'],
+            'record_date' => ['nullable', 'date'],
+            'linked_appointment_id' => ['nullable', 'integer', 'exists:clinic_appointments,id'],
+            'linked_treatment_id' => ['nullable', 'integer', 'exists:clinic_treatments,id'],
             'notes' => ['nullable', 'string'],
             'status' => ['nullable', 'string', 'max:50'],
             'file' => ['nullable', 'file', 'max:10240'],

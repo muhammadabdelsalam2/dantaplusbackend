@@ -92,10 +92,23 @@ class PatientController extends Controller
         return ApiResponse::success($result['data'], $result['message'], $result['code']);
     }
 
+    public function updateToothPresence(Request $request, int $id)
+    {
+        $result = $this->service->updateToothPresence($id, $request->validate([
+            'tooth_number' => ['required_without:tooth_numbers', 'string', 'max:20'],
+            'tooth_numbers' => ['required_without:tooth_number', 'array', 'min:1'],
+            'tooth_numbers.*' => ['string', 'max:20', 'distinct'],
+            'is_present' => ['required', 'boolean'],
+        ]));
+
+        return $this->respond($result);
+    }
+
     public function radiology(Request $request, int $id)
     {
         $result = $this->service->radiology($id, $request->validate([
             'search' => ['nullable', 'string', 'max:255'],
+            'teeth' => ['nullable', 'string', 'max:50'],
             'modality' => ['nullable', 'in:Periapical,Bitewing,Panoramic,CBCT'],
         ]));
 
@@ -213,6 +226,29 @@ class PatientController extends Controller
     public function radiologyReport(int $id, int $recordId)
     {
         return $this->respond($this->service->radiologyReport($id, $recordId));
+    }
+
+    public function generateRadiologyReport(Request $request, int $id)
+    {
+        $data = $request->validate([
+            'report_format' => ['required', 'in:clinical_summary,before_after_progress'],
+            'case_selection' => ['required', 'array', 'min:1'],
+            'case_selection.*' => ['integer', 'distinct'],
+            'findings' => ['required', 'string'],
+            'diagnosis' => ['required', 'string'],
+        ]);
+
+        return $this->respond($this->service->generateRadiologyReport($id, $data));
+    }
+
+    public function radiologyAppointmentSelect(int $id)
+    {
+        return $this->respond($this->service->radiologyAppointmentSelect($id));
+    }
+
+    public function radiologyTreatmentSelect(int $id)
+    {
+        return $this->respond($this->service->radiologyTreatmentSelect($id));
     }
 
     public function radiologyCompare(Request $request, int $id)

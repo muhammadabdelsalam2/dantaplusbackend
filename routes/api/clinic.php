@@ -235,9 +235,13 @@ Route::prefix('clinic')
         Route::middleware('permission:patients.view')->get('/patients/{id}',                      [PatientController::class, 'show']);
         Route::middleware('permission:patients.update')->post('/patients/{id}',                  [PatientController::class, 'update']);
         Route::middleware('permission:patients.view')->get('/patients/{id}/dental-chart',         [PatientController::class, 'dentalChart']);
+        Route::middleware('permission:patients.update')->patch('/patients/{id}/dental-chart/presence', [PatientController::class, 'updateToothPresence']);
         Route::middleware('permission:patients.update')->post('/patients/{id}/dental-chart',      [PatientController::class, 'storeDentalChart']);
         Route::middleware('permission:patients.view')->get('/patients/{id}/radiology',            [PatientController::class, 'radiology']);
         Route::middleware('permission:patients.update')->post('/patients/{id}/radiology/upload',  [PatientController::class, 'uploadRadiology']);
+        Route::middleware('permission:patients.view')->get('/patients/{id}/radiology/appointments-select', [PatientController::class, 'radiologyAppointmentSelect']);
+        Route::middleware('permission:patients.view')->get('/patients/{id}/radiology/treatments-select', [PatientController::class, 'radiologyTreatmentSelect']);
+        Route::middleware('permission:patients.update')->post('/patients/{id}/radiology/reports', [PatientController::class, 'generateRadiologyReport']);
         Route::middleware('permission:patients.view')->get('/patients/{id}/labs',                 [PatientController::class, 'labCases']);
         Route::middleware('permission:labs.send')->post('/patients/{id}/labs',                    [PatientController::class, 'sendLabCase']);
         Route::middleware('permission:patients.view')->get('/patients/{id}/discussion',           [PatientController::class, 'discussion']);
@@ -262,8 +266,8 @@ Route::middleware('permission:patients.update')->post('/patients/{id}/documents/
         Route::middleware('permission:treatments.manage')->get('/treatments',       [TreatmentController::class, 'index']);
         Route::middleware('permission:treatments.manage')->post('/treatments',      [TreatmentController::class, 'store']);
         Route::middleware('permission:treatments.manage')->get('/treatments/{id}',  [TreatmentController::class, 'show']);
-        Route::middleware('permission:treatments.manage')->get('/patients/{id}/treatments',  [TreatmentController::class, 'indexForPatient']);
-        Route::middleware('permission:treatments.manage')->post('/patients/{id}/treatments', [TreatmentController::class, 'storeForPatient']);
+        Route::middleware('permission:patients.view')->get('/patients/{id}/treatments',  [TreatmentController::class, 'indexForPatient']);
+        Route::middleware('permission:patients.update')->post('/patients/{id}/treatments', [TreatmentController::class, 'storeForPatient']);
 
         Route::get('/select/{resource}', [SelectController::class, 'show']);
 
