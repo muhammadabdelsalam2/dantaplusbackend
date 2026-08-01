@@ -276,8 +276,9 @@ class BillingService
             return ServiceResult::error('Expense category not found.', null, ['expense_category_id' => ['Expense category not found.']], 422);
         }
 
-        if (! empty($data['assigned_to_user_id'])) {
-            $assignedUser = User::query()->where('clinic_id', $clinicId)->find($data['assigned_to_user_id']);
+        $assignedToUserId = $data['assigned_to_user_id'] ?? $data['assigned_to'] ?? null;
+        if (! empty($assignedToUserId)) {
+            $assignedUser = User::query()->where('clinic_id', $clinicId)->find($assignedToUserId);
             if (! $assignedUser) {
                 return ServiceResult::error('Assigned user not found.', null, ['assigned_to_user_id' => ['Assigned user not found.']], 422);
             }
@@ -290,7 +291,7 @@ class BillingService
             'amount' => $data['amount'],
             'payment_method' => $data['payment_method'] ?? null,
             'expense_date' => $data['expense_date'] ?? $data['date'],
-            'assigned_to_user_id' => $data['assigned_to_user_id'] ?? null,
+            'assigned_to_user_id' => $assignedToUserId,
             'notes' => $data['notes'] ?? null,
             'attachment_path' => $attachment ? $attachment->store('clinic/expenses', 'public') : null,
         ])->load(['category:id,name', 'assignee:id,name']);
@@ -316,13 +317,17 @@ class BillingService
             'amount' => $data['amount'] ?? null,
             'payment_method' => $data['payment_method'] ?? null,
             'expense_date' => $data['expense_date'] ?? $data['date'] ?? null,
-            'assigned_to_user_id' => $data['assigned_to_user_id'] ?? null,
+            'assigned_to_user_id' => $data['assigned_to_user_id'] ?? $data['assigned_to'] ?? null,
             'notes' => $data['notes'] ?? null,
             'attachment_path' => $attachment ? $attachment->store('clinic/expenses', 'public') : null,
         ], static fn ($value) => $value !== null);
 
         if (isset($payload['expense_category_id']) && ! $this->repository->findExpenseCategory($clinicId, (int) $payload['expense_category_id'])) {
             return ServiceResult::error('Expense category not found.', null, ['expense_category_id' => ['Expense category not found.']], 422);
+        }
+
+        if (isset($payload['assigned_to_user_id']) && ! User::query()->where('clinic_id', $clinicId)->whereKey($payload['assigned_to_user_id'])->exists()) {
+            return ServiceResult::error('Assigned user not found.', null, ['assigned_to_user_id' => ['Assigned user not found.']], 422);
         }
 
         return ServiceResult::success(
@@ -386,18 +391,17 @@ class BillingService
             return ServiceResult::error('Invoice not found.', null, null, 404);
         }
 
-        if ((float) $invoice->remaining <= 0) {
-            return ServiceResult::error('Invoice is already fully paid.', null, ['remaining' => ['Invoice has no remaining balance.']], 422);
-        }
-
         if ($invoice->reminder_sent) {
-            return ServiceResult::success([
-                'already_sent' => true,
-                'invoice_id' => $invoice->id,
-                'reminder_sent' => true,
-                'reminder_sent_at' => optional($invoice->reminder_sent_at)?->toISOString(),
-                'remaining' => (float) $invoice->remaining,
-            ], 'Invoice reminder was already sent');
+            return ServiceResult::error(
+                'Reminder already sent for this invoice.',
+                null,
+                [
+                    'invoice' => ['Reminder already sent for this invoice.'],
+                    'invoice_id' => [$invoice->id],
+                    'reminder_sent_at' => [optional($invoice->reminder_sent_at)?->toISOString()],
+                ],
+                422
+            );
         }
 
         $phone = $invoice->patient?->user?->phone ?: $invoice->patient?->phone;
@@ -406,8 +410,11 @@ class BillingService
         }
 
         $message = sprintf(
-            'Reminder: invoice %s has a remaining balance of %.2f. Please contact the clinic to complete payment.',
+            'Reminder: invoice %s is currently %s. Total %.2f, paid %.2f, remaining %.2f. Please contact the clinic if you need any support.',
             $invoice->invoice_number,
+            (string) $invoice->status,
+            (float) $invoice->total,
+            (float) $invoice->paid,
             (float) $invoice->remaining
         );
 

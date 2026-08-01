@@ -10,6 +10,7 @@ use App\Http\Requests\Clinic\StoreClinicPaymentRequest;
 use App\Services\Clinic\BillingService;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class BillingController extends Controller
 {
@@ -113,6 +114,7 @@ class BillingController extends Controller
             'payment_method' => ['sometimes', 'nullable', 'string', 'max:50'],
             'expense_date' => ['sometimes', 'date'],
             'date' => ['sometimes', 'date'],
+            'assigned_to' => ['sometimes', 'nullable', 'integer', 'exists:users,id'],
             'assigned_to_user_id' => ['sometimes', 'nullable', 'integer', 'exists:users,id'],
             'notes' => ['sometimes', 'nullable', 'string'],
             'attachment' => ['sometimes', 'nullable', 'file', 'max:10240'],
@@ -183,9 +185,17 @@ class BillingController extends Controller
 
     public function storeExpenseCategory(Request $request)
     {
+        $clinicId = auth()->user()?->clinic_id;
         $result = $this->service->createExpenseCategory($request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('clinic_expense_categories', 'name')->where('clinic_id', $clinicId),
+            ],
             'status' => ['nullable', 'in:active,inactive'],
+        ], [
+            'name.unique' => 'This category name already exists for your clinic.',
         ]));
 
         return $result['success']
@@ -195,9 +205,17 @@ class BillingController extends Controller
 
     public function updateExpenseCategory(Request $request, int $id)
     {
+        $clinicId = auth()->user()?->clinic_id;
         $result = $this->service->updateExpenseCategory($id, $request->validate([
-            'name' => ['sometimes', 'string', 'max:255'],
+            'name' => [
+                'sometimes',
+                'string',
+                'max:255',
+                Rule::unique('clinic_expense_categories', 'name')->where('clinic_id', $clinicId)->ignore($id),
+            ],
             'status' => ['sometimes', 'in:active,inactive'],
+        ], [
+            'name.unique' => 'This category name already exists for your clinic.',
         ]));
 
         return $result['success']
