@@ -230,12 +230,12 @@ Route::prefix('clinic')
         });
 
         // ─── Patients ────────────────────────────────────────────────────────
-        Route::middleware('permission:patients.view')->get('/patients',                           [PatientController::class, 'index']);
+        Route::middleware('permission:patients.view')->get('/patients',                         [PatientController::class, 'index']);
         Route::middleware('permission:patients.create')->post('/patients',                        [PatientController::class, 'store']);
         Route::middleware('permission:patients.view')->get('/patients/{id}',                      [PatientController::class, 'show']);
         Route::middleware('permission:patients.update')->post('/patients/{id}',                  [PatientController::class, 'update']);
         Route::middleware('permission:patients.view')->get('/patients/{id}/dental-chart',         [PatientController::class, 'dentalChart']);
-        Route::middleware('permission:patients.update')->patch('/patients/{id}/dental-chart/presence', [PatientController::class, 'updateToothPresence']);
+        Route::middleware('permission:patients.update')->post('/patients/{id}/dental-chart/presence', [PatientController::class, 'updateToothPresence']);
         Route::middleware('permission:patients.update')->post('/patients/{id}/dental-chart',      [PatientController::class, 'storeDentalChart']);
         Route::middleware('permission:patients.view')->get('/patients/{id}/radiology',            [PatientController::class, 'radiology']);
         Route::middleware('permission:patients.update')->post('/patients/{id}/radiology/upload',  [PatientController::class, 'uploadRadiology']);
@@ -330,7 +330,7 @@ Route::middleware('permission:patients.update')->post('/patients/{id}/documents/
         Route::middleware('permission:tasks.view')->get('/tasks',              [TaskController::class, 'index']);
         Route::middleware('permission:tasks.view')->get('/tasks/assignees',    [TaskController::class, 'assignees']);
         Route::middleware('permission:tasks.manage')->post('/tasks',            [TaskController::class, 'store']);
-        Route::middleware('permission:tasks.manage')->patch('/tasks/{id}/status', [TaskController::class, 'updateStatus']);
+        Route::middleware('permission:tasks.manage')->post('/tasks/{id}/status', [TaskController::class, 'updateStatus']);
         Route::middleware('permission:tasks.manage')->post('/tasks/{id}',      [TaskController::class, 'update']);
         Route::middleware('permission:tasks.manage')->delete('/tasks/{id}',     [TaskController::class, 'destroy']);
 

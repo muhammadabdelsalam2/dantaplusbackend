@@ -402,7 +402,9 @@ class PatientService
             'notes' => $data['notes'] ?? null,
         ]));
 
-        return ServiceResult::success(DentalChartResource::collection($entries->load(['procedure:id,name', 'treatingDoctor:id,name']))->resolve(), 'Dental chart entry recorded successfully', 201);
+        $entries->each->load(['procedure:id,name', 'treatingDoctor:id,name']);
+
+        return ServiceResult::success(DentalChartResource::collection($entries)->resolve(), 'Dental chart entry recorded successfully', 201);
     }
 
     public function updateToothPresence(int $patientId, array $data): array
@@ -439,10 +441,9 @@ class PatientService
             ]);
         });
 
-        return ServiceResult::success(
-            DentalChartResource::collection($entries->load(['procedure:id,name', 'treatingDoctor:id,name']))->resolve(),
-            'Tooth presence updated successfully'
-        );
+        $entries->each->load(['procedure:id,name', 'treatingDoctor:id,name']);
+
+        return ServiceResult::success(DentalChartResource::collection($entries)->resolve(), 'Tooth presence updated successfully');
     }
 
     public function radiology(int $patientId, array $filters = []): array

@@ -231,11 +231,11 @@ class PatientController extends Controller
     public function generateRadiologyReport(Request $request, int $id)
     {
         $data = $request->validate([
-            'report_format' => ['required', 'in:clinical_summary,before_after_progress'],
-            'case_selection' => ['required', 'array', 'min:1'],
+            'report_format' => ['nullable', 'in:clinical_summary,before_after_progress'],
+            'case_selection' => ['nullable', 'array', 'min:1'],
             'case_selection.*' => ['integer', 'distinct'],
-            'findings' => ['required', 'string'],
-            'diagnosis' => ['required', 'string'],
+            'findings' => ['nullable', 'string'],
+            'diagnosis' => ['nullable', 'string'],
         ]);
 
         return $this->respond($this->service->generateRadiologyReport($id, $data));
