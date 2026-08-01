@@ -43,10 +43,10 @@ class AuthController extends Controller
             return ApiResponse::error('Invalid credentials', 401);
         }
 
-        if ((int) ($user->is_active ?? 1) !== 1) {
+        if (($user->status ?? 'Active') === 'Inactive' || (int) ($user->is_active ?? 1) !== 1) {
             Auth::guard('web')->logout();
 
-            return ApiResponse::error('Account is inactive', 403);
+            return ApiResponse::error('Account is inactive. Please contact your clinic administrator.', 403);
         }
 
         $user = $user->fresh();

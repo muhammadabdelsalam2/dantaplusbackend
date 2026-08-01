@@ -8,6 +8,8 @@ use Illuminate\Validation\Rule;
 
 class UpdateSupportTicketRequest extends FormRequest
 {
+    private const PRIORITY_VALUES = ['High', 'Medium', 'Low', 'high', 'medium', 'low'];
+
     public function authorize(): bool
     {
         return true;
@@ -17,7 +19,7 @@ class UpdateSupportTicketRequest extends FormRequest
     {
         return [
             'status' => ['nullable', Rule::in(SupportTicket::STATUSES)],
-            'priority' => ['nullable', Rule::in(SupportTicket::PRIORITIES)],
+            'priority' => ['nullable', Rule::in(self::PRIORITY_VALUES)],
             'assigned_to' => ['nullable', 'integer', 'exists:users,id'],
             'category' => ['nullable', 'string', 'max:255'],
         ];

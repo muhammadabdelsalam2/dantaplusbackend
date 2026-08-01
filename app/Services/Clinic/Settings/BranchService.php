@@ -45,6 +45,8 @@ class BranchService
             'name' => $data['name'],
             'code' => Str::upper(Str::slug($data['name'] . '-' . now()->format('His'), '-')),
             'address' => $data['address'] ?? null,
+            'latitude' => $data['latitude'] ?? null,
+            'longitude' => $data['longitude'] ?? null,
             'city' => $data['city'] ?? null,
             'phone' => $data['phone'],
             'email' => $data['email'] ?? null,
@@ -69,6 +71,22 @@ class BranchService
         }
 
         return ServiceResult::success((new BranchResource($branch))->resolve(), 'Branch fetched successfully');
+    }
+
+    public function managers(): array
+    {
+        $clinicId = $this->currentClinicId();
+        if (! $clinicId) {
+            return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
+        }
+
+        return ServiceResult::success(
+            $this->repository->listManagers($clinicId)
+                ->map(fn ($manager) => ['id' => $manager->id, 'name' => $manager->name])
+                ->values()
+                ->all(),
+            'Branch managers fetched successfully'
+        );
     }
 
     public function update(int $id, array $data): array

@@ -16,7 +16,9 @@ class PatientNoteResource extends JsonResource
                 'id' => $this->user->id,
                 'name' => $this->user->name,
             ] : null,
+            'type' => $this->noteType(),
             'note' => $this->note,
+            'text' => $this->note,
             'attachments' => $this->whenLoaded('attachments', fn () => $this->attachments->map(fn ($attachment) => [
                 'id' => $attachment->id,
                 'file_name' => $attachment->file_name,
@@ -31,5 +33,16 @@ class PatientNoteResource extends JsonResource
             ])->filter(fn ($user) => $user['id'] !== null)->values()),
             'created_at' => optional($this->created_at)?->toISOString(),
         ], static fn ($value) => $value !== null);
+    }
+
+    private function noteType(): string
+    {
+        if (! $this->relationLoaded('attachments') || $this->attachments->isEmpty()) {
+            return 'text';
+        }
+
+        return $this->attachments->contains(fn ($attachment) => str_starts_with((string) $attachment->mime_type, 'audio/'))
+            ? 'voice'
+            : 'file';
     }
 }

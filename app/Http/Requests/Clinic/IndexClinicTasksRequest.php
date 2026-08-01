@@ -8,6 +8,19 @@ use Illuminate\Validation\Rule;
 
 class IndexClinicTasksRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        $statusMap = [
+            'To Do' => 'todo',
+            'In Progress' => 'in_progress',
+            'Done' => 'done',
+        ];
+
+        if ($this->has('status')) {
+            $this->merge(['status' => $statusMap[$this->input('status')] ?? $this->input('status')]);
+        }
+    }
+
     public function authorize(): bool
     {
         return true;

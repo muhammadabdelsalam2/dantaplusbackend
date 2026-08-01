@@ -22,6 +22,8 @@ class UpdateClinicInfoRequest extends FormRequest
             'email' => ['nullable', 'email', 'max:255', Rule::unique('clinics', 'email')->ignore($clinicId)],
             'phone' => ['required', 'string', 'max:50'],
             'address' => ['nullable', 'string', 'max:1000'],
+            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
             'clinic_type' => ['nullable', 'string', 'max:50'],
             'subdomain' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],

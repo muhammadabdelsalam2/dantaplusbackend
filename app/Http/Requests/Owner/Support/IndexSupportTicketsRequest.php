@@ -8,6 +8,8 @@ use Illuminate\Validation\Rule;
 
 class IndexSupportTicketsRequest extends FormRequest
 {
+    private const PRIORITY_VALUES = ['High', 'Medium', 'Low', 'high', 'medium', 'low'];
+
     public function authorize(): bool
     {
         return true;
@@ -18,7 +20,7 @@ class IndexSupportTicketsRequest extends FormRequest
         return [
             'q' => ['nullable', 'string', 'max:255'],
             'status' => ['nullable', Rule::in(SupportTicket::STATUSES)],
-            'priority' => ['nullable', Rule::in(SupportTicket::PRIORITIES)],
+            'priority' => ['nullable', Rule::in(self::PRIORITY_VALUES)],
             'assigned_to' => ['nullable', 'integer', 'exists:users,id'],
             'reporter_type' => ['nullable', Rule::in(SupportTicket::REPORTER_TYPES)],
             'clinic_id' => ['nullable', 'integer', 'exists:clinics,id'],

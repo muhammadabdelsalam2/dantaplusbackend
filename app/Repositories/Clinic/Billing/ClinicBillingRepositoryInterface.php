@@ -30,6 +30,10 @@ interface ClinicBillingRepositoryInterface
 
     public function createExpense(array $data): ClinicExpense;
 
+    public function findExpense(int $clinicId, int $expenseId): ?ClinicExpense;
+
+    public function updateExpense(ClinicExpense $expense, array $data): ClinicExpense;
+
     public function expenseSummary(int $clinicId, array $filters): array;
 
     public function profitLossSummary(int $clinicId, array $filters): array;

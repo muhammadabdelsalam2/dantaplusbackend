@@ -8,6 +8,8 @@ use App\DTOs\SendMessageDTO;
 use App\Events\MessageSent;
 use App\Factories\Chat\Message\MessageFactory;
 use App\Models\Chat;
+use App\Models\MessageChat;
+use App\Services\Clinic\Settings\CommunicationPermissionService;
 use App\Repositories\Chat\Message\MessageRepository;
 use App\Repositories\Contracts\Chat\Message\MessageRepositoryInterface;
 use App\Support\ApiResponse;
@@ -103,7 +105,8 @@ class MessageService
                 );
             }
             // 🏭 factory
-            $has_permession = $this->ensureHavePermission($user, $chat);
+            $action = in_array($dto->type, ['voice', 'voice_note'], true) ? 'voice' : 'notes';
+            $has_permession = $this->ensureHavePermission($user, $chat, $action);
             if (!$has_permession) {
                 return ServiceResult::error(
                     message: 'This User Dont Have Permession To Send',
@@ -124,6 +127,32 @@ class MessageService
 
             return $message;
         });
+    }
+    public function deleteMessage(int $messageId, $user)
+    {
+        $message = MessageChat::query()->with('chat')->findOrFail($messageId);
+
+        if (! app(CommunicationPermissionService::class)->allows($user, 'can_delete_messages')) {
+            return ServiceResult::error(
+                message: 'You are not allowed to delete messages.',
+                nextEndpoint: null,
+                errors: null,
+                code: 403,
+            );
+        }
+
+        if (! $this->ensureUserInChat($message->chat_id, $user->id)) {
+            return ServiceResult::error(
+                message: 'Unauthorized access to this chat.',
+                nextEndpoint: null,
+                errors: 'CHAT_ACCESS_DENIED',
+                code: 403,
+            );
+        }
+
+        $message->delete();
+
+        return true;
     }
     protected function ensureHavePermission($user, $chat, string $action = 'text')
     {

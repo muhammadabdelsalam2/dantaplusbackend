@@ -55,7 +55,7 @@ class MessageController extends Controller
         $validated = $request->validate([
             'chat_id' => ['required', 'exists:chats,id'],
             'message' => ['nullable', 'string'],
-            'type' => ['required', 'in:text,image,file,system'],
+            'type' => ['required', 'in:text,image,file,system,voice,voice_note'],
             'reply_to_id' => ['nullable', 'exists:message_chats,id'],
             'metadata' => ['nullable', 'array'],
         ]);
@@ -74,5 +74,16 @@ class MessageController extends Controller
             'status' => true,
             'data' => $message
         ], 201);
+    }
+
+    public function destroy(Request $request, int $messageId)
+    {
+        $result = $this->messageService->deleteMessage($messageId, $request->user());
+
+        if (is_array($result) && array_key_exists('success', $result) && ! $result['success']) {
+            return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+        }
+
+        return ApiResponse::success(null, 'Message deleted successfully');
     }
 }

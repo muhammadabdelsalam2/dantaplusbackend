@@ -16,6 +16,7 @@ class PatientRadiology extends Model
         'patient_id',
         'clinic_id',
         'modality',
+        'teeth',
         'notes',
         'file_path',
         'status',

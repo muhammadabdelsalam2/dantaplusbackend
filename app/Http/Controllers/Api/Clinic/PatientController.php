@@ -12,7 +12,9 @@ use App\Http\Requests\Clinic\UpdatePatientRequest;
 use App\Http\Requests\Clinic\UploadPatientDocumentRequest;
 use App\Http\Requests\Clinic\UploadPatientRadiologyRequest;
 use App\Services\Clinic\PatientService;
+use App\Services\Clinic\Settings\CommunicationPermissionService;
 use App\Support\ApiResponse;
+use Illuminate\Http\Request;
 
 class PatientController extends Controller
 {
@@ -90,9 +92,12 @@ class PatientController extends Controller
         return ApiResponse::success($result['data'], $result['message'], $result['code']);
     }
 
-    public function radiology(int $id)
+    public function radiology(Request $request, int $id)
     {
-        $result = $this->service->radiology($id);
+        $result = $this->service->radiology($id, $request->validate([
+            'search' => ['nullable', 'string', 'max:255'],
+            'modality' => ['nullable', 'in:Periapical,Bitewing,Panoramic,CBCT'],
+        ]));
 
         if (! $result['success']) {
             return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
@@ -142,6 +147,10 @@ class PatientController extends Controller
 
     public function discussion(int $id)
     {
+        if (! app(CommunicationPermissionService::class)->allows(auth()->user(), 'can_access_patient_discussions')) {
+            return ApiResponse::error('You are not allowed to access patient discussions.', 403);
+        }
+
         $result = $this->service->discussion($id);
 
         if (! $result['success']) {
@@ -153,6 +162,14 @@ class PatientController extends Controller
 
     public function storeDiscussion(StorePatientNoteRequest $request, int $id)
     {
+        $permissions = app(CommunicationPermissionService::class);
+        if ($request->hasFile('voice_note') && ! $permissions->allows(auth()->user(), 'can_send_voice_notes')) {
+            return ApiResponse::error('You are not allowed to send voice notes.', 403);
+        }
+        if (! $request->hasFile('voice_note') && ! $permissions->allows(auth()->user(), 'can_send_notes')) {
+            return ApiResponse::error('You are not allowed to send notes.', 403);
+        }
+
         $result = $this->service->addDiscussion($id, $request->validated());
 
         if (! $result['success']) {
@@ -171,6 +188,104 @@ class PatientController extends Controller
         }
 
         return ApiResponse::success($result['data'], $result['message'], $result['code']);
+    }
+
+    public function financialPerformance(int $id)
+    {
+        return $this->respond($this->service->financialPerformance($id));
+    }
+
+    public function revenueOverTime(int $id)
+    {
+        return $this->respond($this->service->revenueOverTime($id));
+    }
+
+    public function paymentMethodDistribution(int $id)
+    {
+        return $this->respond($this->service->paymentMethodDistribution($id));
+    }
+
+    public function visitBehavioralTrends(int $id)
+    {
+        return $this->respond($this->service->visitBehavioralTrends($id));
+    }
+
+    public function radiologyReport(int $id, int $recordId)
+    {
+        return $this->respond($this->service->radiologyReport($id, $recordId));
+    }
+
+    public function radiologyCompare(Request $request, int $id)
+    {
+        $data = $request->validate([
+            'record_ids' => ['required', 'array', 'size:2'],
+            'record_ids.*' => ['integer', 'distinct'],
+        ]);
+
+        return $this->respond($this->service->radiologyCompare($id, $data['record_ids']));
+    }
+
+    public function treatmentsHistory(int $id)
+    {
+        return $this->respond($this->service->treatmentsHistory($id));
+    }
+
+    public function storeTreatment(Request $request, int $id)
+    {
+        $data = $request->validate([
+            'service_name' => ['required_without:title', 'string', 'max:255'],
+            'title' => ['required_without:service_name', 'string', 'max:255'],
+            'tooth_number' => ['nullable', 'string', 'max:20'],
+            'description' => ['nullable', 'string'],
+            'status' => ['required', 'string', 'max:50'],
+            'date' => ['sometimes', 'date'],
+            'treatment_date' => ['sometimes', 'date'],
+            'cost' => ['nullable', 'numeric', 'min:0'],
+            'dentist' => ['sometimes', 'integer', 'exists:users,id'],
+            'doctor_id' => ['sometimes', 'integer', 'exists:users,id'],
+            'payment_method' => ['nullable', 'string', 'max:50'],
+        ]);
+
+        return $this->respond($this->service->storeTreatment($id, $data));
+    }
+
+    public function treatmentServices()
+    {
+        return $this->respond($this->service->clinicServicesList());
+    }
+
+    public function treatmentDentists()
+    {
+        return $this->respond($this->service->clinicDentistsList());
+    }
+
+    public function invoices(int $id)
+    {
+        return $this->respond($this->service->invoices($id));
+    }
+
+    public function addPayment(Request $request, int $id, int $invoiceId)
+    {
+        $data = $request->validate([
+            'amount_to_pay' => ['required', 'numeric', 'min:0.01'],
+            'payment_method' => ['required', 'string', 'max:50'],
+            'paid_at' => ['nullable', 'date'],
+            'notes' => ['nullable', 'string'],
+        ]);
+
+        return $this->respond($this->service->addPayment($id, $invoiceId, $data));
+    }
+
+    public function trackLabCase(int $id, int $caseId)
+    {
+        return $this->respond($this->service->trackLabCase($id, $caseId));
+    }
+
+    private function respond(array $result)
+    {
+        return $result['success']
+            ? ApiResponse::success($result['data'], $result['message'], $result['code'])
+            : ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
     }
     public function documents(int $id)
 {

@@ -73,6 +73,12 @@ class SupportCenterService
         $replies = $ticket->replies->map(fn (SupportReply $reply) => $this->mapReply($reply))->values();
 
         return ServiceResult::success([
+            'ticket_id' => $ticket->code,
+            'id' => $ticket->id,
+            'title' => $ticket->title,
+            'priority' => $this->displayPriority($ticket->priority),
+            'status' => $ticket->status,
+            'messages' => $replies,
             'ticket' => $this->mapTicketDetails($ticket),
             'replies' => $replies,
         ], 'Support ticket fetched successfully');
@@ -172,10 +178,14 @@ class SupportCenterService
             'lab_id' => $data['lab_id'] ?? null,
             'title' => $data['title'],
             'description' => $data['description'],
-            'category' => $data['category'],
-            'priority' => $data['priority'] ?? SupportTicket::PRIORITY_MEDIUM,
+            'category' => $this->displayCategory($data['category']),
+            'priority' => $this->displayPriority($data['priority'] ?? SupportTicket::PRIORITY_MEDIUM),
             'status' => $data['status'] ?? SupportTicket::STATUS_OPEN,
             'assigned_to' => $data['assigned_to'] ?? null,
+            'attachment_path' => $data['attachment_path'] ?? null,
+            'attachment_name' => $data['attachment_name'] ?? null,
+            'attachment_mime' => $data['attachment_mime'] ?? null,
+            'attachment_size' => $data['attachment_size'] ?? null,
             'last_reply_at' => null,
         ]);
 
@@ -199,9 +209,12 @@ class SupportCenterService
             'labId' => $ticket->lab_id,
             'labName' => $ticket->lab?->name,
             'title' => $ticket->title,
-            'category' => $ticket->category,
-            'priority' => $ticket->priority,
+            'ticket_title' => $ticket->title,
+            'category' => $this->displayCategory($ticket->category),
+            'priority' => $this->displayPriority($ticket->priority),
             'status' => $ticket->status,
+            'description' => $ticket->description,
+            'attachment' => $this->attachmentPayload($ticket),
             'assignedTo' => $ticket->assigned_to,
             'assignedToName' => $ticket->assignedTo?->name,
             'lastReplyAt' => optional($ticket->last_reply_at)->toISOString(),
@@ -221,9 +234,11 @@ class SupportCenterService
             'labId' => $ticket->lab_id,
             'labName' => $ticket->lab?->name,
             'title' => $ticket->title,
+            'ticket_title' => $ticket->title,
             'description' => $ticket->description,
-            'category' => $ticket->category,
-            'priority' => $ticket->priority,
+            'attachment' => $this->attachmentPayload($ticket),
+            'category' => $this->displayCategory($ticket->category),
+            'priority' => $this->displayPriority($ticket->priority),
             'status' => $ticket->status,
             'assignedTo' => $ticket->assigned_to,
             'assignedToName' => $ticket->assignedTo?->name,
@@ -240,9 +255,48 @@ class SupportCenterService
             'supportTicketId' => $reply->support_ticket_id,
             'senderId' => $reply->sender_id,
             'senderName' => $reply->sender_name,
+            'sender_name' => $reply->sender_name,
             'senderRole' => $reply->sender_role,
             'message' => $reply->message,
             'createdAt' => optional($reply->created_at)->toISOString(),
+            'sent_at' => optional($reply->created_at)->toISOString(),
         ];
+    }
+
+    private function attachmentPayload(SupportTicket $ticket): ?array
+    {
+        if (! $ticket->attachment_path) {
+            return null;
+        }
+
+        return [
+            'file_name' => $ticket->attachment_name,
+            'file_path' => $ticket->attachment_path,
+            'file_url' => asset('storage/' . $ticket->attachment_path),
+            'mime_type' => $ticket->attachment_mime,
+            'size' => (int) $ticket->attachment_size,
+        ];
+    }
+
+    private function displayPriority(string $priority): string
+    {
+        return match (strtolower($priority)) {
+            'high' => 'High',
+            'medium' => 'Medium',
+            'low' => 'Low',
+            default => $priority,
+        };
+    }
+
+    private function displayCategory(string $category): string
+    {
+        return match (strtolower($category)) {
+            'billing' => 'Billing',
+            'account' => 'Account',
+            'technical' => 'Technical',
+            'feature request' => 'Feature Request',
+            'other', 'general' => 'Other',
+            default => $category,
+        };
     }
 }

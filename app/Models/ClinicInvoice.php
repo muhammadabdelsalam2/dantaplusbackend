@@ -25,6 +25,9 @@ class ClinicInvoice extends Model
         'issued_at',
         'due_date',
         'notes',
+        'reminder_sent',
+        'reminder_sent_at',
+        'reminder_sent_by',
     ];
 
     protected function casts(): array
@@ -35,6 +38,8 @@ class ClinicInvoice extends Model
             'remaining' => 'decimal:2',
             'issued_at' => 'date',
             'due_date' => 'date',
+            'reminder_sent' => 'boolean',
+            'reminder_sent_at' => 'datetime',
         ];
     }
 

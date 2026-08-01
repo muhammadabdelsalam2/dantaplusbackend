@@ -18,6 +18,8 @@ class StoreBranchRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'manager_id' => ['nullable', 'integer', 'exists:users,id'],
             'address' => ['nullable', 'string', 'max:1000'],
+            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
             'city' => ['nullable', 'string', 'max:255'],
             'phone' => ['required', 'string', 'max:50'],
             'email' => ['nullable', 'email', 'max:255'],

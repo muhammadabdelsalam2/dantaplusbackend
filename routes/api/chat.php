@@ -21,6 +21,7 @@ Route::prefix('doctor')
 
             Route::get('{chatId}/messages', [MessageController::class, 'index']);
             Route::post('messages/send', [MessageController::class, 'store']);
+            Route::delete('messages/{messageId}', [MessageController::class, 'destroy']);
         });
 
         Broadcast::routes(['middleware' => ['auth:sanctum']]);

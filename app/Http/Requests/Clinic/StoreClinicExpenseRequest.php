@@ -15,10 +15,12 @@ class StoreClinicExpenseRequest extends FormRequest
     {
         return [
             'title' => ['required', 'string', 'max:255'],
-            'expense_category_id' => ['required', 'integer', 'exists:clinic_expense_categories,id'],
+            'expense_category_id' => ['required_without:category', 'integer', 'exists:clinic_expense_categories,id'],
+            'category' => ['required_without:expense_category_id', 'integer', 'exists:clinic_expense_categories,id'],
             'amount' => ['required', 'numeric', 'min:0.01'],
             'payment_method' => ['nullable', 'string', 'max:50'],
-            'expense_date' => ['required', 'date'],
+            'expense_date' => ['required_without:date', 'date'],
+            'date' => ['required_without:expense_date', 'date'],
             'assigned_to_user_id' => ['nullable', 'integer', 'exists:users,id'],
             'notes' => ['nullable', 'string'],
             'attachment' => ['nullable', 'file', 'max:10240'],

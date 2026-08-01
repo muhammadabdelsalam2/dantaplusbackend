@@ -8,6 +8,7 @@ use App\Http\Requests\Clinic\StoreClinicTaskRequest;
 use App\Http\Requests\Clinic\UpdateClinicTaskRequest;
 use App\Services\Clinic\TaskService;
 use App\Support\ApiResponse;
+use Illuminate\Http\Request;
 
 class TaskController extends Controller
 {
@@ -38,6 +39,26 @@ class TaskController extends Controller
     public function update(UpdateClinicTaskRequest $request, int $id)
     {
         $result = $this->service->update($id, $request->validated());
+
+        return $result['success']
+            ? ApiResponse::success($result['data'], $result['message'], $result['code'])
+            : ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+    }
+
+    public function updateStatus(Request $request, int $id)
+    {
+        $result = $this->service->updateStatus($id, $request->validate([
+            'status' => ['required', 'in:To Do,In Progress,Done'],
+        ]));
+
+        return $result['success']
+            ? ApiResponse::success($result['data'], $result['message'], $result['code'])
+            : ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+    }
+
+    public function assignees()
+    {
+        $result = $this->service->assignees();
 
         return $result['success']
             ? ApiResponse::success($result['data'], $result['message'], $result['code'])

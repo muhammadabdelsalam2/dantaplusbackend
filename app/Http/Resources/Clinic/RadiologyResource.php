@@ -16,6 +16,7 @@ class RadiologyResource extends JsonResource
             'clinic_id' => $this->clinic_id,
             'patient_id' => $this->patient_id,
             'modality' => $this->modality,
+            'teeth' => $this->teeth,
             'notes' => $this->notes,
             'status' => $this->status,
             'file_path' => $this->file_path,

@@ -16,6 +16,8 @@ class Branch extends Model
         'name',
         'code',
         'address',
+        'latitude',
+        'longitude',
         'city',
         'phone',
         'email',
@@ -26,6 +28,14 @@ class Branch extends Model
         'rooms_count',
         'status',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'latitude' => 'decimal:7',
+            'longitude' => 'decimal:7',
+        ];
+    }
 
     public function clinic(): BelongsTo
     {

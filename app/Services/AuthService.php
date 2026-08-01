@@ -34,6 +34,15 @@ class AuthService
 
         $user = auth()->user();
 
+        if (($user->status ?? 'Active') === 'Inactive' || (int) ($user->is_active ?? 1) !== 1) {
+            auth()->logout();
+
+            return ServiceResult::error(
+                'Account is inactive. Please contact your clinic administrator.',
+                403
+            );
+        }
+
         return ServiceResult::success([
             'token' => $user->createToken('api')->plainTextToken,
             'user' => $user,

@@ -14,6 +14,10 @@ class ClinicUserResource extends JsonResource
             'name' => $this->name,
             'role' => $this->getRoleNames()->first(),
             'clinic_id' => $this->clinic_id,
+            'email' => $this->email,
+            'phone' => $this->phone,
+            'status' => $this->status ?: ((int) ($this->is_active ?? 1) === 1 ? 'Active' : 'Inactive'),
+            'is_active' => (bool) ($this->is_active ?? true),
         ], static fn ($value) => $value !== null);
     }
 }

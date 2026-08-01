@@ -8,6 +8,9 @@ use App\Http\Requests\Clinic\UpdateClinicUserRequest;
 use App\Http\Resources\Clinic\ClinicUserResource;
 use App\Models\User;
 use App\Support\ApiResponse;
+use App\Support\UserRoleManager;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
@@ -92,6 +95,48 @@ class UserController extends Controller
         }
 
         return ApiResponse::success((new ClinicUserResource($user->fresh()))->resolve(), 'Clinic user updated successfully');
+    }
+
+    public function updateStatus(Request $request, User $id)
+    {
+        $this->ensureClinicAdmin();
+
+        $data = $request->validate([
+            'status' => ['required', 'in:Active,Inactive'],
+        ]);
+
+        $user = $this->resolveClinicUser($id);
+        $user->update([
+            'status' => $data['status'],
+            'is_active' => $data['status'] === 'Active',
+        ]);
+
+        if ($data['status'] === 'Inactive' && $user->email) {
+            Mail::raw(
+                "Hello {$user->name},\n\nYour Denta+ account has been deactivated. You will not be able to access the dashboard until your clinic administrator reactivates it.",
+                fn ($message) => $message->to($user->email)->subject('Your Denta+ account has been deactivated')
+            );
+        }
+
+        return ApiResponse::success((new ClinicUserResource($user->fresh()))->resolve(), 'Clinic user status updated successfully');
+    }
+
+    public function roles()
+    {
+        $this->ensureClinicAdmin();
+
+        $roles = collect(UserRoleManager::clinicAssignableRoles())
+            ->push('clinic_admin')
+            ->unique()
+            ->values()
+            ->map(fn (string $role) => [
+                'id' => $role,
+                'name' => $role,
+                'label' => Str::headline($role),
+            ])
+            ->all();
+
+        return ApiResponse::success($roles, 'Clinic roles fetched successfully');
     }
 
     public function destroy(User $id)

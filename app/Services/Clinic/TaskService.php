@@ -95,6 +95,46 @@ class TaskService
         return ServiceResult::success((new ClinicTaskResource($task))->resolve(), 'Task updated successfully');
     }
 
+    public function updateStatus(int $taskId, array $data): array
+    {
+        $clinicId = $this->currentClinicId();
+        if (! $clinicId) {
+            return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
+        }
+
+        $task = $this->repository->findForClinic($clinicId, $taskId);
+        if (! $task) {
+            return ServiceResult::error('Task not found.', null, null, 404);
+        }
+
+        $task = $this->repository->update($task, [
+            'status' => $this->normalizeStatus($data['status']),
+        ]);
+
+        return ServiceResult::success((new ClinicTaskResource($task))->resolve(), 'Task status updated successfully');
+    }
+
+    public function assignees(): array
+    {
+        $clinicId = $this->currentClinicId();
+        if (! $clinicId) {
+            return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
+        }
+
+        $users = User::query()
+            ->where('clinic_id', $clinicId)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn (User $user) => [
+                'id' => $user->id,
+                'name' => $user->name,
+            ])
+            ->values()
+            ->all();
+
+        return ServiceResult::success($users, 'Task assignees fetched successfully');
+    }
+
     public function delete(int $taskId): array
     {
         $clinicId = $this->currentClinicId();
@@ -140,6 +180,16 @@ class TaskService
     private function currentClinicId(): ?int
     {
         return auth()->user()?->clinic_id;
+    }
+
+    private function normalizeStatus(string $status): string
+    {
+        return match ($status) {
+            'To Do' => 'todo',
+            'In Progress' => 'in_progress',
+            'Done' => 'done',
+            default => $status,
+        };
     }
 
     public function show(int $taskId): array

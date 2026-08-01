@@ -49,6 +49,17 @@ class BranchController extends Controller
         return ApiResponse::success($result['data'], $result['message'], $result['code']);
     }
 
+    public function managers()
+    {
+        $result = $this->service->managers();
+
+        if (! $result['success']) {
+            return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+        }
+
+        return ApiResponse::success($result['data'], $result['message'], $result['code']);
+    }
+
     public function update(UpdateBranchRequest $request, int $id)
     {
         $result = $this->service->update($id, $request->validated());

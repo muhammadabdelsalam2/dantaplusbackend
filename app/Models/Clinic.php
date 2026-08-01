@@ -21,6 +21,8 @@ class Clinic extends Model
         'email',
         'phone',
         'address',
+        'latitude',
+        'longitude',
         'subdomain',
         'clinic_type',
         'is_external',
@@ -44,6 +46,8 @@ class Clinic extends Model
             'registration_date' => 'date',
             'is_external' => 'boolean',
             'clinic_type' => ClinicType::class,
+            'latitude' => 'decimal:7',
+            'longitude' => 'decimal:7',
         ];
     }
     

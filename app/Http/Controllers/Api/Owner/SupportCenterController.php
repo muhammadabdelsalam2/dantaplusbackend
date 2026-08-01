@@ -32,25 +32,32 @@ class SupportCenterController extends Controller
     public function store(\Illuminate\Http\Request $request)
     {
         $validated = $request->validate([
-            'title' => 'required|string|max:255',
+            'title' => 'required_without:ticket_title|string|max:255',
+            'ticket_title' => 'required_without:title|string|max:255',
             'description' => 'required|string',
-            'priority' => 'nullable|string|in:Low,Medium,High,Urgent',
-            'category' => 'nullable|string|max:100',
-             'assigned_to' => 'nullable|integer|exists:users,id',
+            'priority' => 'nullable|string|in:High,Medium,Low,high,medium,low',
+            'category' => 'nullable|string|in:Billing,Account,Technical,Feature Request,Other,billing,account,technical,feature request,other',
+            'attachment' => 'nullable|file|mimes:png,jpg,jpeg,pdf|max:5120',
+            'assigned_to' => 'nullable|integer|exists:users,id',
         ]);
 
         $user = auth()->user();
+        $attachment = $request->file('attachment');
 
     $result = $this->service->createTicket([
     'reporter_type' => 'clinic',
     'reporter_id'   => $user->id,
     'clinic_id'     => $user->clinic_id,
-    'title'         => $validated['title'],
+    'title'         => $validated['title'] ?? $validated['ticket_title'],
     'description'   => $validated['description'],
     'priority'      => $validated['priority'] ?? 'Medium',
-    'category'      => $validated['category'] ?? 'General',
+    'category'      => $validated['category'] ?? 'Other',
     'status'        => 'Open',
     'assigned_to'   => $validated['assigned_to'] ?? null, 
+    'attachment_path' => $attachment ? $attachment->store('support/tickets', 'public') : null,
+    'attachment_name' => $attachment?->getClientOriginalName(),
+    'attachment_mime' => $attachment?->getClientMimeType(),
+    'attachment_size' => $attachment?->getSize(),
 ]);
 
         if (! $result['success']) {

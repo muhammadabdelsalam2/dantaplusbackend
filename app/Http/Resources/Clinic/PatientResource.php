@@ -14,9 +14,11 @@ class PatientResource extends JsonResource
             'clinic_id' => $this->clinic_id,
             'patient_number' => $this->patient_number,
             'name' => $this->user?->name,
+            'full_name' => $this->user?->name,
             'email' => $this->user?->email,
             'phone' => $this->phone ?: $this->user?->phone,
             'date_of_birth' => optional($this->date_of_birth)?->toDateString(),
+            'age' => $this->age,
             'gender' => $this->gender,
             'address' => $this->address,
             'medical_history' => $this->medical_history,
@@ -25,6 +27,7 @@ class PatientResource extends JsonResource
             'insurance' => array_filter([
                 'provider' => $this->insurance_provider,
                 'number' => $this->insurance_number,
+                'policy_number' => $this->insurance_number,
             ], static fn ($value) => $value !== null),
             'insurance_company' => $this->insuranceCompany ? [
                 'id' => $this->insuranceCompany->id,

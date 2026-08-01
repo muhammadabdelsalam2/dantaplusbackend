@@ -16,6 +16,13 @@ class ClinicInfoResource extends JsonResource
             'email' => $this->email,
             'phone' => $this->phone,
             'address' => $this->address,
+            'location' => [
+                'address' => $this->address,
+                'latitude' => $this->latitude !== null ? (float) $this->latitude : null,
+                'longitude' => $this->longitude !== null ? (float) $this->longitude : null,
+            ],
+            'latitude' => $this->latitude !== null ? (float) $this->latitude : null,
+            'longitude' => $this->longitude !== null ? (float) $this->longitude : null,
             'clinic_type' => $this->clinic_type?->value ?? $this->clinic_type,
             'subdomain' => $this->subdomain,
             'notes' => $this->notes,

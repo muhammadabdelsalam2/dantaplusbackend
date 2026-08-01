@@ -20,6 +20,8 @@ class UpdatePatientRequest extends FormRequest
 
         return [
             'name' => ['sometimes', 'string', 'max:255'],
+            'full_name' => ['sometimes', 'string', 'max:255'],
+            'age' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:130'],
             'email' => ['sometimes', 'nullable', 'email', 'max:255', Rule::unique('users', 'email')->ignore($userId)],
             'phone' => ['sometimes', 'string', 'max:50', Rule::unique('users', 'phone')->ignore($userId)],
             'password' => ['sometimes', 'nullable', 'string', 'min:8', 'confirmed'],
@@ -32,8 +34,8 @@ class UpdatePatientRequest extends FormRequest
             'insurance_company_id' => ['sometimes', 'nullable', 'integer', 'exists:insurance_companies,id'],
             'insurance_provider' => ['sometimes', 'nullable', 'string', 'max:255'],
             'insurance_number' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'policy_number' => ['sometimes', 'nullable', 'string', 'max:255'],
             'notes' => ['sometimes', 'nullable', 'string'],
         ];
     }
 }
-

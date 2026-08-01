@@ -14,10 +14,11 @@ class ClinicTaskResource extends JsonResource
         return [
             'id' => $this->id,
             'clinic_id' => $this->clinic_id,
+            'task_title' => $this->title,
             'title' => $this->title,
             'description' => $this->description,
-            'priority' => $this->priority,
-            'status' => $this->status,
+            'priority' => $this->displayPriority(),
+            'status' => $this->displayStatus(),
             'due_date' => optional($this->due_date)?->toDateString(),
             'assignee' => $this->assigneeUser ? [
                 'type' => 'user',
@@ -32,5 +33,20 @@ class ClinicTaskResource extends JsonResource
             'created_by' => $this->creator?->name,
             'created_at' => optional($this->created_at)?->toISOString(),
         ];
+    }
+
+    private function displayStatus(): string
+    {
+        return match ($this->status) {
+            'todo' => 'To Do',
+            'in_progress' => 'In Progress',
+            'done' => 'Done',
+            default => (string) $this->status,
+        };
+    }
+
+    private function displayPriority(): string
+    {
+        return ucfirst((string) $this->priority);
     }
 }

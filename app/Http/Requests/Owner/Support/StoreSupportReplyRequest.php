@@ -15,9 +15,6 @@ class StoreSupportReplyRequest extends FormRequest
     {
         return [
             'message' => ['required', 'string'],
-            'sender_id' => ['nullable', 'integer', 'exists:users,id'],
-            'sender_name' => ['nullable', 'string', 'max:255'],
-            'sender_role' => ['nullable', 'string', 'max:50'],
         ];
     }
 }

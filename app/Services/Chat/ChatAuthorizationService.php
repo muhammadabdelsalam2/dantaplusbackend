@@ -4,6 +4,7 @@ namespace App\Services\Chat;
 
 use App\Models\Chat;
 use App\Models\User;
+use App\Services\Clinic\Settings\CommunicationPermissionService;
 use Illuminate\Support\Facades\DB;
 
 class ChatAuthorizationService
@@ -14,7 +15,7 @@ class ChatAuthorizationService
     public function canSend(User $user, Chat $chat, string $action = 'text'): bool
     {
         // 1. Owner دايماً يقدر يبعت
-        if ($chat->owner_id === $user->id) {
+        if ($chat->owner_id === $user->id && $action === 'delete') {
             return true;
         }
 
@@ -28,14 +29,15 @@ class ChatAuthorizationService
             return false;
         }
 
-        // 3. لو الـ chat نوعه group، تحقق من الـ role
-        if ($chat->type === 'group') {
-            // مثلاً: لو عايز تمنع receptionist من بعض الـ channels
-            // $role = $user->getRoleNames()->first();
-            // if ($role === 'receptionist' && $action === 'file') return false;
+        $permissionService = app(CommunicationPermissionService::class);
+        if ($action === 'voice') {
+            return $permissionService->allows($user, 'can_send_voice_notes');
+        }
+        if ($action === 'delete') {
+            return $permissionService->allows($user, 'can_delete_messages');
         }
 
-        return true;
+        return $permissionService->allows($user, 'can_send_notes');
     }
 
     /**

@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\Patient\PatientPaymentController;
 use App\Http\Controllers\Api\Patient\PatientProfileController;
 use App\Http\Controllers\Api\Patient\PatientRatingController;
 use App\Http\Controllers\Api\Patient\PatientTreatmentController;
+use App\Http\Controllers\Api\Clinic\PatientController as ClinicPatientController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/patient/login', PatientLoginController::class)->middleware('guest');
@@ -85,3 +86,45 @@ Route::middleware(['auth:sanctum', 'role:patient'])->group(function () {
         Route::get('/doctors/{doctorId}/slots', [PatientAppointmentController::class, 'availableSlots']);
     });
 });
+
+/*
+| ====================================
+|  Clinic Patient Module Routes
+| ====================================
+*/
+Route::prefix('patient')
+    ->middleware(['auth:sanctum', 'role:clinic_admin|doctor|nurse|accountant|receptionist|staff'])
+    ->group(function () {
+        Route::middleware('permission:patients.view')->get('/', [ClinicPatientController::class, 'index']);
+        Route::middleware('permission:patients.view')->get('/{id}', [ClinicPatientController::class, 'show']);
+        Route::middleware('permission:patients.update')->post('/{id}', [ClinicPatientController::class, 'update']);
+
+        Route::middleware('permission:patients.view')->get('/{id}/dental-chart', [ClinicPatientController::class, 'dentalChart']);
+        Route::middleware('permission:patients.update')->post('/{id}/dental-chart/procedures', [ClinicPatientController::class, 'storeDentalChart']);
+
+        Route::middleware('permission:patients.view')->get('/{id}/analytics/financial-performance', [ClinicPatientController::class, 'financialPerformance']);
+        Route::middleware('permission:patients.view')->get('/{id}/analytics/revenue-over-time', [ClinicPatientController::class, 'revenueOverTime']);
+        Route::middleware('permission:patients.view')->get('/{id}/analytics/payment-method-distribution', [ClinicPatientController::class, 'paymentMethodDistribution']);
+        Route::middleware('permission:patients.view')->get('/{id}/analytics/visit-behavioral-trends', [ClinicPatientController::class, 'visitBehavioralTrends']);
+
+        Route::middleware('permission:patients.view')->get('/{id}/radiology', [ClinicPatientController::class, 'radiology']);
+        Route::middleware('permission:patients.update')->post('/{id}/radiology', [ClinicPatientController::class, 'uploadRadiology']);
+        Route::middleware('permission:patients.view')->get('/{id}/radiology/{recordId}/report', [ClinicPatientController::class, 'radiologyReport']);
+        Route::middleware('permission:patients.view')->get('/{id}/radiology/search', [ClinicPatientController::class, 'radiology']);
+        Route::middleware('permission:patients.view')->get('/{id}/radiology/filter', [ClinicPatientController::class, 'radiology']);
+        Route::middleware('permission:patients.view')->post('/{id}/radiology/compare', [ClinicPatientController::class, 'radiologyCompare']);
+
+        Route::middleware('permission:treatments.manage')->get('/{id}/treatments', [ClinicPatientController::class, 'treatmentsHistory']);
+        Route::middleware('permission:treatments.manage')->post('/{id}/treatments', [ClinicPatientController::class, 'storeTreatment']);
+        Route::middleware('permission:treatments.manage')->get('/treatments/services', [ClinicPatientController::class, 'treatmentServices']);
+        Route::middleware('permission:treatments.manage')->get('/treatments/dentists', [ClinicPatientController::class, 'treatmentDentists']);
+
+        Route::middleware('permission:billing.manage')->get('/{id}/billing/invoices', [ClinicPatientController::class, 'invoices']);
+        Route::middleware('permission:billing.manage')->post('/{id}/billing/invoices/{invoiceId}/payments', [ClinicPatientController::class, 'addPayment']);
+
+        Route::middleware('permission:patients.view')->get('/{id}/labs', [ClinicPatientController::class, 'labCases']);
+        Route::middleware('permission:patients.view')->get('/{id}/labs/{caseId}/track', [ClinicPatientController::class, 'trackLabCase']);
+
+        Route::middleware('permission:patients.view')->get('/{id}/discussion', [ClinicPatientController::class, 'discussion']);
+        Route::middleware('permission:communication.send')->post('/{id}/discussion', [ClinicPatientController::class, 'storeDiscussion']);
+    });

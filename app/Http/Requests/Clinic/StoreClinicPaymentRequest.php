@@ -14,8 +14,10 @@ class StoreClinicPaymentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'amount' => ['required', 'numeric', 'min:0.01'],
+            'amount' => ['required_without:amount_to_pay', 'numeric', 'min:0.01'],
+            'amount_to_pay' => ['required_without:amount', 'numeric', 'min:0.01'],
             'method' => ['nullable', 'string', 'max:50'],
+            'payment_method' => ['nullable', 'string', 'max:50'],
             'paid_at' => ['nullable', 'date'],
             'notes' => ['nullable', 'string'],
         ];

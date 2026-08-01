@@ -6,6 +6,7 @@ use App\Http\Resources\Clinic\Settings\WhatsappBotSettingResource;
 use App\Models\Clinic;
 use App\Models\Clinic\CommunicationSettings;
 use App\Models\Patient;
+use App\Models\Service;
 use App\Models\WhatsappBotSetting;
 use App\Models\WhatsappMessage;
 use App\Services\Clinic\WhatsappBot\Providers\WhatsAppProviderInterface;
@@ -30,7 +31,9 @@ class WhatsappBotService
         }
 
         return ServiceResult::success(
-            (new WhatsappBotSettingResource($this->settingForClinic($clinic->id)))->resolve(),
+            (new WhatsappBotSettingResource($this->settingForClinic($clinic->id)))
+                ->additional(['available_services_for_bot_booking' => $this->clinicServices($clinic->id)])
+                ->resolve(),
             'WhatsApp bot settings fetched successfully.'
         );
     }
@@ -47,7 +50,9 @@ class WhatsappBotService
         $setting->save();
 
         return ServiceResult::success(
-            (new WhatsappBotSettingResource($setting->fresh()))->resolve(),
+            (new WhatsappBotSettingResource($setting->fresh()))
+                ->additional(['available_services_for_bot_booking' => $this->clinicServices($clinic->id)])
+                ->resolve(),
             'WhatsApp bot settings updated successfully.'
         );
     }
@@ -63,7 +68,9 @@ class WhatsappBotService
         $setting->update(['is_enabled' => $enabled]);
 
         return ServiceResult::success(
-            (new WhatsappBotSettingResource($setting->fresh()))->resolve(),
+            (new WhatsappBotSettingResource($setting->fresh()))
+                ->additional(['available_services_for_bot_booking' => $this->clinicServices($clinic->id)])
+                ->resolve(),
             $enabled ? 'WhatsApp bot enabled successfully.' : 'WhatsApp bot disabled successfully.'
         );
     }
@@ -408,6 +415,22 @@ class WhatsappBotService
         }
 
         return $data;
+    }
+
+    private function clinicServices(int $clinicId): array
+    {
+        return Service::query()
+            ->where('is_active', true)
+            ->where(function ($query) use ($clinicId) {
+                $query->whereNull('created_by_clinic_id')->orWhere('created_by_clinic_id', $clinicId);
+            })
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn (Service $service) => [
+                'id' => $service->id,
+                'name' => $service->name,
+            ])
+            ->all();
     }
 
     private function normalizePhone(?string $phone): ?string

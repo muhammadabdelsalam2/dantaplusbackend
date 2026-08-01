@@ -14,7 +14,8 @@ class UploadPatientRadiologyRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'modality' => ['required', 'string', 'max:100'],
+            'modality' => ['required', 'in:Periapical,Bitewing,Panoramic,CBCT'],
+            'teeth' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
             'status' => ['nullable', 'string', 'max:50'],
             'file' => ['nullable', 'file', 'max:10240'],

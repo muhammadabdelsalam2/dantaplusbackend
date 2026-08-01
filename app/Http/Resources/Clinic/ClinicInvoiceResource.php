@@ -11,8 +11,10 @@ class ClinicInvoiceResource extends JsonResource
     {
         return array_filter([
             'id' => $this->id,
+            'invoice_id' => $this->invoice_number,
             'invoice_number' => $this->invoice_number,
             'clinic_id' => $this->clinic_id,
+            'patient_name' => $this->patient?->user?->name,
             'patient' => $this->patient ? [
                 'id' => $this->patient->id,
                 'name' => $this->patient->user?->name,
@@ -25,11 +27,15 @@ class ClinicInvoiceResource extends JsonResource
             'total' => (float) $this->total,
             'paid' => (float) $this->paid,
             'remaining' => (float) $this->remaining,
+            'amount' => (float) $this->total,
             'status' => $this->status,
+            'date' => optional($this->issued_at)?->toDateString(),
             'payment_method' => $this->payment_method,
             'issued_at' => optional($this->issued_at)?->toDateString(),
             'due_date' => optional($this->due_date)?->toDateString(),
             'notes' => $this->notes,
+            'reminder_sent' => (bool) $this->reminder_sent,
+            'reminder_sent_at' => optional($this->reminder_sent_at)?->toISOString(),
             'items' => ClinicInvoiceItemResource::collection($this->whenLoaded('items')),
             'payments' => ClinicPaymentResource::collection($this->whenLoaded('payments')),
         ], static fn ($value) => $value !== null);

@@ -18,11 +18,17 @@ class ClinicBillingRepository implements ClinicBillingRepositoryInterface
         return ClinicInvoice::query()
             ->with(['clinic:id,name', 'patient.user:id,name,phone', 'doctor:id,name', 'items', 'payments.recorder:id,name'])
             ->where('clinic_id', $clinicId)
+            ->when($filters['search'] ?? null, function (Builder $query, string $search) {
+                $query->where(function (Builder $builder) use ($search) {
+                    $builder->where('invoice_number', 'like', "%{$search}%")
+                        ->orWhereHas('patient.user', fn (Builder $patientQuery) => $patientQuery->where('name', 'like', "%{$search}%"));
+                });
+            })
             ->when($filters['status'] ?? null, fn (Builder $query, string $status) => $query->where('status', $status))
             ->when($filters['patient_id'] ?? null, fn (Builder $query, int $patientId) => $query->where('patient_id', $patientId))
-            ->when($filters['doctor_id'] ?? null, fn (Builder $query, int $doctorId) => $query->where('doctor_user_id', $doctorId))
-            ->when($filters['date_from'] ?? null, fn (Builder $query, string $date) => $query->whereDate('issued_at', '>=', $date))
-            ->when($filters['date_to'] ?? null, fn (Builder $query, string $date) => $query->whereDate('issued_at', '<=', $date))
+            ->when($filters['doctor_id'] ?? $filters['doctor'] ?? null, fn (Builder $query, int $doctorId) => $query->where('doctor_user_id', $doctorId))
+            ->when($filters['date_from'] ?? $filters['start_date'] ?? null, fn (Builder $query, string $date) => $query->whereDate('issued_at', '>=', $date))
+            ->when($filters['date_to'] ?? $filters['end_date'] ?? null, fn (Builder $query, string $date) => $query->whereDate('issued_at', '<=', $date))
             ->latest('id')
             ->paginate($filters['per_page'] ?? 15);
     }
@@ -63,9 +69,10 @@ class ClinicBillingRepository implements ClinicBillingRepositoryInterface
             ->with(['invoice.patient.user:id,name', 'invoice.doctor:id,name', 'recorder:id,name'])
             ->where('clinic_id', $clinicId)
             ->when($filters['invoice_id'] ?? null, fn (Builder $query, int $invoiceId) => $query->where('clinic_invoice_id', $invoiceId))
-            ->when($filters['doctor_id'] ?? null, fn (Builder $query, int $doctorId) => $query->whereHas('invoice', fn (Builder $invoiceQuery) => $invoiceQuery->where('doctor_user_id', $doctorId)))
-            ->when($filters['date_from'] ?? null, fn (Builder $query, string $date) => $query->whereDate('paid_at', '>=', $date))
-            ->when($filters['date_to'] ?? null, fn (Builder $query, string $date) => $query->whereDate('paid_at', '<=', $date))
+            ->when($filters['doctor_id'] ?? $filters['doctor'] ?? null, fn (Builder $query, int $doctorId) => $query->whereHas('invoice', fn (Builder $invoiceQuery) => $invoiceQuery->where('doctor_user_id', $doctorId)))
+            ->when($filters['payment_method'] ?? null, fn (Builder $query, string $method) => $query->where('method', $method))
+            ->when($filters['date_from'] ?? $filters['start_date'] ?? null, fn (Builder $query, string $date) => $query->whereDate('paid_at', '>=', $date))
+            ->when($filters['date_to'] ?? $filters['end_date'] ?? null, fn (Builder $query, string $date) => $query->whereDate('paid_at', '<=', $date))
             ->latest('id')
             ->paginate($filters['per_page'] ?? 15);
     }
@@ -75,8 +82,10 @@ class ClinicBillingRepository implements ClinicBillingRepositoryInterface
         return ClinicExpense::query()
             ->with(['category:id,name', 'assignee:id,name'])
             ->where('clinic_id', $clinicId)
-            ->when($filters['expense_category_id'] ?? null, fn (Builder $query, int $categoryId) => $query->where('expense_category_id', $categoryId))
+            ->when($filters['expense_category_id'] ?? $filters['category'] ?? null, fn (Builder $query, int $categoryId) => $query->where('expense_category_id', $categoryId))
             ->when($filters['assigned_to'] ?? null, fn (Builder $query, int $userId) => $query->where('assigned_to_user_id', $userId))
+            ->when($filters['payment_method'] ?? null, fn (Builder $query, string $method) => $query->where('payment_method', $method))
+            ->when($filters['date'] ?? null, fn (Builder $query, string $date) => $query->whereDate('expense_date', $date))
             ->when($filters['date_from'] ?? null, fn (Builder $query, string $date) => $query->whereDate('expense_date', '>=', $date))
             ->when($filters['date_to'] ?? null, fn (Builder $query, string $date) => $query->whereDate('expense_date', '<=', $date))
             ->latest('expense_date')
@@ -89,12 +98,29 @@ class ClinicBillingRepository implements ClinicBillingRepositoryInterface
         return ClinicExpense::query()->create($data);
     }
 
+    public function findExpense(int $clinicId, int $expenseId): ?ClinicExpense
+    {
+        return ClinicExpense::query()
+            ->with(['category:id,name', 'assignee:id,name'])
+            ->where('clinic_id', $clinicId)
+            ->find($expenseId);
+    }
+
+    public function updateExpense(ClinicExpense $expense, array $data): ClinicExpense
+    {
+        $expense->update($data);
+
+        return $expense->refresh()->load(['category:id,name', 'assignee:id,name']);
+    }
+
     public function expenseSummary(int $clinicId, array $filters): array
     {
         $baseQuery = ClinicExpense::query()
             ->with('category:id,name')
             ->where('clinic_id', $clinicId)
-            ->when($filters['expense_category_id'] ?? null, fn (Builder $query, int $categoryId) => $query->where('expense_category_id', $categoryId))
+            ->when($filters['expense_category_id'] ?? $filters['category'] ?? null, fn (Builder $query, int $categoryId) => $query->where('expense_category_id', $categoryId))
+            ->when($filters['payment_method'] ?? null, fn (Builder $query, string $method) => $query->where('payment_method', $method))
+            ->when($filters['date'] ?? null, fn (Builder $query, string $date) => $query->whereDate('expense_date', $date))
             ->when($filters['date_from'] ?? null, fn (Builder $query, string $date) => $query->whereDate('expense_date', '>=', $date))
             ->when($filters['date_to'] ?? null, fn (Builder $query, string $date) => $query->whereDate('expense_date', '<=', $date));
 

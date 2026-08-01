@@ -2,10 +2,12 @@
 
 namespace App\Services\Clinic\Settings;
 
+use App\Mail\SystemAccessMail;
 use App\Http\Resources\Clinic\Settings\DentistResource;
 use App\Repositories\Clinic\Settings\ClinicSettingsRepositoryInterface;
 use App\Support\ServiceResult;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 class DentistService
@@ -34,14 +36,16 @@ class DentistService
             return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
         }
 
-        $user = DB::transaction(function () use ($clinicId, $data) {
+        $plainPassword = $data['password'] ?? Str::random(12);
+
+        $user = DB::transaction(function () use ($clinicId, $data, $plainPassword) {
             $user = $this->repository->createDentistUser([
                 'clinic_id' => $clinicId,
                 'name' => $data['name'],
                 'username' => Str::slug($data['name'], '') ?: ('doctor' . now()->timestamp),
                 'email' => $data['email'] ?? ('doctor-' . Str::lower(Str::random(8)) . '@dentaplus.local'),
                 'phone' => $data['phone'] ?? null,
-                'password' => bcrypt(Str::random(12)),
+                'password' => bcrypt($plainPassword),
                 'status' => 'Active',
                 'is_active' => true,
                 'is_verified' => true,
@@ -65,6 +69,17 @@ class DentistService
 
             return $user->fresh()->load('doctor');
         });
+
+        if ($user->email) {
+            Mail::to($user->email)->send(new SystemAccessMail(
+                recipientName: $user->name,
+                systemLink: config('app.frontend_url', config('app.url')),
+                email: $user->email,
+                plainPassword: $plainPassword,
+                subscription: null,
+                dashboardLink: config('app.frontend_url', config('app.url'))
+            ));
+        }
 
         return ServiceResult::success((new DentistResource($user))->resolve(), 'Dentist created successfully', 201);
     }

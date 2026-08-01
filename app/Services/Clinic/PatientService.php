@@ -3,26 +3,32 @@
 namespace App\Services\Clinic;
 
 use App\Http\Resources\Clinic\DentalChartResource;
+use App\Http\Resources\Clinic\ClinicInvoiceResource;
 use App\Http\Resources\Clinic\PatientLabCaseResource;
 use App\Http\Resources\Clinic\PatientNoteResource;
 use App\Http\Resources\Clinic\PatientResource;
 use App\Http\Resources\Clinic\RadiologyResource;
 use App\Http\Resources\Clinic\PatientDocumentResource;
+use App\Http\Resources\Clinic\TreatmentResource;
+use App\Models\CaseActivityLog;
 use App\Models\PatientDocument;
 use App\Models\CaseModel;
 use App\Models\ClinicAppointment;
 use App\Models\ClinicInvoice;
+use App\Models\ClinicPayment;
 use App\Models\ClinicTreatment;
 use App\Models\DentalLab;
 use App\Models\Doctor;
 use App\Models\InsuranceCompany;
 use App\Models\Patient;
-
 use App\Models\PatientNote;
 use App\Models\PatientRadiology;
 use App\Models\PatientTooth;
+use App\Models\Service;
 use App\Models\User;
 use App\Support\ServiceResult;
+use Carbon\Carbon;
+use Carbon\CarbonPeriod;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -59,7 +65,13 @@ class PatientService
         $patients = $query->paginate($perPage);
 
         return ServiceResult::success([
-            'items' => PatientResource::collection($patients->items())->resolve(),
+            'items' => collect(PatientResource::collection($patients->items())->resolve())->map(function (array $patient) {
+                return $patient + [
+                    'patient_name' => $patient['name'] ?? null,
+                    'contact' => $patient['phone'] ?? null,
+                    'age' => isset($patient['date_of_birth']) ? Carbon::parse($patient['date_of_birth'])->age : null,
+                ];
+            })->all(),
             'pagination' => [
                 'current_page' => $patients->currentPage(),
                 'last_page'    => $patients->lastPage(),
@@ -148,6 +160,16 @@ class PatientService
             }
         }
 
+        if (array_key_exists('full_name', $data) && ! array_key_exists('name', $data)) {
+            $data['name'] = $data['full_name'];
+        }
+        if (array_key_exists('policy_number', $data) && ! array_key_exists('insurance_number', $data)) {
+            $data['insurance_number'] = $data['policy_number'];
+        }
+        if (array_key_exists('age', $data) && ! array_key_exists('date_of_birth', $data) && $data['age'] !== null) {
+            $data['date_of_birth'] = now()->subYears((int) $data['age'])->startOfYear()->toDateString();
+        }
+
         DB::transaction(function () use ($data, $insuranceCompany, $patient) {
             $userData = array_filter([
                 'name' => $data['name'] ?? null,
@@ -205,6 +227,52 @@ class PatientService
             ->find($patientId);
     }
 
+    private function findRadiologyRecord(int $patientId, int $recordId): ?PatientRadiology
+    {
+        $patient = $this->findClinicPatient($patientId);
+        if (! $patient) {
+            return null;
+        }
+
+        return PatientRadiology::query()
+            ->where('clinic_id', $this->currentClinicId())
+            ->where('patient_id', $patient->id)
+            ->find($recordId);
+    }
+
+    private function fdiToothNumbers(): array
+    {
+        return array_map('strval', [
+            18, 17, 16, 15, 14, 13, 12, 11,
+            21, 22, 23, 24, 25, 26, 27, 28,
+            48, 47, 46, 45, 44, 43, 42, 41,
+            31, 32, 33, 34, 35, 36, 37, 38,
+        ]);
+    }
+
+    private function normalizeToothStatus(string $status): string
+    {
+        $normalized = strtolower(str_replace([' ', '-', '_'], '', $status));
+
+        return match ($normalized) {
+            'treated' => 'treated',
+            'inprogress' => 'inprogress',
+            'planned' => 'planned',
+            'problematic' => 'problematic',
+            default => 'healthy',
+        };
+    }
+
+    private function appointmentStatus(?string $status): string
+    {
+        return match (strtolower((string) $status)) {
+            'completed', 'attended', 'done' => 'Attended',
+            'cancelled', 'canceled' => 'Cancelled',
+            'no_show', 'no-show', 'noshow' => 'No Show',
+            default => 'Scheduled',
+        };
+    }
+
     public function dentalChart(int $patientId): array
     {
         $patient = $this->findClinicPatient($patientId);
@@ -218,7 +286,38 @@ class PatientService
             ->latest('id')
             ->get();
 
-        return ServiceResult::success(DentalChartResource::collection($rows)->resolve(), 'Dental chart fetched successfully');
+        $latestByTooth = $rows->keyBy('tooth_number');
+        $teeth = collect($this->fdiToothNumbers())->map(function (string $number) use ($latestByTooth) {
+            $entry = $latestByTooth->get($number);
+
+            return [
+                'tooth_number' => $number,
+                'status' => $entry?->status ?: 'healthy',
+                'notes' => $entry?->notes,
+                'record_id' => $entry?->id,
+            ];
+        })->values()->all();
+
+        $labModel = CaseModel::query()
+            ->where('clinic_id', $this->currentClinicId())
+            ->where('patient_id', $patient->id)
+            ->whereNotNull('tooth_chart_3d')
+            ->latest('updated_at')
+            ->first();
+
+        return ServiceResult::success([
+            'model_type' => '3d_dental_chart',
+            'numbering_system' => 'FDI',
+            'statuses' => ['healthy', 'treated', 'inprogress', 'planned', 'problematic'],
+            'teeth' => $teeth,
+            'records' => DentalChartResource::collection($rows)->resolve(),
+            'lab_3d_source' => $labModel ? [
+                'case_id' => $labModel->id,
+                'case_number' => $labModel->case_number,
+                'case_type' => $labModel->case_type,
+                'tooth_chart_3d' => $labModel->tooth_chart_3d,
+            ] : null,
+        ], 'Dental chart fetched successfully');
     }
 
     public function recordDentalChart(int $patientId, array $data): array
@@ -228,18 +327,20 @@ class PatientService
             return ServiceResult::error('Patient not found.', null, null, 404);
         }
 
-        $entry = PatientTooth::query()->create([
+        $toothNumbers = $data['tooth_numbers'] ?? [$data['tooth_number']];
+
+        $entries = collect($toothNumbers)->map(fn (string $toothNumber) => PatientTooth::query()->create([
             'patient_id' => $patient->id,
             'clinic_id' => $this->currentClinicId(),
-            'tooth_number' => $data['tooth_number'],
-            'status' => $data['status'] ?? null,
+            'tooth_number' => $toothNumber,
+            'status' => $this->normalizeToothStatus($data['status'] ?? 'healthy'),
             'notes' => $data['notes'] ?? null,
-        ]);
+        ]));
 
-        return ServiceResult::success((new DentalChartResource($entry))->resolve(), 'Dental chart entry recorded successfully', 201);
+        return ServiceResult::success(DentalChartResource::collection($entries)->resolve(), 'Dental chart entry recorded successfully', 201);
     }
 
-    public function radiology(int $patientId): array
+    public function radiology(int $patientId, array $filters = []): array
     {
         $patient = $this->findClinicPatient($patientId);
         if (! $patient) {
@@ -249,10 +350,27 @@ class PatientService
         $rows = PatientRadiology::query()
             ->where('clinic_id', $this->currentClinicId())
             ->where('patient_id', $patient->id)
+            ->when($filters['search'] ?? null, function ($query, $search) {
+                $query->where(function ($nested) use ($search) {
+                    $nested->where('notes', 'like', "%{$search}%")
+                        ->orWhere('teeth', 'like', "%{$search}%");
+                });
+            })
+            ->when($filters['modality'] ?? null, fn ($query, $modality) => $query->where('modality', $modality))
             ->latest('id')
             ->get();
 
-        return ServiceResult::success(RadiologyResource::collection($rows)->resolve(), 'Radiology archive fetched successfully');
+        $total = $rows->count();
+        $finished = $rows->filter(fn ($row) => in_array(strtolower((string) $row->status), ['finished', 'completed', 'done'], true))->count();
+
+        return ServiceResult::success([
+            'header' => [
+                'total_records' => $total,
+                'cases_finished' => $finished . ' / ' . $total,
+            ],
+            'modalities' => ['Periapical', 'Bitewing', 'Panoramic', 'CBCT'],
+            'items' => RadiologyResource::collection($rows)->resolve(),
+        ], 'Radiology archive fetched successfully');
     }
 
    public function uploadRadiology(int $patientId, array $data, $file = null, $beforeImage = null, $afterImage = null): array
@@ -268,6 +386,7 @@ class PatientService
         'patient_id' => $patient->id,
         'clinic_id' => $this->currentClinicId(),
         'modality' => $data['modality'],
+        'teeth' => $data['teeth'] ?? null,
         'notes' => $data['notes'] ?? null,
         'file_path' => $file ? $file->store($folder, 'public') : null,
         'before_image_path' => $beforeImage ? $beforeImage->store($folder, 'public') : null,
@@ -292,7 +411,18 @@ class PatientService
             ->latest('id')
             ->get();
 
-        return ServiceResult::success(PatientLabCaseResource::collection($cases)->resolve(), 'Patient lab cases fetched successfully');
+        return ServiceResult::success([
+            'items' => collect(PatientLabCaseResource::collection($cases)->resolve())->map(fn (array $case) => [
+                'id' => $case['id'] ?? null,
+                'case_id' => $case['case_number'] ?? null,
+                'lab_name' => $case['lab']['name'] ?? null,
+                'case_type' => $case['case_type'] ?? null,
+                'delivery_date' => $case['due_date'] ?? null,
+                'status' => $case['status'] ?? null,
+                'action' => 'Track Case',
+                'source' => 'lab',
+            ])->all(),
+        ], 'Patient lab cases fetched successfully');
     }
 
     public function sendLabCase(int $patientId, array $data): array
@@ -374,10 +504,18 @@ class PatientService
                 'patient_id' => $patient->id,
                 'user_id' => auth()->id(),
                 'clinic_id' => $this->currentClinicId(),
-                'note' => $data['note'],
+                'note' => $data['text'] ?? $data['note'] ?? '',
             ]);
 
-            foreach (($data['attachments'] ?? []) as $attachment) {
+            $attachments = $data['attachments'] ?? [];
+            if (! empty($data['attachment'])) {
+                $attachments[] = $data['attachment'];
+            }
+            if (! empty($data['voice_note'])) {
+                $attachments[] = $data['voice_note'];
+            }
+
+            foreach ($attachments as $attachment) {
                 $path = $attachment->store('clinic/patient-notes', 'public');
                 $note->attachments()->create([
                     'file_path' => $path,
@@ -406,6 +544,357 @@ class PatientService
             'Discussion note added successfully.',
             201
         );
+    }
+
+    public function financialPerformance(int $patientId): array
+    {
+        $patient = $this->findClinicPatient($patientId);
+        if (! $patient) {
+            return ServiceResult::error('Patient not found.', null, null, 404);
+        }
+
+        $invoices = ClinicInvoice::query()
+            ->where('clinic_id', $this->currentClinicId())
+            ->where('patient_id', $patient->id)
+            ->get();
+
+        $visits = max(ClinicAppointment::query()
+            ->where('clinic_id', $this->currentClinicId())
+            ->where('patient_id', $patient->id)
+            ->count(), 1);
+
+        $totalBilled = (float) $invoices->sum('total');
+
+        return ServiceResult::success([
+            'cards' => [
+                ['label' => 'Total Billed', 'value' => $totalBilled],
+                ['label' => 'Total Paid', 'value' => (float) $invoices->sum('paid')],
+                ['label' => 'Outstanding', 'value' => (float) $invoices->sum('remaining')],
+                ['label' => 'Avg / Visit', 'value' => round($totalBilled / $visits, 2)],
+            ],
+        ], 'Financial performance fetched successfully');
+    }
+
+    public function revenueOverTime(int $patientId): array
+    {
+        $patient = $this->findClinicPatient($patientId);
+        if (! $patient) {
+            return ServiceResult::error('Patient not found.', null, null, 404);
+        }
+
+        $start = now()->startOfYear();
+
+        return ServiceResult::success(collect(CarbonPeriod::create($start, '1 month', now()->endOfMonth()))
+            ->map(fn (Carbon $month) => [
+                'month' => $month->format('M'),
+                'revenue' => (float) ClinicInvoice::query()
+                    ->where('clinic_id', $this->currentClinicId())
+                    ->where('patient_id', $patient->id)
+                    ->whereBetween('issued_at', [$month->copy()->startOfMonth()->toDateString(), $month->copy()->endOfMonth()->toDateString()])
+                    ->sum('paid'),
+            ])->values()->all(), 'Revenue over time fetched successfully');
+    }
+
+    public function paymentMethodDistribution(int $patientId): array
+    {
+        $patient = $this->findClinicPatient($patientId);
+        if (! $patient) {
+            return ServiceResult::error('Patient not found.', null, null, 404);
+        }
+
+        $rows = ClinicPayment::query()
+            ->join('clinic_invoices', 'clinic_payments.clinic_invoice_id', '=', 'clinic_invoices.id')
+            ->where('clinic_payments.clinic_id', $this->currentClinicId())
+            ->where('clinic_invoices.patient_id', $patient->id)
+            ->select('clinic_payments.method', DB::raw('sum(clinic_payments.amount) as total'))
+            ->groupBy('clinic_payments.method')
+            ->get();
+
+        $total = max((float) $rows->sum('total'), 1);
+
+        return ServiceResult::success($rows->map(fn ($row) => [
+            'payment_method' => $row->method ?: 'Unknown',
+            'percentage' => round(((float) $row->total / $total) * 100, 2),
+            'total' => (float) $row->total,
+        ])->values()->all(), 'Payment method distribution fetched successfully');
+    }
+
+    public function visitBehavioralTrends(int $patientId): array
+    {
+        $patient = $this->findClinicPatient($patientId);
+        if (! $patient) {
+            return ServiceResult::error('Patient not found.', null, null, 404);
+        }
+
+        $appointments = ClinicAppointment::query()
+            ->where('clinic_id', $this->currentClinicId())
+            ->where('patient_id', $patient->id)
+            ->orderBy('appointment_at')
+            ->get();
+        $total = max($appointments->count(), 1);
+        $attended = $appointments->filter(fn ($row) => $this->appointmentStatus($row->status) === 'Attended')->count();
+        $cancelled = $appointments->filter(fn ($row) => $this->appointmentStatus($row->status) === 'Cancelled')->count();
+
+        return ServiceResult::success([
+            'attendance_rate' => round(($attended / $total) * 100, 2),
+            'cancellation_rate' => round(($cancelled / $total) * 100, 2),
+            'attendance_breakdown' => [
+                ['status' => 'Attended', 'count' => $attended],
+                ['status' => 'Cancelled', 'count' => $cancelled],
+                ['status' => 'No-Show', 'count' => $appointments->filter(fn ($row) => $this->appointmentStatus($row->status) === 'No Show')->count()],
+            ],
+            'history_log' => $appointments->map(fn ($row) => [
+                'procedure' => $row->service_name ?: 'Visit',
+                'date' => optional($row->appointment_at)?->toDateString(),
+                'status' => $this->appointmentStatus($row->status),
+            ])->values()->all(),
+        ], 'Visit and behavioral trends fetched successfully');
+    }
+
+    public function radiologyReport(int $patientId, int $recordId): array
+    {
+        $record = $this->findRadiologyRecord($patientId, $recordId);
+        if (! $record) {
+            return ServiceResult::error('Radiology record not found.', null, null, 404);
+        }
+
+        return ServiceResult::success([
+            'report' => [
+                'record_id' => $record->id,
+                'patient_id' => $record->patient_id,
+                'modality' => $record->modality,
+                'teeth' => $record->teeth ?? null,
+                'notes' => $record->notes,
+                'status' => $record->status,
+                'before_image_url' => (new RadiologyResource($record))->resolve()['before_image_url'] ?? null,
+                'after_image_url' => (new RadiologyResource($record))->resolve()['after_image_url'] ?? null,
+                'created_at' => optional($record->created_at)?->toISOString(),
+            ],
+        ], 'Radiology report fetched successfully');
+    }
+
+    public function radiologyCompare(int $patientId, array $recordIds): array
+    {
+        $patient = $this->findClinicPatient($patientId);
+        if (! $patient) {
+            return ServiceResult::error('Patient not found.', null, null, 404);
+        }
+
+        $records = PatientRadiology::query()
+            ->where('clinic_id', $this->currentClinicId())
+            ->where('patient_id', $patient->id)
+            ->whereIn('id', $recordIds)
+            ->get();
+
+        if ($records->count() !== 2) {
+            return ServiceResult::error('Two radiology records are required for comparison.', null, null, 422);
+        }
+
+        return ServiceResult::success([
+            'records' => RadiologyResource::collection($records)->resolve(),
+        ], 'Radiology records fetched for comparison');
+    }
+
+    public function treatmentsHistory(int $patientId): array
+    {
+        $patient = $this->findClinicPatient($patientId);
+        if (! $patient) {
+            return ServiceResult::error('Patient not found.', null, null, 404);
+        }
+
+        $rows = ClinicTreatment::query()
+            ->with(['doctor:id,name'])
+            ->where('clinic_id', $this->currentClinicId())
+            ->where('patient_id', $patient->id)
+            ->latest('treatment_date')
+            ->get();
+
+        return ServiceResult::success([
+            'active_planned_queue' => $rows
+                ->filter(fn ($row) => in_array(strtolower((string) $row->status), ['active', 'planned', 'in_progress', 'in progress'], true))
+                ->map(fn ($row) => [
+                    'record' => $row->title,
+                    'teeth' => $row->tooth_number,
+                    'sessions' => $row->sessions_count,
+                    'clinic_status' => $row->status,
+                    'cost' => (float) $row->cost,
+                    'action' => 'Open',
+                ])->values()->all(),
+            'clinical_history' => $rows->map(fn ($row) => [
+                'date' => optional($row->treatment_date)?->toDateString(),
+                'procedure' => $row->title,
+                'teeth' => $row->tooth_number,
+                'fee' => (float) $row->cost,
+                'status' => $row->status,
+            ])->values()->all(),
+        ], 'Clinical services history fetched successfully');
+    }
+
+    public function storeTreatment(int $patientId, array $data): array
+    {
+        $patient = $this->findClinicPatient($patientId);
+        if (! $patient) {
+            return ServiceResult::error('Patient not found.', null, null, 404);
+        }
+
+        $doctorId = $data['dentist'] ?? $data['doctor_id'] ?? null;
+        if ($doctorId && ! User::query()->where('clinic_id', $this->currentClinicId())->role('doctor')->whereKey($doctorId)->exists()) {
+            return ServiceResult::error('Dentist not found for this clinic.', null, ['dentist' => ['Dentist not found for this clinic.']], 422);
+        }
+
+        $treatment = ClinicTreatment::query()->create([
+            'clinic_id' => $this->currentClinicId(),
+            'patient_id' => $patient->id,
+            'doctor_user_id' => $doctorId,
+            'title' => $data['service_name'] ?? $data['title'],
+            'description' => $data['description'] ?? null,
+            'tooth_number' => $data['tooth_number'] ?? null,
+            'sessions_count' => $data['sessions_count'] ?? 1,
+            'treatment_date' => $data['date'] ?? $data['treatment_date'] ?? now()->toDateString(),
+            'cost' => $data['cost'] ?? 0,
+            'status' => $data['status'],
+        ]);
+
+        return ServiceResult::success((new TreatmentResource($treatment->load('doctor:id,name')))->resolve(), 'Treatment added successfully', 201);
+    }
+
+    public function clinicServicesList(): array
+    {
+        $clinicId = $this->currentClinicId();
+        if (! $clinicId) {
+            return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
+        }
+
+        return ServiceResult::success(Service::query()
+            ->where('is_active', true)
+            ->where(function ($query) use ($clinicId) {
+                $query->whereNull('created_by_clinic_id')->orWhere('created_by_clinic_id', $clinicId);
+            })
+            ->orderBy('name')
+            ->get(['id', 'name', 'base_price'])
+            ->map(fn ($service) => [
+                'id' => $service->id,
+                'service_name' => $service->name,
+                'base_price' => (float) $service->base_price,
+            ])->all(), 'Clinic services fetched successfully');
+    }
+
+    public function clinicDentistsList(): array
+    {
+        $clinicId = $this->currentClinicId();
+        if (! $clinicId) {
+            return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
+        }
+
+        return ServiceResult::success(User::query()
+            ->where('clinic_id', $clinicId)
+            ->role('doctor')
+            ->orderBy('name')
+            ->get(['id', 'name', 'email'])
+            ->map(fn ($user) => [
+                'id' => $user->id,
+                'dentist' => $user->name,
+                'email' => $user->email,
+            ])->all(), 'Clinic dentists fetched successfully');
+    }
+
+    public function invoices(int $patientId): array
+    {
+        $patient = $this->findClinicPatient($patientId);
+        if (! $patient) {
+            return ServiceResult::error('Patient not found.', null, null, 404);
+        }
+
+        $rows = ClinicInvoice::query()
+            ->with(['patient.user:id,name', 'doctor:id,name'])
+            ->where('clinic_id', $this->currentClinicId())
+            ->where('patient_id', $patient->id)
+            ->latest('issued_at')
+            ->get();
+
+        return ServiceResult::success(ClinicInvoiceResource::collection($rows)->resolve(), 'Patient invoices fetched successfully');
+    }
+
+    public function addPayment(int $patientId, int $invoiceId, array $data): array
+    {
+        $patient = $this->findClinicPatient($patientId);
+        if (! $patient) {
+            return ServiceResult::error('Patient not found.', null, null, 404);
+        }
+
+        $invoice = ClinicInvoice::query()
+            ->where('clinic_id', $this->currentClinicId())
+            ->where('patient_id', $patient->id)
+            ->find($invoiceId);
+
+        if (! $invoice) {
+            return ServiceResult::error('Invoice not found.', null, null, 404);
+        }
+
+        if ((float) $data['amount_to_pay'] > (float) $invoice->remaining) {
+            return ServiceResult::error('Payment amount exceeds remaining balance.', null, ['amount_to_pay' => ['Payment amount exceeds remaining balance.']], 422);
+        }
+
+        DB::transaction(function () use ($data, $invoice) {
+            ClinicPayment::query()->create([
+                'clinic_invoice_id' => $invoice->id,
+                'clinic_id' => $invoice->clinic_id,
+                'recorded_by' => auth()->id(),
+                'amount' => $data['amount_to_pay'],
+                'method' => $data['payment_method'],
+                'paid_at' => $data['paid_at'] ?? now(),
+                'notes' => $data['notes'] ?? null,
+            ]);
+
+            $paid = round((float) $invoice->paid + (float) $data['amount_to_pay'], 2);
+            $remaining = max(round((float) $invoice->total - $paid, 2), 0);
+            $invoice->update([
+                'paid' => $paid,
+                'remaining' => $remaining,
+                'status' => $remaining <= 0 ? 'paid' : 'partial',
+            ]);
+        });
+
+        return ServiceResult::success((new ClinicInvoiceResource($invoice->fresh(['patient.user:id,name', 'doctor:id,name', 'payments'])))->resolve(), 'Payment recorded successfully', 201);
+    }
+
+    public function trackLabCase(int $patientId, int $caseId): array
+    {
+        $patient = $this->findClinicPatient($patientId);
+        if (! $patient) {
+            return ServiceResult::error('Patient not found.', null, null, 404);
+        }
+
+        $case = CaseModel::query()
+            ->with(['patient.user:id,name', 'activityLogs.actor:id,name'])
+            ->where('clinic_id', $this->currentClinicId())
+            ->where('patient_id', $patient->id)
+            ->find($caseId);
+
+        if (! $case) {
+            return ServiceResult::error('Lab case not found.', null, null, 404);
+        }
+
+        $steps = ['Pending', 'Accepted', 'In Progress', 'Completed', 'Delivered'];
+        $currentIndex = array_search($case->status, $steps, true);
+
+        return ServiceResult::success([
+            'title' => trim($case->case_type . ' - ' . ($case->patient?->user?->name ?? 'Patient')),
+            'live_progress' => collect($steps)->map(fn (string $step, int $index) => [
+                'step' => $step,
+                'status' => $currentIndex === false ? 'pending' : ($index < $currentIndex ? 'completed' : ($index === $currentIndex ? 'current' : 'pending')),
+            ])->all(),
+            'activity_log' => $case->activityLogs
+                ->sortBy('created_at')
+                ->map(fn (CaseActivityLog $log) => [
+                    'actor' => $log->actor?->name ?: $log->actor_name,
+                    'action' => $log->action,
+                    'old_status' => $log->old_status,
+                    'new_status' => $log->new_status,
+                    'notes' => $log->notes,
+                    'created_at' => optional($log->created_at)?->toISOString(),
+                ])->values()->all(),
+        ], 'Lab case tracking fetched successfully');
     }
 
     public function analytics(int $patientId): array

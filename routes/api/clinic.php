@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\Clinic\BillingController;
 use App\Http\Controllers\Api\Clinic\CartController;
 use App\Http\Controllers\Api\Clinic\ClinicController;
 use App\Http\Controllers\Api\Clinic\CommunicationController;
+use App\Http\Controllers\Api\Clinic\DashboardController;
 use App\Http\Controllers\Api\Clinic\DentalLabController;
 use App\Http\Controllers\Api\Clinic\EquipmentController;
 use App\Http\Controllers\Api\Clinic\InventoryController;
@@ -23,6 +24,7 @@ use App\Http\Controllers\Api\Clinic\Settings\ClinicFeedbackSettingsController;
 use App\Http\Controllers\Api\Clinic\Settings\ClinicAppointmentSettingsController;
 use App\Http\Controllers\Api\Clinic\Settings\ClinicAppearanceSettingsController;
 use App\Http\Controllers\Api\Clinic\Settings\ClinicCommunicationSettingsController;
+use App\Http\Controllers\Api\Clinic\Settings\CommunicationPermissionController;
 use App\Http\Controllers\Api\Clinic\Settings\BranchController as SettingsBranchController;
 use App\Http\Controllers\Api\Clinic\Settings\ClinicFinancialSettingsController;
 use App\Http\Controllers\Api\Clinic\Settings\ClinicInfoController;
@@ -35,6 +37,7 @@ use App\Http\Controllers\Api\Clinic\Settings\ClinicServicePricingController;
 use App\Http\Controllers\Api\Clinic\Settings\DentistController as SettingsDentistController;
 use App\Http\Controllers\Api\Clinic\Settings\GeneralSettingsController;
 use App\Http\Controllers\Api\Clinic\Settings\ProfileController as SettingsProfileController;
+use App\Http\Controllers\Api\Clinic\Settings\SyndicatePriceController;
 use App\Http\Controllers\Api\Clinic\TreatmentController;
 use App\Http\Controllers\Api\Clinic\TaskController;
 use App\Http\Controllers\Api\Clinic\UserController;
@@ -49,10 +52,18 @@ Route::prefix('clinic')
     Route::get('/messages', [CaseCommunicationController::class, 'messages']);
     Route::get('/attachments', [CaseCommunicationController::class, 'attachments']);
 });
-Route::middleware('permission:dental_labs.manage')->prefix('dental-lab-orders/{id}')->group(function () {
+        Route::middleware('permission:dental_labs.manage')->prefix('dental-lab-orders/{id}')->group(function () {
     Route::post('/messages', [CaseCommunicationController::class, 'storeMessage']);
     Route::post('/attachments', [CaseCommunicationController::class, 'storeAttachment']);
 });
+
+        // ─── Dashboard ───────────────────────────────────────────────────────
+        Route::prefix('dashboard')->group(function () {
+            Route::get('/cards', [DashboardController::class, 'cards']);
+            Route::get('/revenue-generation-tracking', [DashboardController::class, 'revenueTracking']);
+            Route::get('/services-distribution', [DashboardController::class, 'servicesDistribution']);
+            Route::get('/marketing-lead-attribution', [DashboardController::class, 'marketingLeadAttribution']);
+        });
 
         // ─── Patient Messaging ───────────────────────────────────────────────
         Route::prefix('messages')
@@ -132,10 +143,26 @@ Route::middleware('permission:dental_labs.manage')->prefix('dental-lab-orders/{i
                 Route::post('/clinic-info', [ClinicInfoController::class, 'update']);
 
                 Route::get('/branches',        [SettingsBranchController::class, 'index']);
+                Route::get('/branches/managers', [SettingsBranchController::class, 'managers']);
                 Route::post('/branches',       [SettingsBranchController::class, 'store']);
                 Route::get('/branches/{id}',   [SettingsBranchController::class, 'show']);
                 Route::post('/branches/{id}',  [SettingsBranchController::class, 'update']);
                 Route::delete('/branches/{id}',[SettingsBranchController::class, 'destroy']);
+
+                Route::get('/users', [UserController::class, 'index']);
+                Route::get('/users/roles', [UserController::class, 'roles']);
+                Route::post('/users/{id}/status', [UserController::class, 'updateStatus']);
+
+                Route::get('/syndicate-prices', [SyndicatePriceController::class, 'index']);
+                Route::post('/syndicate-prices', [SyndicatePriceController::class, 'store']);
+                Route::post('/syndicate-prices/import/preview', [SyndicatePriceController::class, 'preview']);
+                Route::post('/syndicate-prices/import/confirm', [SyndicatePriceController::class, 'confirm']);
+
+                Route::get('/team-chat/communication-permissions', [CommunicationPermissionController::class, 'index']);
+                Route::match(['put', 'patch'], '/team-chat/communication-permissions', [CommunicationPermissionController::class, 'update']);
+
+                Route::get('/whatsapp-bot', [WhatsappBotController::class, 'index']);
+                Route::match(['put', 'patch'], '/whatsapp-bot', [WhatsappBotController::class, 'update']);
 
                 Route::get('/dentists',        [SettingsDentistController::class, 'index']);
                 Route::post('/dentists',       [SettingsDentistController::class, 'store']);
@@ -297,7 +324,9 @@ Route::middleware('permission:patients.update')->post('/patients/{id}/documents/
 
         // ─── Tasks ───────────────────────────────────────────────────────────
         Route::middleware('permission:tasks.view')->get('/tasks',              [TaskController::class, 'index']);
+        Route::middleware('permission:tasks.view')->get('/tasks/assignees',    [TaskController::class, 'assignees']);
         Route::middleware('permission:tasks.manage')->post('/tasks',            [TaskController::class, 'store']);
+        Route::middleware('permission:tasks.manage')->patch('/tasks/{id}/status', [TaskController::class, 'updateStatus']);
         Route::middleware('permission:tasks.manage')->post('/tasks/{id}',      [TaskController::class, 'update']);
         Route::middleware('permission:tasks.manage')->delete('/tasks/{id}',     [TaskController::class, 'destroy']);
 
@@ -318,19 +347,34 @@ Route::middleware('permission:patients.update')->post('/patients/{id}/documents/
 
         // ─── Billing ─────────────────────────────────────────────────────────
         Route::middleware('permission:billing.manage')->group(function () {
+            Route::get('/billing/cards',                       [BillingController::class, 'cards']);
+            Route::get('/billing/doctors',                     [BillingController::class, 'doctors']);
             Route::get('/billing/invoices',                    [BillingController::class, 'index']);
             Route::post('/billing/invoices',                   [BillingController::class, 'store']);
             Route::post('/billing/invoices/{id}/send-reminder', [BillingController::class, 'sendInvoiceReminder']);
             Route::post('/billing/invoices/{invoice}/payments',[BillingController::class, 'payment']);
             Route::get('/billing/payments',                    [BillingController::class, 'payments']);
+            Route::get('/billing/expenses/cards',              [BillingController::class, 'expenseCards']);
+            Route::get('/billing/expenses/monthly-breakdown',  [BillingController::class, 'expenseMonthlyBreakdown']);
             Route::get('/billing/expenses',                    [BillingController::class, 'expenses']);
             Route::post('/billing/expenses',                   [BillingController::class, 'storeExpense']);
+            Route::post('/billing/expenses/{id}',              [BillingController::class, 'updateExpense']);
+            Route::delete('/billing/expenses/{id}',            [BillingController::class, 'destroyExpense']);
+            Route::get('/billing/profit-loss/cards',           [BillingController::class, 'profitLossCards']);
+            Route::get('/billing/profit-loss/monthly-trend',   [BillingController::class, 'profitMonthlyTrend']);
             Route::get('/billing/profit-loss',                 [BillingController::class, 'profitLoss']);
             Route::get('/billing/profit-loss/chart',           [BillingController::class, 'profitLossChart']);
             Route::get('/billing/profit-loss/export',          [BillingController::class, 'exportProfitLoss']);
+            Route::get('/billing/profit-loss/download',        [BillingController::class, 'downloadProfitLoss']);
             Route::post('/billing/profit-loss/send-whatsapp',  [BillingController::class, 'sendProfitLossWhatsApp']);
+            Route::get('/billing/lab-invoices',                [BillingController::class, 'labInvoices']);
+            Route::get('/billing/material-invoices',           [BillingController::class, 'materialInvoices']);
+            Route::get('/billing/doctor-earnings',             [BillingController::class, 'doctorEarnings']);
+            Route::get('/billing/extract-accounts',            [BillingController::class, 'extractAccounts']);
+            Route::post('/billing/extract-accounts/send-whatsapp', [BillingController::class, 'sendExtractAccountWhatsApp']);
             Route::get('/billing/expense-categories',          [BillingController::class, 'expenseCategories']);
             Route::post('/billing/expense-categories',         [BillingController::class, 'storeExpenseCategory']);
+            Route::post('/billing/expense-categories/{id}/status', [BillingController::class, 'updateExpenseCategoryStatus']);
             Route::post('/billing/expense-categories/{id}',   [BillingController::class, 'updateExpenseCategory']);
             Route::delete('/billing/expense-categories/{id}',  [BillingController::class, 'destroyExpenseCategory']);
         });
