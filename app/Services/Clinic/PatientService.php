@@ -793,25 +793,39 @@ class PatientService
             return ServiceResult::error('Patient not found.', null, null, 404);
         }
 
-        $records = PatientRadiology::query()
+        $selectedCaseIds = $data['case_selection'] ?? null;
+
+        $query = PatientRadiology::query()
             ->with(['patient.user:id,name', 'clinic:id,name'])
             ->where('clinic_id', $this->currentClinicId())
-            ->where('patient_id', $patient->id)
-            ->whereIn('id', $data['case_selection'])
-            ->get();
+            ->where('patient_id', $patient->id);
 
-        if ($records->count() !== count(array_unique($data['case_selection']))) {
+        if (! empty($selectedCaseIds)) {
+            $query->whereIn('id', $selectedCaseIds);
+        }
+
+        $records = $query->get();
+
+        if (! empty($selectedCaseIds) && $records->count() !== count(array_unique($selectedCaseIds))) {
             return ServiceResult::error('One or more radiology records were not found.', null, ['case_selection' => ['Invalid case selection.']], 422);
+        }
+
+        if ($records->isEmpty()) {
+            return ServiceResult::error('No radiology records found for this patient.', null, null, 404);
         }
 
         $reference = 'RAD-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(5));
         $primary = $records->first();
+        $caseSelection = ! empty($selectedCaseIds)
+            ? array_values($selectedCaseIds)
+            : $records->pluck('id')->values()->all();
+
         $primary->update([
             'report_reference_code' => $reference,
-            'report_format' => $data['report_format'],
-            'report_case_selection' => array_values($data['case_selection']),
-            'report_findings' => $data['findings'],
-            'report_diagnosis' => $data['diagnosis'],
+            'report_format' => $data['report_format'] ?? 'clinical_summary',
+            'report_case_selection' => $caseSelection,
+            'report_findings' => $data['findings'] ?? null,
+            'report_diagnosis' => $data['diagnosis'] ?? null,
             'report_generated_by' => auth()->id(),
             'report_generated_at' => now(),
         ]);
