@@ -321,10 +321,16 @@ class InsuranceClaimService
             return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
         }
 
-        $currentStart = now()->startOfMonth();
-        $currentEnd = now()->endOfMonth();
-        $previousStart = now()->subMonthNoOverflow()->startOfMonth();
-        $previousEnd = now()->subMonthNoOverflow()->endOfMonth();
+        $anchorDate = InsuranceClaim::query()
+            ->where('clinic_id', $clinicId)
+            ->whereDate('service_date', '<=', now()->toDateString())
+            ->max('service_date');
+
+        $anchor = $anchorDate ? Carbon::parse($anchorDate) : now();
+        $currentStart = $anchor->copy()->startOfMonth();
+        $currentEnd = $anchor->copy()->endOfMonth();
+        $previousStart = $anchor->copy()->subMonthNoOverflow()->startOfMonth();
+        $previousEnd = $anchor->copy()->subMonthNoOverflow()->endOfMonth();
 
         $currentClaims = $this->claimsForCards($clinicId, $currentStart, $currentEnd, $filters);
         $previousClaims = $this->claimsForCards($clinicId, $previousStart, $previousEnd, $filters);
@@ -342,21 +348,18 @@ class InsuranceClaimService
                     'key' => 'total_amount_claimed',
                     'label' => 'Total Amount Claimed',
                     'value' => $currentClaimed,
-                    'formatted_value' => '$' . number_format($currentClaimed, 0),
                     ...$this->changeMeta($currentClaimed, $previousClaimed, true),
                 ],
                 [
                     'key' => 'approval_rate',
                     'label' => 'Approval Rate',
                     'value' => $currentApprovalRate,
-                    'formatted_value' => number_format($currentApprovalRate, 1) . '%',
                     ...$this->changeMeta($currentApprovalRate, $previousApprovalRate, true),
                 ],
                 [
                     'key' => 'avg_claim_time',
                     'label' => 'Avg. Claim Time',
                     'value' => $currentAvgTime,
-                    'formatted_value' => number_format($currentAvgTime, 0) . ' days',
                     ...$this->changeMeta($currentAvgTime, $previousAvgTime, false),
                 ],
             ],
@@ -666,15 +669,10 @@ class InsuranceClaimService
         $change = $previous == 0.0
             ? ($current == 0.0 ? 0.0 : 100.0)
             : round((($current - $previous) / abs($previous)) * 100, 1);
-        $isImproved = $higherIsBetter ? $change >= 0 : $change <= 0;
-
         return [
             'previous_value' => $previous,
-            'change_value' => round($current - $previous, 2),
             'change_percentage' => $change,
-            'change_label' => ($change > 0 ? '+' : '') . number_format($change, 1) . '% vs last month',
             'change_direction' => $change >= 0 ? 'up' : 'down',
-            'tone' => $isImproved ? 'success' : 'danger',
         ];
     }
 

@@ -17,6 +17,7 @@ use App\Models\Setting;
 use App\Models\User;
 use App\Models\Clinic\Insurance\InsuranceClaim;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Collection;
 
 class ClinicSelectRepository implements ClinicSelectRepositoryInterface
@@ -206,7 +207,7 @@ public function rooms(int $clinicId, array $filters = []): Collection
     return \App\Models\Room::query()
         ->where('clinic_id', $clinicId)
         ->where('is_active', true)
-        ->when($branchId, fn ($query, $branchId) => $query->where('branch_id', $branchId))
+        ->when($branchId && Schema::hasColumn('rooms', 'branch_id'), fn ($query) => $query->where('branch_id', $branchId))
         ->when($search, fn ($query, $search) => $query->where('name', 'like', "%{$search}%"))
         ->orderBy('name')
         ->get(['id', 'name']);

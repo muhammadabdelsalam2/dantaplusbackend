@@ -21,6 +21,7 @@ use App\Support\ServiceResult;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class AppointmentService
@@ -455,7 +456,7 @@ class AppointmentService
             return ServiceResult::error('Room not found.', null, ['room_id' => ['Room not found.']], 422);
         }
 
-        if ($room && $branch && (int) $room->branch_id !== (int) $branch->id) {
+        if ($room && $branch && Schema::hasColumn('rooms', 'branch_id') && (int) $room->branch_id !== (int) $branch->id) {
             return ServiceResult::error('Room does not belong to selected branch.', null, ['room_id' => ['Room does not belong to selected branch.']], 422);
         }
 
