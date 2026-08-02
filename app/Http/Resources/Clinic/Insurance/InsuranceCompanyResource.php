@@ -16,6 +16,7 @@ class InsuranceCompanyResource extends JsonResource
             'code' => $this->code,
             'contact_person' => $this->contact_person,
             'phone' => $this->phone,
+            'email' => $this->email,
             'coverage' => $this->coverage,
             'payment_terms' => $this->payment_terms,
             'status' => $this->is_active ? 'active' : 'inactive',

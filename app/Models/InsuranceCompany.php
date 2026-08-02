@@ -17,6 +17,7 @@ class InsuranceCompany extends Model
         'code',
         'contact_person',
         'phone',
+        'email',
         'coverage',
         'payment_terms',
         'syndicate_price_list_id',

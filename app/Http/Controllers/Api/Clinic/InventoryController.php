@@ -17,7 +17,7 @@ class InventoryController extends Controller
 {
     use ApiResponse;
 
-    private const UNITS = ['piece', 'box', 'pack', 'bottle', 'tube', 'cartridge', 'set', 'ml', 'g'];
+    private const UNITS = ['Piece', 'ML', 'Gram', 'Box'];
 
     public function __construct(private MaterialProductRepository $materialProductRepository)
     {
@@ -67,15 +67,7 @@ class InventoryController extends Controller
         $items      = $query->paginate($perPage);
         $statsQuery = InventoryItem::query()->withoutGlobalScopes()->where('clinic_id', $clinicId);
 
-        return ApiResponse::success([
-            'items' => collect($items->items())->map(fn ($item) => $this->formatInventoryItem($item))->values(),
-            'pagination' => [
-                'current_page' => $items->currentPage(),
-                'last_page'    => $items->lastPage(),
-                'per_page'     => $items->perPage(),
-                'total'        => $items->total(),
-            ],
-            'summary' => [
+        $summary = [
                 'total_items'       => (clone $statsQuery)->count(),
                 'low_stock_count'   => (clone $statsQuery)->where('status', 'low_stock')->count(),
                 'out_of_stock_count'=> (clone $statsQuery)->where('status', 'out_of_stock')->count(),
@@ -83,6 +75,29 @@ class InventoryController extends Controller
                     ->leftJoin('material_products', 'material_products.id', '=', 'inventory_items.product_id')
                     ->selectRaw('COALESCE(SUM(inventory_items.quantity * material_products.price), 0) as total_value')
                     ->value('total_value'), 2),
+        ];
+
+        return ApiResponse::success([
+            'cards' => [
+                ['key' => 'total_items', 'label' => 'Total Items', 'value' => $summary['total_items']],
+                ['key' => 'warehouse_value', 'label' => 'Warehouse Value', 'value' => $summary['warehouse_value']],
+                ['key' => 'low_stock', 'label' => 'Low Stock', 'value' => $summary['low_stock_count']],
+                ['key' => 'out_of_stock', 'label' => 'Out of Stock', 'value' => $summary['out_of_stock_count']],
+            ],
+            'summary' => $summary,
+            'critical_stock_items' => (clone $statsQuery)
+                ->whereIn('status', ['low_stock', 'out_of_stock'])
+                ->orderBy('quantity')
+                ->limit(10)
+                ->get()
+                ->map(fn ($item) => $this->formatInventoryItem($item))
+                ->values(),
+            'items' => collect($items->items())->map(fn ($item) => $this->formatInventoryItem($item))->values(),
+            'pagination' => [
+                'current_page' => $items->currentPage(),
+                'last_page'    => $items->lastPage(),
+                'per_page'     => $items->perPage(),
+                'total'        => $items->total(),
             ],
         ], 'Inventory fetched successfully');
     }
@@ -118,10 +133,9 @@ public function store(Request $request)
         'reorder_quantity' => ['nullable', 'integer', 'min:0'],
         'auto_purchase' => ['nullable', 'boolean'],
         'unit_price' => ['nullable', 'numeric', 'min:0'],
-        'supplier' => ['required_without:material_product_id', 'nullable', 'integer', 'exists:material_companies,id'],
+        'supplier' => ['required_without:material_product_id', 'nullable', 'string', 'max:255'],
         'status' => ['nullable', 'in:in_stock,low_stock,out_of_stock'],
     ], [
-        'supplier.exists' => 'Supplier must match an existing material company id.',
         'category.exists' => 'Category must be one of the predefined category ids.',
     ]);
 
@@ -135,13 +149,17 @@ public function store(Request $request)
 
     $supplierCompany = $material?->company;
     if (! $supplierCompany && ! empty($validated['supplier'])) {
-        $supplierCompany = MaterialCompany::query()->find($validated['supplier']);
+        $supplierCompany = MaterialCompany::query()->firstOrCreate(
+            ['name' => $validated['supplier']],
+            ['status' => MaterialCompany::STATUS_ACTIVE]
+        );
     }
 
     if (! $supplierCompany) {
-        return ApiResponse::error('Supplier not found.', 422, [
-            'supplier' => ['Supplier must match an existing material company when material_product_id is not provided.'],
-        ]);
+        $supplierCompany = MaterialCompany::query()->firstOrCreate(
+            ['name' => 'Custom Supplier'],
+            ['status' => MaterialCompany::STATUS_ACTIVE]
+        );
     }
 
     $category = ! empty($validated['category'])
@@ -166,7 +184,7 @@ public function store(Request $request)
         'unit' => $unit,
         'consumption_per_case' => $validated['consumption_per_case'] ?? null,
         'auto_purchase' => (bool) ($validated['auto_purchase'] ?? false),
-        'supplier' => $supplierCompany->name,
+        'supplier' => $validated['supplier'] ?? $supplierCompany->name,
         'unit_price' => $validated['unit_price'] ?? ($material?->price),
         'status' => $validated['status'] ?? $this->resolveStatus($quantity, $minimumStockLevel),
         'last_updated_at' => now(),

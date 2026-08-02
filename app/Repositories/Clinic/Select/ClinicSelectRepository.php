@@ -8,6 +8,7 @@ use App\Models\ClinicExpenseCategory;
 use App\Models\ClinicInvoice;
 use App\Models\ClinicLabPartnership;
 use App\Models\InsuranceCompany;
+use App\Models\InsurancePriceList;
 use App\Models\MaterialCategory;
 use App\Models\MaterialCompany;
 use App\Models\Patient;
@@ -113,6 +114,26 @@ class ClinicSelectRepository implements ClinicSelectRepositoryInterface
             ->get(['id', 'name']);
     }
 
+    public function syndicatePriceLists(int $clinicId, array $filters = []): Collection
+    {
+        $search = $filters['search'] ?? null;
+
+        $options = InsurancePriceList::query()
+            ->where('clinic_id', $clinicId)
+            ->when($search, fn ($query, $search) => $query->where('name', 'like', "%{$search}%"))
+            ->orderByDesc('year')
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn (InsurancePriceList $list) => (object) [
+                'id' => $list->id,
+                'name' => $list->name,
+            ]);
+
+        return collect([(object) ['id' => null, 'name' => '-- No Syndicate List (Use Custom) --']])
+            ->merge($options)
+            ->values();
+    }
+
     public function responseSpeeds(int $clinicId, array $filters = []): Collection
     {
         $setting = Setting::query()
@@ -155,10 +176,10 @@ public function materialCategories(int $clinicId, array $filters = []): Collecti
 }
 public function inventoryUnits(int $clinicId, array $filters = []): Collection
 {
-    return collect(['piece', 'box', 'pack', 'bottle', 'tube', 'cartridge', 'set', 'ml', 'g'])
+    return collect(['Piece', 'ML', 'Gram', 'Box'])
         ->map(fn (string $unit) => (object) [
             'id' => $unit,
-            'name' => str($unit)->replace('_', ' ')->title()->toString(),
+            'name' => $unit,
         ]);
 }
 public function claimStatuses(int $clinicId, array $filters = []): Collection

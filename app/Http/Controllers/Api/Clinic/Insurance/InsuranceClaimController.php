@@ -48,6 +48,15 @@ class InsuranceClaimController extends Controller
             : ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
     }
 
+    public function cards(InsuranceAnalyticsRequest $request)
+    {
+        $result = $this->service->managementCards($request->validated());
+
+        return $result['success']
+            ? ApiResponse::success($result['data'], $result['message'], $result['code'])
+            : ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+    }
+
     public function monthly(InsuranceMonthlyRequest $request)
     {
         $validated = $request->validated();
@@ -121,7 +130,7 @@ class InsuranceClaimController extends Controller
 
         return response($result['data']['content'], 200, [
             'Content-Type' => $result['data']['content_type'],
-            'Content-Disposition' => 'inline; filename="' . $result['data']['filename'] . '"',
+            'Content-Disposition' => 'attachment; filename="' . $result['data']['filename'] . '"',
         ]);
     }
 

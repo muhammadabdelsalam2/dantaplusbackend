@@ -19,6 +19,10 @@ return new class extends Migration {
             if (! Schema::hasColumn('insurance_companies', 'phone')) {
                 $table->string('phone', 50)->nullable()->after('contact_person');
             }
+
+            if (! Schema::hasColumn('insurance_companies', 'email')) {
+                $table->string('email')->nullable()->after('phone');
+            }
         });
     }
 
@@ -29,7 +33,7 @@ return new class extends Migration {
         }
 
         Schema::table('insurance_companies', function (Blueprint $table) {
-            foreach (['phone', 'contact_person'] as $column) {
+            foreach (['email', 'phone', 'contact_person'] as $column) {
                 if (Schema::hasColumn('insurance_companies', $column)) {
                     $table->dropColumn($column);
                 }

@@ -168,14 +168,6 @@ class InsuranceClaimService
         }
 
         $nextStatus = $data['status'] ?? $claim->status;
-        if ($nextStatus !== $claim->status && ! $this->isValidTransition($claim->status, $nextStatus)) {
-            return ServiceResult::error(
-                'Insurance claim status transition is not allowed.',
-                null,
-                ['status' => ['The requested status transition is not allowed.']],
-                422
-            );
-        }
 
         $previousStatus = $claim->status;
         $updatedClaim = DB::transaction(function () use ($claim, $data, $nextStatus, $clinicId) {
@@ -271,16 +263,9 @@ class InsuranceClaimService
         return ServiceResult::error('Insurance claim not found.', null, null, 404);
     }
 
-    $status = $data['status'];
-
-    if ($status !== $claim->status && ! $this->isValidTransition($claim->status, $status)) {
-        return ServiceResult::error(
-            'Insurance claim status transition is not allowed.',
-            null,
-            ['status' => ['The requested status transition is not allowed.']],
-            422
-        );
-    }
+    $status = $data['status'] === 'under_review'
+        ? InsuranceClaim::STATUS_PARTIALLY_APPROVED
+        : $data['status'];
 
     $attributes = [
         'status' => $status,
@@ -328,6 +313,55 @@ class InsuranceClaimService
         'Insurance claim status updated successfully'
     );
 }
+
+    public function managementCards(array $filters = []): array
+    {
+        $clinicId = $this->currentClinicId();
+        if (! $clinicId) {
+            return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
+        }
+
+        $currentStart = now()->startOfMonth();
+        $currentEnd = now()->endOfMonth();
+        $previousStart = now()->subMonthNoOverflow()->startOfMonth();
+        $previousEnd = now()->subMonthNoOverflow()->endOfMonth();
+
+        $currentClaims = $this->claimsForCards($clinicId, $currentStart, $currentEnd, $filters);
+        $previousClaims = $this->claimsForCards($clinicId, $previousStart, $previousEnd, $filters);
+
+        $currentClaimed = round((float) $currentClaims->sum(fn (InsuranceClaim $claim) => $this->effectiveClaimAmount($claim)), 2);
+        $previousClaimed = round((float) $previousClaims->sum(fn (InsuranceClaim $claim) => $this->effectiveClaimAmount($claim)), 2);
+        $currentApprovalRate = $this->approvalRate($currentClaims);
+        $previousApprovalRate = $this->approvalRate($previousClaims);
+        $currentAvgTime = $this->averageClaimTime($currentClaims);
+        $previousAvgTime = $this->averageClaimTime($previousClaims);
+
+        return ServiceResult::success([
+            'cards' => [
+                [
+                    'key' => 'total_amount_claimed',
+                    'label' => 'Total Amount Claimed',
+                    'value' => $currentClaimed,
+                    'formatted_value' => '$' . number_format($currentClaimed, 0),
+                    ...$this->changeMeta($currentClaimed, $previousClaimed, true),
+                ],
+                [
+                    'key' => 'approval_rate',
+                    'label' => 'Approval Rate',
+                    'value' => $currentApprovalRate,
+                    'formatted_value' => number_format($currentApprovalRate, 1) . '%',
+                    ...$this->changeMeta($currentApprovalRate, $previousApprovalRate, true),
+                ],
+                [
+                    'key' => 'avg_claim_time',
+                    'label' => 'Avg. Claim Time',
+                    'value' => $currentAvgTime,
+                    'formatted_value' => number_format($currentAvgTime, 0) . ' days',
+                    ...$this->changeMeta($currentAvgTime, $previousAvgTime, false),
+                ],
+            ],
+        ], 'Insurance management cards fetched successfully');
+    }
 
     public function destroy(int $claimId): array
     {
@@ -475,7 +509,7 @@ class InsuranceClaimService
         $to = $filters['date_to'] ?? now()->toDateString();
 
         $claims = InsuranceClaim::query()
-            ->with(['company:id,name', 'patient.user:id,name', 'appointment.doctor:id,name'])
+            ->with(['company:id,name', 'patient.user:id,name', 'appointment.doctor:id,name', 'invoice.doctor:id,name'])
             ->where('clinic_id', $clinicId)
             ->whereBetween('service_date', [$from, $to])
             ->when($filters['insurance_company_id'] ?? null, fn ($query, int $companyId) => $query->where('insurance_company_id', $companyId))
@@ -529,7 +563,7 @@ class InsuranceClaimService
         $to = $filters['date_to'] ?? now()->toDateString();
 
         $claims = InsuranceClaim::query()
-            ->with(['company:id,name', 'patient.user:id,name', 'appointment.doctor:id,name'])
+            ->with(['company:id,name', 'patient.user:id,name', 'appointment.doctor:id,name', 'invoice.doctor:id,name'])
             ->where('clinic_id', $clinicId)
             ->whereBetween('service_date', [$from, $to])
             ->when($filters['insurance_company_id'] ?? null, fn ($query, $companyId) => $query->where('insurance_company_id', (int) $companyId))
@@ -599,6 +633,51 @@ class InsuranceClaimService
             ->all();
     }
 
+    private function claimsForCards(int $clinicId, Carbon $from, Carbon $to, array $filters)
+    {
+        return InsuranceClaim::query()
+            ->where('clinic_id', $clinicId)
+            ->whereBetween('service_date', [$from->toDateString(), $to->toDateString()])
+            ->when($filters['insurance_company_id'] ?? null, fn (Builder $query, int $companyId) => $query->where('insurance_company_id', $companyId))
+            ->when($filters['status'] ?? null, fn (Builder $query, string $status) => $query->whereIn('status', $this->storedStatusesForFilter($status)))
+            ->get();
+    }
+
+    private function approvalRate($claims): float
+    {
+        $approvedStatuses = [
+            InsuranceClaim::STATUS_APPROVED,
+            InsuranceClaim::STATUS_APPROVED_WITH_LIMIT,
+            InsuranceClaim::STATUS_PAID,
+        ];
+
+        return round(($claims->whereIn('status', $approvedStatuses)->count() / max($claims->count(), 1)) * 100, 1);
+    }
+
+    private function averageClaimTime($claims): float
+    {
+        return round((float) $claims
+            ->filter(fn (InsuranceClaim $claim) => $claim->submitted_at && $claim->reviewed_at)
+            ->avg(fn (InsuranceClaim $claim) => $claim->submitted_at->diffInDays($claim->reviewed_at)), 1);
+    }
+
+    private function changeMeta(float $current, float $previous, bool $higherIsBetter): array
+    {
+        $change = $previous == 0.0
+            ? ($current == 0.0 ? 0.0 : 100.0)
+            : round((($current - $previous) / abs($previous)) * 100, 1);
+        $isImproved = $higherIsBetter ? $change >= 0 : $change <= 0;
+
+        return [
+            'previous_value' => $previous,
+            'change_value' => round($current - $previous, 2),
+            'change_percentage' => $change,
+            'change_label' => ($change > 0 ? '+' : '') . number_format($change, 1) . '% vs last month',
+            'change_direction' => $change >= 0 ? 'up' : 'down',
+            'tone' => $isImproved ? 'success' : 'danger',
+        ];
+    }
+
     private function effectiveClaimAmount(InsuranceClaim $claim): float
     {
         if ($claim->status === InsuranceClaim::STATUS_APPROVED_WITH_LIMIT) {
@@ -648,11 +727,18 @@ class InsuranceClaimService
     private function approvalReportRows($claims): array
     {
         return $claims->map(function (InsuranceClaim $claim) {
+            $appointment = $claim->appointment;
+            $patientName = $claim->patient?->user?->name ?? $appointment?->patient_name;
+            $doctor = $appointment?->doctor?->name ?? $claim->invoice?->doctor?->name;
+
             return [
+                'approval_id' => $claim->claim_number,
+                'patient_name' => $patientName,
+                'file_number' => $claim->patient?->patient_number,
                 'company' => $claim->company?->name,
-                'doctor' => $claim->appointment?->doctor?->name,
-                'branch' => $claim->appointment?->branch,
-                'service' => $claim->items->first()?->service_name ?? $claim->appointment?->service_name ?? $claim->title,
+                'doctor' => $doctor,
+                'branch' => $appointment?->branch,
+                'service' => $claim->items->first()?->service_name ?? $appointment?->service_name ?? $claim->title,
                 'amount' => $this->effectiveApprovedAmount($claim) ?: (float) $claim->gross_amount,
                 'approval_date' => optional($claim->reviewed_at)?->format('d/m/Y') ?? 'N/A',
                 'status' => $this->statusLabel($claim->status),
@@ -682,9 +768,12 @@ class InsuranceClaimService
     private function renderApprovalReportCsv(array $rows): string
     {
         $handle = fopen('php://temp', 'r+');
-        fputcsv($handle, ['Company', 'Doctor', 'Branch', 'Service', 'Amount', 'Approval Date', 'Status']);
+        fputcsv($handle, ['Approval ID', 'Patient Name', 'File Number', 'Company', 'Doctor', 'Branch', 'Service', 'Amount', 'Approval Date', 'Status']);
         foreach ($rows as $row) {
             fputcsv($handle, [
+                $row['approval_id'],
+                $row['patient_name'],
+                $row['file_number'],
                 $row['company'],
                 $row['doctor'],
                 $row['branch'],
@@ -701,9 +790,9 @@ class InsuranceClaimService
 
     private function renderApprovalReportHtml(array $rows, string $from, string $to): string
     {
-        $body = collect($rows)->map(fn (array $row) => '<tr><td>' . e($row['company']) . '</td><td>' . e($row['doctor']) . '</td><td>' . e($row['branch']) . '</td><td>' . e($row['service']) . '</td><td>' . number_format((float) $row['amount'], 2) . '</td><td>' . e($row['approval_date']) . '</td><td>' . e($row['status']) . '</td></tr>')->implode('');
+        $body = collect($rows)->map(fn (array $row) => '<tr><td>' . e($row['approval_id']) . '</td><td>' . e($row['patient_name']) . '</td><td>' . e($row['file_number']) . '</td><td>' . e($row['company']) . '</td><td>' . e($row['doctor']) . '</td><td>' . e($row['branch']) . '</td><td>' . e($row['service']) . '</td><td>' . number_format((float) $row['amount'], 2) . '</td><td>' . e($row['approval_date']) . '</td><td>' . e($row['status']) . '</td></tr>')->implode('');
 
-        return '<!doctype html><html><head><meta charset="utf-8"><style>body{font-family:DejaVu Sans,sans-serif;color:#111827}table{width:100%;border-collapse:collapse}th,td{border:1px solid #e5e7eb;padding:8px;text-align:left}th{background:#f3f4f6}</style></head><body><h1>Monthly Insurance Approvals Report</h1><p>' . e($from) . ' to ' . e($to) . '</p><table><thead><tr><th>Company</th><th>Doctor</th><th>Branch</th><th>Service</th><th>Amount</th><th>Approval Date</th><th>Status</th></tr></thead><tbody>' . $body . '</tbody></table></body></html>';
+        return '<!doctype html><html><head><meta charset="utf-8"><style>body{font-family:DejaVu Sans,sans-serif;color:#111827}table{width:100%;border-collapse:collapse}th,td{border:1px solid #e5e7eb;padding:8px;text-align:left;font-size:11px}th{background:#f3f4f6}</style></head><body><h1>Monthly Insurance Approvals Report</h1><p>' . e($from) . ' to ' . e($to) . '</p><table><thead><tr><th>Approval ID</th><th>Patient Name</th><th>File Number</th><th>Company</th><th>Doctor</th><th>Branch</th><th>Service</th><th>Amount</th><th>Approval Date</th><th>Status</th></tr></thead><tbody>' . $body . '</tbody></table></body></html>';
     }
 
     private function validateRelatedModels(int $clinicId, InsuranceClaimData $dto): ?array

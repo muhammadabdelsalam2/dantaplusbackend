@@ -196,7 +196,7 @@ $equipment = Equipment::create([
             'id'         => $equipment->id,
             'clinic_id'  => $equipment->clinic_id,
             'name'       => $equipment->name,
-            'image_url'  => $equipment->image_url,
+            'image_url'  => $equipment->image_url ? asset($equipment->image_url) : null,
             'status'     => $equipment->status,
             'open_reports' => (int) ($equipment->open_reports_count ?? 0),
             'show_fix_now' => (int) ($equipment->open_reports_count ?? 0) > 0 || $equipment->status !== Equipment::STATUS_OPERATIONAL,

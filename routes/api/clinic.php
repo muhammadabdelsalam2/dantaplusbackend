@@ -201,6 +201,7 @@ Route::prefix('clinic')
                 Route::get('/companies/{id}', [InsuranceCompanyController::class, 'show']);
                 Route::get('/companies/{id}/price-list-items', [InsuranceCompanyController::class, 'priceListItems']);
                 Route::get('/patients/lookup',    [InsuranceClaimController::class, 'patientLookup']);
+                Route::get('/cards',    [InsuranceClaimController::class, 'cards']);
                 Route::get('/analytics',    [InsuranceClaimController::class, 'analytics']);
                 Route::get('/monthly',    [InsuranceClaimController::class, 'monthly']);
                 Route::get('/approval-report',    [InsuranceClaimController::class, 'approvalReport']);
