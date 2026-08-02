@@ -56,7 +56,7 @@ class SelectController extends Controller
         );
     }
 
-    $result = $this->service->options($resource, $request->only(['search']));
+    $result = $this->service->options($resource, $request->only(['search', 'branch_id']));
 
     return $result['success']
         ? ApiResponse::success($result['data'], $result['message'], $result['code'])

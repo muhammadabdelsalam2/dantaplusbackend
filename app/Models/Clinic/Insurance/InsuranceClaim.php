@@ -84,6 +84,18 @@ class InsuranceClaim extends Model
         ];
     }
 
+    public static function reportStatuses(): array
+    {
+        return [
+            self::STATUS_SUBMITTED,
+            'under_review',
+            self::STATUS_APPROVED,
+            self::STATUS_APPROVED_WITH_LIMIT,
+            self::STATUS_PAID,
+            self::STATUS_REJECTED,
+        ];
+    }
+
     public function clinic(): BelongsTo
     {
         return $this->belongsTo(Clinic::class);

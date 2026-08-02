@@ -21,6 +21,11 @@ class ProcurementOrderResource extends JsonResource
             'unit_cost' => (float) $this->unit_cost,
             'total_cost' => (float) $this->total_cost,
             'status' => $this->status,
+            'actions' => [
+                'approve_url' => url('/api/clinic/procurement/' . $this->id . '/approve'),
+                'receive_url' => url('/api/clinic/procurement/' . $this->id . '/receive'),
+                'cancel_url' => url('/api/clinic/procurement/' . $this->id),
+            ],
             'notes' => $this->notes,
             'ordered_at' => optional($this->ordered_at)?->toISOString(),
             'received_at' => optional($this->received_at)?->toISOString(),

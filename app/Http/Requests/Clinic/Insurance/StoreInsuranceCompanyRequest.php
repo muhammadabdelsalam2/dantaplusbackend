@@ -16,6 +16,9 @@ class StoreInsuranceCompanyRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'code' => ['nullable', 'string', 'max:100'],
+            'contact_person' => ['nullable', 'string', 'max:255'],
+            'contact' => ['nullable', 'string', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:50'],
             'coverage' => ['nullable', 'string', 'max:255'],
             'payment_terms' => ['nullable', 'string', 'max:255'],
             'syndicate_price_list_id' => ['nullable', 'integer', 'exists:insurance_price_lists,id'],

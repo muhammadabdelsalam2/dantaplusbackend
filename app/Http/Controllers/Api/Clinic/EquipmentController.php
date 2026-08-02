@@ -33,6 +33,11 @@ class EquipmentController extends Controller
         $perPage = max(1, min((int) ($validated['per_page'] ?? 15), 100));
 
         $query = Equipment::query()
+            ->withCount(['maintenanceRequests as open_reports_count' => fn ($query) => $query->whereIn('status', [
+                OwnerMaintenanceRequest::STATUS_PENDING,
+                OwnerMaintenanceRequest::STATUS_IN_PROGRESS,
+                OwnerMaintenanceRequest::STATUS_OVERDUE,
+            ])])
             ->withoutGlobalScopes()
             ->where('clinic_id', $clinicId)
             // ← search على name بس (الأعمدة الموجودة: id, name, image_url, clinic_id, status)
@@ -80,26 +85,26 @@ class EquipmentController extends Controller
         $validated['attachment_url'] = $attachmentUrl;
 
 
-        $maintenanceRequest = DB::transaction(function () use ($equipmentRecord, $validated, $clinicId) {
+        $urgency = Str::of($validated['urgency'])->lower()->ucfirst()->toString();
+
+        $maintenanceRequest = DB::transaction(function () use ($equipmentRecord, $validated, $clinicId, $urgency) {
             $requestModel = OwnerMaintenanceRequest::create([
                 'request_code' => 'MR-' . now()->format('Ymd') . '-' . Str::upper(Str::random(5)),
                 'clinic_id' => $clinicId,
                 'equipment_id' => $equipmentRecord->id,
-                'equipment' => $equipmentRecord->name,
+                'equipment' => $validated['equipment_name'] ?? $equipmentRecord->name,
                 'malfunction_type' => $validated['malfunction_type'],
                 'issue_description' => $validated['description'],
-                'urgency' => $validated['urgency'],
+                'urgency' => $urgency,
                 'attachment_url' => $validated['attachment_url'],
                 'assigned_company_id' => $validated['company_id'] ?? $this->defaultMaintenanceCompanyId(),
                 'status' => OwnerMaintenanceRequest::STATUS_PENDING,
                 'created_by' => auth()->id(),
             ]);
 
-            if ($validated['urgency'] === 'critical') {
-                $equipmentRecord->update([
-                    'status' => Equipment::STATUS_BROKEN,
-                ]);
-            }
+            $equipmentRecord->update([
+                'status' => $urgency === 'Critical' ? Equipment::STATUS_BROKEN : Equipment::STATUS_UNDER_MAINTENANCE,
+            ]);
 
             return $requestModel;
         });
@@ -107,6 +112,9 @@ class EquipmentController extends Controller
         return ApiResponse::success([
             'request_id' => $maintenanceRequest->id,
             'request_code' => $maintenanceRequest->request_code,
+            'status' => $maintenanceRequest->status,
+            'urgency' => $maintenanceRequest->urgency,
+            'attachment_url' => $maintenanceRequest->attachment_url,
             'equipment_status' => $equipmentRecord->fresh()->status,
             'maintenance_company' => $maintenanceRequest->company ? [
                 'id' => $maintenanceRequest->company->id,
@@ -190,6 +198,8 @@ $equipment = Equipment::create([
             'name'       => $equipment->name,
             'image_url'  => $equipment->image_url,
             'status'     => $equipment->status,
+            'open_reports' => (int) ($equipment->open_reports_count ?? 0),
+            'show_fix_now' => (int) ($equipment->open_reports_count ?? 0) > 0 || $equipment->status !== Equipment::STATUS_OPERATIONAL,
             'created_at' => optional($equipment->created_at)?->toISOString(),
             'updated_at' => optional($equipment->updated_at)?->toISOString(),
         ];

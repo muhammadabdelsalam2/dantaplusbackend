@@ -4,14 +4,21 @@ namespace App\Repositories\Clinic\Insurance;
 
 use App\Models\Clinic\Insurance\InsuranceCompany;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Builder;
 
 class InsuranceCompanyRepository
 {
-    public function listForClinic(int $clinicId): Collection
+    public function listForClinic(int $clinicId, array $filters = []): Collection
     {
         return InsuranceCompany::query()
             ->with('syndicatePriceList:id,name,year')
             ->where('clinic_id', $clinicId)
+            ->when($filters['search'] ?? null, fn (Builder $query, string $search) => $query->where(function ($nested) use ($search) {
+                $nested->where('name', 'like', "%{$search}%")
+                    ->orWhere('code', 'like', "%{$search}%")
+                    ->orWhere('contact_person', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%");
+            }))
             ->latest('id')
             ->get();
     }

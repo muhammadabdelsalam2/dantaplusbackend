@@ -7,6 +7,8 @@ class InsuranceCompanyData
     public function __construct(
         public readonly string $name,
         public readonly ?string $code,
+        public readonly ?string $contactPerson,
+        public readonly ?string $phone,
         public readonly ?string $coverage,
         public readonly ?string $paymentTerms,
         public readonly ?int $syndicatePriceListId,
@@ -20,6 +22,8 @@ class InsuranceCompanyData
         return new self(
             name: $data['name'],
             code: $data['code'] ?? null,
+            contactPerson: $data['contact_person'] ?? $data['contact'] ?? null,
+            phone: $data['phone'] ?? null,
             coverage: $data['coverage'] ?? null,
             paymentTerms: $data['payment_terms'] ?? null,
             syndicatePriceListId: $data['syndicate_price_list_id'] ?? null,
@@ -33,6 +37,8 @@ class InsuranceCompanyData
         return [
             'name' => $this->name,
             'code' => $this->code,
+            'contact_person' => $this->contactPerson,
+            'phone' => $this->phone,
             'coverage' => $this->coverage,
             'payment_terms' => $this->paymentTerms,
             'syndicate_price_list_id' => $this->syndicatePriceListId,

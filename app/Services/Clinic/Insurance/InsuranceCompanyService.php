@@ -14,14 +14,14 @@ class InsuranceCompanyService
     {
     }
 
-    public function index(): array
+    public function index(array $filters = []): array
     {
         $clinicId = $this->currentClinicId();
         if (! $clinicId) {
             return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
         }
 
-        $companies = $this->repository->listForClinic($clinicId);
+        $companies = $this->repository->listForClinic($clinicId, array_filter($filters));
 
         return ServiceResult::success(
             InsuranceCompanyResource::collection($companies)->resolve(),
@@ -79,6 +79,11 @@ class InsuranceCompanyService
         if (! $company) {
             return ServiceResult::error('Insurance company not found.', null, null, 404);
         }
+
+        if (array_key_exists('contact', $data) && ! array_key_exists('contact_person', $data)) {
+            $data['contact_person'] = $data['contact'];
+        }
+        unset($data['contact']);
 
         if (array_key_exists('syndicate_price_list_id', $data)) {
             $validation = $this->validateReferencePriceList($clinicId, $data['syndicate_price_list_id']);

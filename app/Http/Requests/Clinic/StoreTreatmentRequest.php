@@ -23,6 +23,9 @@ class StoreTreatmentRequest extends FormRequest
             'treatment_date' => ['nullable', 'date'],
             'cost' => ['nullable', 'numeric', 'min:0'],
             'status' => ['required', 'in:planned,in_progress,completed'],
+            'materials' => ['nullable', 'array'],
+            'materials.*.inventory_item_id' => ['required_with:materials', 'integer', 'exists:inventory_items,id'],
+            'materials.*.quantity' => ['required_with:materials', 'integer', 'min:1'],
         ];
     }
 }

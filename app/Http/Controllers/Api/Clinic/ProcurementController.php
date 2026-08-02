@@ -68,12 +68,7 @@ class ProcurementController extends Controller
             return ApiResponse::error('Only pending procurement orders can be approved.', 422);
         }
 
-        $order->update([
-            'status' => ProcurementOrder::STATUS_ORDERED,
-            'ordered_at' => now(),
-        ]);
-
-        return ApiResponse::success((new ProcurementOrderResource($order->fresh(['material:id,name', 'supplier:id,name'])))->resolve(), 'Procurement order approved successfully');
+        return $this->receive($po);
     }
 
     public function receive(int $po)

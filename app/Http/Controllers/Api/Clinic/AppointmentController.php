@@ -28,6 +28,7 @@ class AppointmentController extends Controller
             'year' => ['nullable', 'integer', 'min:1900', 'max:2100'],
             'month' => ['nullable', 'integer', 'min:1', 'max:12'],
             'day' => ['nullable', 'integer', 'min:1', 'max:31'],
+            'branch_id' => ['nullable', 'integer'],
             'branch' => ['nullable', 'string', 'max:255'],
             'room' => ['nullable', 'string', 'max:255'],
             'room_id' => ['nullable', 'integer'], 
@@ -76,12 +77,182 @@ class AppointmentController extends Controller
     }
     public function approve(UpdateAppointmentRequest $request, int $id)
     {
-        $result = $this->service->approve($id, $request->validated());
+        $result = $this->service->confirm($id);
 
         if (! $result['success']) {
             return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
         }
 
         return ApiResponse::success($result['data'], $result['message'], $result['code']);
+    }
+
+    public function quickBook(Request $request)
+    {
+        $validated = $request->validate([
+            'patient_name' => ['required', 'string', 'max:255'],
+            'phone_number' => ['nullable', 'string', 'max:50'],
+            'patient_phone' => ['nullable', 'string', 'max:50'],
+            'doctor_id' => ['required', 'integer', 'exists:users,id'],
+            'service_id' => ['nullable', 'integer', 'exists:services,id'],
+            'service_name' => ['required_without:service_id', 'nullable', 'string', 'max:255'],
+            'date' => ['required', 'date_format:Y-m-d'],
+            'time' => ['required', 'date_format:H:i'],
+            'branch_id' => ['required', 'integer', 'exists:branches,id'],
+            'room_id' => ['nullable', 'integer', 'exists:rooms,id'],
+            'payment_type' => ['nullable', 'in:cash,insurance,none,no_payment_type'],
+            'duration_minutes' => ['nullable', 'integer', 'min:5', 'max:480'],
+        ]);
+
+        $validated['appointment_at'] = $validated['date'] . ' ' . $validated['time'];
+        if (($validated['payment_type'] ?? null) === 'no_payment_type') {
+            $validated['payment_type'] = 'none';
+        }
+
+        $result = $this->service->quickBook($validated);
+
+        return $result['success']
+            ? ApiResponse::success($result['data'], $result['message'], $result['code'])
+            : ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+    }
+
+    public function confirm(int $id)
+    {
+        return $this->respondResult($this->service->confirm($id));
+    }
+
+    public function attend(int $id)
+    {
+        return $this->respondResult($this->service->attend($id));
+    }
+
+    public function complete(int $id)
+    {
+        return $this->respondResult($this->service->complete($id));
+    }
+
+    public function paymentPreview(Request $request, int $id)
+    {
+        $validated = $request->validate([
+            'total_cost' => ['nullable', 'numeric', 'min:0'],
+            'service_cost' => ['nullable', 'numeric', 'min:0'],
+            'discount' => ['nullable', 'numeric', 'min:0'],
+            'amount_paid_now' => ['nullable', 'numeric', 'min:0'],
+            'paid_now' => ['nullable', 'numeric', 'min:0'],
+            'full_payment' => ['nullable', 'boolean'],
+            'discount_reason' => ['nullable', 'string', 'max:255'],
+            'reason' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        return $this->respondResult($this->service->paymentPreview($id, $validated));
+    }
+
+    public function payment(Request $request, int $id)
+    {
+        $validated = $request->validate([
+            'total_cost' => ['nullable', 'numeric', 'min:0'],
+            'service_cost' => ['nullable', 'numeric', 'min:0'],
+            'discount' => ['nullable', 'numeric', 'min:0'],
+            'discount_reason' => ['nullable', 'string', 'max:255'],
+            'reason' => ['nullable', 'string', 'max:255'],
+            'payment_method' => ['required', 'in:Cash,Card,Bank Transfer,Insurance,Mixed (Split)'],
+            'amount_paid_now' => ['nullable', 'numeric', 'min:0'],
+            'paid_now' => ['nullable', 'numeric', 'min:0'],
+            'full_payment' => ['nullable', 'boolean'],
+            'whatsapp_receipt' => ['nullable', 'boolean'],
+            'generate_invoice' => ['nullable', 'boolean'],
+            'generate_attach_invoice' => ['nullable', 'boolean'],
+            'add_follow_up_reminder' => ['nullable', 'boolean'],
+        ]);
+
+        return $this->respondResult($this->service->recordPaymentAndComplete($id, $validated));
+    }
+
+    public function reschedule(Request $request, int $id)
+    {
+        $validated = $request->validate([
+            'doctor_id' => ['nullable', 'integer', 'exists:users,id'],
+            'service_id' => ['nullable', 'integer', 'exists:services,id'],
+            'service_name' => ['nullable', 'string', 'max:255'],
+            'new_date' => ['required_without:date', 'nullable', 'date_format:Y-m-d'],
+            'new_time' => ['required_without:time', 'nullable', 'date_format:H:i'],
+            'date' => ['nullable', 'date_format:Y-m-d'],
+            'time' => ['nullable', 'date_format:H:i'],
+            'branch_id' => ['nullable', 'integer', 'exists:branches,id'],
+            'room_id' => ['nullable', 'integer', 'exists:rooms,id'],
+            'notes' => ['nullable', 'string'],
+        ]);
+
+        return $this->respondResult($this->service->reschedule($id, $validated));
+    }
+
+    public function move(Request $request, int $id)
+    {
+        $validated = $request->validate([
+            'appointment_at' => ['required_without_all:date,time', 'nullable', 'date'],
+            'date' => ['required_without:appointment_at', 'nullable', 'date_format:Y-m-d'],
+            'time' => ['required_without:appointment_at', 'nullable', 'date_format:H:i'],
+            'branch_id' => ['nullable', 'integer', 'exists:branches,id'],
+            'room_id' => ['nullable', 'integer', 'exists:rooms,id'],
+        ]);
+
+        return $this->respondResult($this->service->move($id, $validated));
+    }
+
+    public function duration(Request $request, int $id)
+    {
+        $validated = $request->validate([
+            'duration_minutes' => ['required', 'integer', 'min:5', 'max:480'],
+        ]);
+
+        return $this->respondResult($this->service->changeDuration($id, (int) $validated['duration_minutes']));
+    }
+
+    public function cancel(Request $request, int $id)
+    {
+        $validated = $request->validate(['reason' => ['nullable', 'string', 'max:1000']]);
+
+        return $this->respondResult($this->service->cancel($id, $validated['reason'] ?? null));
+    }
+
+    public function reject(Request $request, int $id)
+    {
+        $validated = $request->validate(['reason' => ['nullable', 'string', 'max:1000']]);
+
+        return $this->respondResult($this->service->reject($id, $validated['reason'] ?? null));
+    }
+
+    public function whatsappReminder(int $id)
+    {
+        return $this->respondResult($this->service->sendWhatsAppReminder($id));
+    }
+
+    public function availableSlots(Request $request)
+    {
+        $validated = $request->validate([
+            'doctor_id' => ['required', 'integer', 'exists:users,id'],
+            'date' => ['required', 'date_format:Y-m-d'],
+            'branch_id' => ['required', 'integer', 'exists:branches,id'],
+            'room_id' => ['nullable', 'integer', 'exists:rooms,id'],
+            'duration_minutes' => ['nullable', 'integer', 'min:5', 'max:480'],
+        ]);
+
+        return $this->respondResult($this->service->availableSlots($validated));
+    }
+
+    public function paymentTypes()
+    {
+        return ApiResponse::success($this->service->paymentTypes(), 'Payment types fetched successfully');
+    }
+
+    public function paymentMethods()
+    {
+        return ApiResponse::success($this->service->paymentMethods(), 'Payment methods fetched successfully');
+    }
+
+    private function respondResult(array $result)
+    {
+        return $result['success']
+            ? ApiResponse::success($result['data'], $result['message'], $result['code'])
+            : ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
     }
 }

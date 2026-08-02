@@ -7,6 +7,7 @@ use App\Http\Requests\Clinic\Insurance\StoreInsuranceCompanyRequest;
 use App\Http\Requests\Clinic\Insurance\UpdateInsuranceCompanyRequest;
 use App\Services\Clinic\Insurance\InsuranceCompanyService;
 use App\Support\ApiResponse;
+use Illuminate\Http\Request;
 
 class InsuranceCompanyController extends Controller
 {
@@ -16,9 +17,11 @@ class InsuranceCompanyController extends Controller
     {
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        $result = $this->service->index();
+        $result = $this->service->index([
+            'search' => $request->string('search')->toString() ?: null,
+        ]);
 
         if (! $result['success']) {
             return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
@@ -91,6 +94,8 @@ class InsuranceCompanyController extends Controller
             return ApiResponse::success([], 'No price list found for this insurance company', 200);
         }
 
+        $coverage = $this->coveragePercent($company->coverage);
+
         $items = $priceList->items()
             ->paginate(per_page: request()->integer('per_page', 50));
 
@@ -100,7 +105,20 @@ class InsuranceCompanyController extends Controller
                 'name' => $priceList->name,
                 'insurance_company_id' => $priceList->insurance_company_id,
             ],
-            'items' => $items->items(),
+            'coverage_percentage' => $coverage,
+            'items' => collect($items->items())->map(fn ($item) => [
+                'id' => $item->id,
+                'service_id' => $item->service_id,
+                'code' => $item->code ?? $item->item_code,
+                'item_code' => $item->item_code,
+                'service_name' => $item->service_name,
+                'category_id' => $item->category_id,
+                'category_name' => $item->category_name,
+                'price' => (float) $item->price,
+                'covered_amount' => round(((float) $item->price * $coverage) / 100, 2),
+                'patient_share_amount' => round((float) $item->price - (((float) $item->price * $coverage) / 100), 2),
+                'notes' => $item->notes,
+            ])->values(),
             'pagination' => [
                 'total' => $items->total(),
                 'per_page' => $items->perPage(),
@@ -108,5 +126,12 @@ class InsuranceCompanyController extends Controller
                 'last_page' => $items->lastPage(),
             ],
         ], 'Price list items retrieved successfully', 200);
+    }
+
+    private function coveragePercent(?string $coverage): float
+    {
+        preg_match('/\d+(\.\d+)?/', (string) $coverage, $matches);
+
+        return min((float) ($matches[0] ?? 0), 100);
     }
 }

@@ -22,10 +22,15 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\URL;
 use Throwable;
 
 class BillingService
 {
+    private const PROFIT_LOSS_DOWNLOAD_FILENAME = 'profit-loss-report.pdf';
+    private const PROFIT_LOSS_DOWNLOAD_ROUTE = 'clinic.billing.profit-loss.download.signed';
+    private const PROFIT_LOSS_DOWNLOAD_TTL_MINUTES = 10;
+
     public function __construct(
         private ClinicBillingRepositoryInterface $repository,
         private WhatsAppProviderInterface $whatsAppProvider,
@@ -454,8 +459,15 @@ class BillingService
             return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
         }
 
+        $summary = $this->repository->profitLossSummary($clinicId, $filters);
+        $download = $this->profitLossDownloadUrlData($clinicId, $filters);
+
         return ServiceResult::success(
-            $this->repository->profitLossSummary($clinicId, $filters),
+            array_merge($summary, [
+                'download_url' => $download['download_url'],
+                'download_expires_at' => $download['expires_at'],
+                'download_filename' => $download['filename'],
+            ]),
             'Profit and loss fetched successfully'
         );
     }
@@ -606,6 +618,11 @@ class BillingService
             return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
         }
 
+        return $this->profitLossChartForClinic($clinicId, $filters);
+    }
+
+    public function profitLossChartForClinic(int $clinicId, array $filters = []): array
+    {
         $groupBy = $filters['group_by'] ?? 'month';
         $from = Carbon::parse($filters['date_from'] ?? now()->subMonths(5)->startOfMonth());
         $to = Carbon::parse($filters['date_to'] ?? now()->endOfMonth());
@@ -822,16 +839,43 @@ class BillingService
 
     public function profitLossPdfPayload(array $filters = []): array
     {
-        $chart = $this->profitLossChart($filters);
+        $clinicId = $this->currentClinicId();
+        if (! $clinicId) {
+            return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
+        }
+
+        return $this->profitLossPdfPayloadForClinic($clinicId, $filters);
+    }
+
+    public function profitLossPdfPayloadForClinic(int $clinicId, array $filters = []): array
+    {
+        if (! Clinic::query()->whereKey($clinicId)->exists()) {
+            return ServiceResult::error('Clinic was not found.', null, null, 404);
+        }
+
+        $chart = $this->profitLossChartForClinic($clinicId, $filters);
         if (! $chart['success']) {
             return $chart;
         }
 
         return ServiceResult::success([
-            'filename' => 'profit-loss-' . now()->format('YmdHis') . '.pdf',
+            'filename' => self::PROFIT_LOSS_DOWNLOAD_FILENAME,
             'content_type' => 'application/pdf',
             'content' => $this->renderProfitLossPdf($chart['data'], $filters),
         ], 'Profit and loss PDF generated successfully');
+    }
+
+    public function profitLossDownloadUrl(array $filters = []): array
+    {
+        $clinicId = $this->currentClinicId();
+        if (! $clinicId) {
+            return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
+        }
+
+        return ServiceResult::success(
+            $this->profitLossDownloadUrlData($clinicId, $filters),
+            'Profit and loss download link generated successfully'
+        );
     }
 
     public function sendProfitLossWhatsApp(array $data): array
@@ -866,6 +910,30 @@ class BillingService
             'message' => $message,
             'summary' => $summary,
         ], 'Profit and loss WhatsApp message processed successfully');
+    }
+
+    private function profitLossDownloadUrlData(int $clinicId, array $filters = []): array
+    {
+        $expiresAt = now()->addMinutes(self::PROFIT_LOSS_DOWNLOAD_TTL_MINUTES);
+        $params = [
+            'clinic_id' => $clinicId,
+        ];
+
+        foreach (['date_from', 'date_to', 'group_by'] as $key) {
+            if (isset($filters[$key]) && $filters[$key] !== '') {
+                $params[$key] = $filters[$key];
+            }
+        }
+
+        return [
+            'download_url' => URL::temporarySignedRoute(
+                self::PROFIT_LOSS_DOWNLOAD_ROUTE,
+                $expiresAt,
+                $params
+            ),
+            'expires_at' => $expiresAt->toISOString(),
+            'filename' => self::PROFIT_LOSS_DOWNLOAD_FILENAME,
+        ];
     }
 
     private function currentClinicId(): ?int

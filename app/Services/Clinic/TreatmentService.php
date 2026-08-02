@@ -4,9 +4,12 @@ namespace App\Services\Clinic;
 
 use App\Http\Resources\Clinic\TreatmentResource;
 use App\Models\ClinicTreatment;
+use App\Models\InventoryItem;
+use App\Models\InventoryLog;
 use App\Models\Patient;
 use App\Models\User;
 use App\Support\ServiceResult;
+use Illuminate\Support\Facades\DB;
 
 class TreatmentService
 {
@@ -59,18 +62,26 @@ class TreatmentService
             return ServiceResult::error('Doctor not found.', null, ['doctor_id' => ['Doctor not found.']], 422);
         }
 
-        $treatment = ClinicTreatment::query()->create([
-            'clinic_id' => $clinicId,
-            'patient_id' => $patient->id,
-            'doctor_user_id' => $doctor?->id,
-            'title' => $data['title'],
-            'description' => $data['description'] ?? null,
-            'tooth_number' => $data['tooth_number'] ?? null,
-            'sessions_count' => $data['sessions_count'] ?? 1,
-            'treatment_date' => $data['treatment_date'] ?? null,
-            'cost' => $data['cost'] ?? 0,
-            'status' => $data['status'],
-        ]);
+        $treatment = DB::transaction(function () use ($clinicId, $patient, $doctor, $data) {
+            $treatment = ClinicTreatment::query()->create([
+                'clinic_id' => $clinicId,
+                'patient_id' => $patient->id,
+                'doctor_user_id' => $doctor?->id,
+                'title' => $data['title'],
+                'description' => $data['description'] ?? null,
+                'tooth_number' => $data['tooth_number'] ?? null,
+                'sessions_count' => $data['sessions_count'] ?? 1,
+                'treatment_date' => $data['treatment_date'] ?? null,
+                'cost' => $data['cost'] ?? 0,
+                'status' => $data['status'],
+            ]);
+
+            foreach ($data['materials'] ?? [] as $material) {
+                $this->consumeInventoryItem($clinicId, (int) $material['inventory_item_id'], (int) $material['quantity'], 'Treatment material usage: ' . $treatment->title);
+            }
+
+            return $treatment;
+        });
 
         return $this->show($treatment->id);
     }
@@ -86,6 +97,35 @@ class TreatmentService
     private function currentClinicId(): ?int
     {
         return auth()->user()?->clinic_id;
+    }
+
+    private function consumeInventoryItem(int $clinicId, int $inventoryItemId, int $quantity, string $reason): void
+    {
+        $item = InventoryItem::query()
+            ->withoutGlobalScopes()
+            ->where('clinic_id', $clinicId)
+            ->lockForUpdate()
+            ->findOrFail($inventoryItemId);
+
+        $newQuantity = max((int) $item->quantity - $quantity, 0);
+        $minimumStockLevel = (int) $item->minimum_stock_level;
+
+        $item->update([
+            'quantity' => $newQuantity,
+            'status' => $newQuantity <= 0 ? 'out_of_stock' : ($newQuantity <= $minimumStockLevel ? 'low_stock' : 'in_stock'),
+            'last_updated_at' => now(),
+        ]);
+
+        InventoryLog::query()->withoutGlobalScopes()->create([
+            'inventory_item_id' => $item->id,
+            'company_id' => $item->company_id,
+            'clinic_id' => $clinicId,
+            'user_id' => auth()->id(),
+            'action' => 'treatment_usage',
+            'amount' => $quantity,
+            'reason' => $reason,
+            'created_at' => now(),
+        ]);
     }
     public function indexForPatient(int $patientId): array
 {

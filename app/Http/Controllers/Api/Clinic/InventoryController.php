@@ -17,6 +17,8 @@ class InventoryController extends Controller
 {
     use ApiResponse;
 
+    private const UNITS = ['piece', 'box', 'pack', 'bottle', 'tube', 'cartridge', 'set', 'ml', 'g'];
+
     public function __construct(private MaterialProductRepository $materialProductRepository)
     {
     }
@@ -30,7 +32,8 @@ class InventoryController extends Controller
 
         $validated = $request->validate([
             'search'   => ['nullable', 'string', 'max:255'],
-            'category' => ['nullable', 'string', 'max:255'],  // category_name في الـ DB
+            'category_id' => ['nullable', 'integer', 'exists:material_categories,id'],
+            'category' => ['nullable', 'integer', 'exists:material_categories,id'],
             'supplier' => ['nullable', 'string', 'max:255'],  // ← جديد: اسم السابلير
             'status'   => ['nullable', 'in:in_stock,low_stock,out_of_stock'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
@@ -49,8 +52,8 @@ class InventoryController extends Controller
                         ->orWhere('barcode', 'like', "%{$search}%");
                 });
             })
-            ->when($validated['category'] ?? null, fn ($builder, $category) =>
-                $builder->where('category_name', $category)
+            ->when($validated['category_id'] ?? $validated['category'] ?? null, fn ($builder, $categoryId) =>
+                $builder->where('category_id', (int) $categoryId)
             )
 
             ->when($validated['supplier'] ?? null, fn ($builder, $supplier) =>
@@ -106,8 +109,8 @@ public function store(Request $request)
         'category' => ['nullable', 'integer', 'exists:material_categories,id'],
         'initial_qty' => ['required_without:quantity', 'nullable', 'integer', 'min:0'],
         'quantity' => ['required_without:initial_qty', 'nullable', 'integer', 'min:0'],
-        'unit_type' => ['required_without:unit', 'nullable', 'string', 'max:50'],
-        'unit' => ['required_without:unit_type', 'nullable', 'string', 'max:50'],
+        'unit_type' => ['required_without:unit', 'nullable', Rule::in(self::UNITS)],
+        'unit' => ['required_without:unit_type', 'nullable', Rule::in(self::UNITS)],
         'consumption_per_case' => ['nullable', 'numeric', 'min:0'],
         'min_threshold' => ['required_without:minimum_stock_level', 'nullable', 'integer', 'min:0'],
         'minimum_stock_level' => ['required_without:min_threshold', 'nullable', 'integer', 'min:0'],
@@ -206,8 +209,8 @@ public function store(Request $request)
             'min_threshold' => ['sometimes', 'integer', 'min:0'],
             'reorder_quantity' => ['sometimes', 'integer', 'min:0'],
             'reorder_qty' => ['sometimes', 'integer', 'min:0'],
-            'unit' => ['sometimes', 'string', 'max:50'],
-            'unit_type' => ['sometimes', 'string', 'max:50'],
+            'unit' => ['sometimes', Rule::in(self::UNITS)],
+            'unit_type' => ['sometimes', Rule::in(self::UNITS)],
             'material_name' => ['sometimes', 'string', 'max:255'],
             'category' => ['sometimes', 'nullable', 'integer', 'exists:material_categories,id'],
             'consumption_per_case' => ['sometimes', 'nullable', 'numeric', 'min:0'],

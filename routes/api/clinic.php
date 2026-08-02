@@ -45,6 +45,18 @@ use App\Http\Controllers\Api\Owner\SupportCenterController;
 use App\Http\Controllers\Api\Clinic\CaseCommunicationController;
 use Illuminate\Support\Facades\Route;
 
+Route::get('clinic/billing/profit-loss/download-file', [BillingController::class, 'downloadProfitLossSigned'])
+    ->middleware(['api.error', 'signed'])
+    ->name('clinic.billing.profit-loss.download.signed');
+
+Route::get('clinic/insurance/approval-report/pdf', [InsuranceClaimController::class, 'approvalReportPdf'])
+    ->middleware(['api.error', 'signed'])
+    ->name('clinic.insurance.approval-report.pdf');
+
+Route::get('clinic/insurance/approval-report/excel', [InsuranceClaimController::class, 'approvalReportExcel'])
+    ->middleware(['api.error', 'signed'])
+    ->name('clinic.insurance.approval-report.excel');
+
 Route::prefix('clinic')
     ->middleware(['api.error', 'auth:sanctum', 'role:clinic_admin|doctor|nurse|accountant|receptionist|staff'])
     ->group(function () {
@@ -250,11 +262,26 @@ Route::prefix('clinic')
         Route::middleware('permission:patients.view')->get('/patients/{id}/documents', [PatientController::class, 'documents']);
 Route::middleware('permission:patients.update')->post('/patients/{id}/documents/upload', [PatientController::class, 'uploadDocument']);
         Route::middleware('permission:appointments.view')->get('/appointments',       [AppointmentController::class, 'index']);
+        Route::middleware('permission:appointments.view')->get('/appointments/available-slots', [AppointmentController::class, 'availableSlots']);
+        Route::middleware('permission:appointments.view')->get('/appointments/payment-types', [AppointmentController::class, 'paymentTypes']);
+        Route::middleware('permission:appointments.view')->get('/appointments/payment-methods', [AppointmentController::class, 'paymentMethods']);
         Route::middleware('permission:appointments.create')->post('/appointments',    [AppointmentController::class, 'store']);
+        Route::middleware('permission:appointments.create')->post('/appointments/quick-book', [AppointmentController::class, 'quickBook']);
         Route::middleware('permission:appointments.update')->post('/appointments/{id}', [AppointmentController::class, 'update']);
         Route::middleware('permission:appointments.view')->get('/appointments/{id}',  [AppointmentController::class, 'show']);
 
         Route::post('/appointments/{id}/approve', [AppointmentController::class, 'approve']);
+        Route::post('/appointments/{id}/confirm', [AppointmentController::class, 'confirm']);
+        Route::post('/appointments/{id}/attend', [AppointmentController::class, 'attend']);
+        Route::post('/appointments/{id}/complete', [AppointmentController::class, 'complete']);
+        Route::get('/appointments/{id}/payment', [AppointmentController::class, 'paymentPreview']);
+        Route::post('/appointments/{id}/payment', [AppointmentController::class, 'payment']);
+        Route::post('/appointments/{id}/reschedule', [AppointmentController::class, 'reschedule']);
+        Route::post('/appointments/{id}/move', [AppointmentController::class, 'move']);
+        Route::post('/appointments/{id}/duration', [AppointmentController::class, 'duration']);
+        Route::post('/appointments/{id}/cancel', [AppointmentController::class, 'cancel']);
+        Route::post('/appointments/{id}/reject', [AppointmentController::class, 'reject']);
+        Route::post('/appointments/{id}/whatsapp-reminder', [AppointmentController::class, 'whatsappReminder']);
 
         // ─── Notifications ───────────────────────────────────────────────────
         Route::get('/notifications',                     [NotificationCenterController::class, 'index']);
@@ -320,9 +347,9 @@ Route::middleware('permission:patients.update')->post('/patients/{id}/documents/
         // ─── Equipment ───────────────────────────────────────────────────────
         Route::middleware('permission:equipment.view')->prefix('equipment')->group(function () {
             Route::get('/', [EquipmentController::class, 'index']);
+            Route::get('/companies', [EquipmentController::class, 'companies']);
             Route::post('/{equipment}/report', [EquipmentController::class, 'report']);
             Route::post('/', [EquipmentController::class, 'store']);
-            Route::get('/companies', [EquipmentController::class, 'companies']);
         });
         Route::middleware('permission:equipment.view')->post('/equipment-reports/{id}/assign-company', [EquipmentController::class, 'assignCompany']);
 

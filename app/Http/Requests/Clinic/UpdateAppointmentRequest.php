@@ -6,6 +6,7 @@ use App\Models\ClinicAppointment;
 use Carbon\Carbon;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
+use Illuminate\Validation\Rule;
 
 class UpdateAppointmentRequest extends FormRequest
 {
@@ -16,22 +17,39 @@ class UpdateAppointmentRequest extends FormRequest
 
     public function rules(): array
     {
+        $clinicId = auth()->user()?->clinic_id;
+
         return [
             'patient_id' => ['sometimes', 'nullable', 'integer', 'exists:patients,id'],
             'patient_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'patient_phone' => ['sometimes', 'nullable', 'string', 'max:50'],
             'doctor_id' => ['sometimes', 'nullable', 'integer', 'exists:users,id'],
-            'service_name' => ['sometimes', 'string', 'max:255'],
+            'service_id' => ['sometimes', 'nullable', 'integer', 'exists:services,id'],
+            'service_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'appointment_at' => ['sometimes', 'date'],
+            'date' => ['sometimes', 'nullable', 'date_format:Y-m-d'],
+            'time' => ['sometimes', 'nullable', 'date_format:H:i'],
             'duration' => ['sometimes', 'integer', 'min:5', 'max:480'],
             'duration_minutes' => ['sometimes', 'integer', 'min:5', 'max:480'],
             'branch' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'branch_id' => ['sometimes', 'nullable', 'integer', Rule::exists('branches', 'id')->where(fn ($query) => $query->where('clinic_id', $clinicId))],
             'room' => ['sometimes', 'nullable', 'string', 'max:255'],
             'room_id' => ['sometimes', 'nullable', 'integer', 'exists:rooms,id'],
-            'payment_type' => ['sometimes', 'nullable', 'string', 'max:50'],
-            'status' => ['sometimes', 'in:scheduled,confirmed,arrived,attended,completed,cancelled'],
+            'payment_type' => ['sometimes', 'nullable', Rule::in(['cash', 'insurance', 'none'])],
+            'status' => ['sometimes', 'in:pending,scheduled,confirmed,arrived,attended,completed,cancelled'],
             'notes' => ['sometimes', 'nullable', 'string'],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if (! $this->filled('appointment_at') && $this->filled('date') && $this->filled('time')) {
+            $this->merge(['appointment_at' => $this->input('date') . ' ' . $this->input('time')]);
+        }
+
+        if ($this->input('payment_type') === 'no_payment_type') {
+            $this->merge(['payment_type' => 'none']);
+        }
     }
 
     public function withValidator(Validator $validator): void

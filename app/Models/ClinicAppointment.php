@@ -27,6 +27,9 @@ class ClinicAppointment extends Model
         'room',
         'room_id',
         'payment_type',
+        'rescheduled_from_id',
+        'cancelled_at',
+        'completed_at',
         'status',
         'notes',
     ];
@@ -35,6 +38,8 @@ class ClinicAppointment extends Model
     {
         return [
             'appointment_at' => 'datetime',
+            'cancelled_at' => 'datetime',
+            'completed_at' => 'datetime',
         ];
     }
 
@@ -61,6 +66,11 @@ class ClinicAppointment extends Model
     public function roomModel(): BelongsTo
     {
         return $this->belongsTo(Room::class, 'room_id');
+    }
+
+    public function rescheduledFrom(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'rescheduled_from_id');
     }
 
     public function invoices(): HasMany

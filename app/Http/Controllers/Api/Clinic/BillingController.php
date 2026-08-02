@@ -304,7 +304,7 @@ class BillingController extends Controller
 
     public function downloadProfitLoss(Request $request)
     {
-        $result = $this->service->profitLossPdfPayload($request->validate([
+        $result = $this->service->profitLossDownloadUrl($request->validate([
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
             'group_by' => ['nullable', 'in:month,week,day'],
@@ -314,9 +314,30 @@ class BillingController extends Controller
             return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
         }
 
+        return ApiResponse::success($result['data'], $result['message'], $result['code']);
+    }
+
+    public function downloadProfitLossSigned(Request $request)
+    {
+        $data = $request->validate([
+            'clinic_id' => ['required', 'integer'],
+            'date_from' => ['nullable', 'date'],
+            'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
+            'group_by' => ['nullable', 'in:month,week,day'],
+        ]);
+
+        $clinicId = (int) $data['clinic_id'];
+        unset($data['clinic_id']);
+
+        $result = $this->service->profitLossPdfPayloadForClinic($clinicId, $data);
+
+        if (! $result['success']) {
+            return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+        }
+
         return response($result['data']['content'], 200, [
             'Content-Type' => $result['data']['content_type'],
-            'Content-Disposition' => 'attachment; filename="' . $result['data']['filename'] . '"',
+            'Content-Disposition' => 'attachment; filename="profit-loss-report.pdf"',
         ]);
     }
 

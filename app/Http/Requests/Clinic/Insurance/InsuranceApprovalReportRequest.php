@@ -4,6 +4,7 @@ namespace App\Http\Requests\Clinic\Insurance;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use App\Models\Clinic\Insurance\InsuranceClaim;
 
 class InsuranceApprovalReportRequest extends FormRequest
 {
@@ -19,6 +20,10 @@ class InsuranceApprovalReportRequest extends FormRequest
         return [
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
+            'doctor_id' => ['nullable', 'integer', Rule::exists('users', 'id')->where(fn ($query) => $query->where('clinic_id', $clinicId))],
+            'branch_id' => ['nullable', 'integer', Rule::exists('branches', 'id')->where(fn ($query) => $query->where('clinic_id', $clinicId))],
+            'search' => ['nullable', 'string', 'max:255'],
+            'status' => ['nullable', Rule::in(InsuranceClaim::reportStatuses())],
             'insurance_company_id' => [
                 'nullable',
                 'integer',
@@ -37,4 +42,3 @@ class InsuranceApprovalReportRequest extends FormRequest
         ];
     }
 }
-

@@ -41,7 +41,7 @@ class InsuranceClaimController extends Controller
 
     public function analytics(InsuranceAnalyticsRequest $request)
     {
-        $result = $this->service->analytics();
+        $result = $this->service->analytics($request->validated());
 
         return $result['success']
             ? ApiResponse::success($result['data'], $result['message'], $result['code'])
@@ -104,13 +104,37 @@ class InsuranceClaimController extends Controller
 
     public function updateStatus(UpdateInsuranceClaimStatusRequest $request, int $id)
     {
-        $result = $this->service->updateStatus($id, $request->validated()['status']);
+        $result = $this->service->updateStatus($id, $request->validated());
 
         if (! $result['success']) {
             return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
         }
 
         return ApiResponse::success($result['data'], $result['message'], $result['code']);
+    }
+
+    public function approvalReportPdf(Request $request)
+    {
+        $result = $this->service->approvalReportDownload((int) $request->integer('clinic_id'), $request->query(), 'pdf');
+
+        abort_unless($result['success'], $result['code'] ?? 404, $result['message']);
+
+        return response($result['data']['content'], 200, [
+            'Content-Type' => $result['data']['content_type'],
+            'Content-Disposition' => 'inline; filename="' . $result['data']['filename'] . '"',
+        ]);
+    }
+
+    public function approvalReportExcel(Request $request)
+    {
+        $result = $this->service->approvalReportDownload((int) $request->integer('clinic_id'), $request->query(), 'excel');
+
+        abort_unless($result['success'], $result['code'] ?? 404, $result['message']);
+
+        return response($result['data']['content'], 200, [
+            'Content-Type' => $result['data']['content_type'],
+            'Content-Disposition' => 'attachment; filename="' . $result['data']['filename'] . '"',
+        ]);
     }
 
     public function destroy(int $id)

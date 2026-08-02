@@ -16,6 +16,9 @@ class UpdateInsuranceCompanyRequest extends FormRequest
         return [
             'name' => ['sometimes', 'string', 'max:255'],
             'code' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'contact_person' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'contact' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'phone' => ['sometimes', 'nullable', 'string', 'max:50'],
             'coverage' => ['sometimes', 'nullable', 'string', 'max:255'],
             'payment_terms' => ['sometimes', 'nullable', 'string', 'max:255'],
             'syndicate_price_list_id' => ['sometimes', 'nullable', 'integer', 'exists:insurance_price_lists,id'],

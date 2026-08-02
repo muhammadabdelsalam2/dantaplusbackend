@@ -17,6 +17,7 @@ class UpdateInsuranceClaimStatusRequest extends FormRequest
     {
         return [
             'status' => ['required', Rule::in(InsuranceClaim::statuses())],
+            'approved_amount' => ['required_if:status,' . InsuranceClaim::STATUS_APPROVED_WITH_LIMIT, 'nullable', 'numeric', 'min:0'],
         ];
     }
 }

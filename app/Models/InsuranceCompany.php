@@ -15,6 +15,8 @@ class InsuranceCompany extends Model
         'clinic_id',
         'name',
         'code',
+        'contact_person',
+        'phone',
         'coverage',
         'payment_terms',
         'syndicate_price_list_id',

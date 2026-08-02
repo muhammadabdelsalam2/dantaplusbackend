@@ -15,7 +15,8 @@ class EquipmentResource extends JsonResource
     'name'         => $this->name,
 'image_url' => $this->image_url ? asset($this->image_url) : null,
     'status'       => $this->status,
-    'open_reports' => $this->maintenance_requests_count !== null ? (int) $this->maintenance_requests_count : null,
+    'open_reports' => (int) ($this->open_reports_count ?? $this->maintenance_requests_count ?? 0),
+    'show_fix_now' => (int) ($this->open_reports_count ?? $this->maintenance_requests_count ?? 0) > 0 || $this->status !== \App\Models\Equipment::STATUS_OPERATIONAL,
     'created_at'   => optional($this->created_at)?->toISOString(),
     'updated_at'   => optional($this->updated_at)?->toISOString(),
 ];
