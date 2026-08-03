@@ -19,6 +19,7 @@ use App\Models\ClinicPayment;
 use App\Models\ClinicTreatment;
 use App\Models\DentalLab;
 use App\Models\Doctor;
+use App\Models\InsuranceApproval;
 use App\Models\InsuranceCompany;
 use App\Models\Patient;
 use App\Models\PatientNote;
@@ -29,11 +30,17 @@ use App\Models\User;
 use App\Support\ServiceResult;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 
 class PatientService
 {
+    private const APPROVAL_DOWNLOAD_ROUTE = 'clinic.patients.approvals.download.signed';
+    private const APPROVAL_DOWNLOAD_TTL_MINUTES = 30;
+
   public function index(array $filters = []): array
     {
         $clinicId = $this->currentClinicId();
@@ -1202,5 +1209,182 @@ public function uploadDocument(int $patientId, array $data, $file): array
     ]);
 
     return ServiceResult::success((new PatientDocumentResource($document))->resolve(), 'Document uploaded successfully', 201);
+}
+
+public function approvals(int $patientId, array $filters = []): array
+{
+    $patient = $this->findClinicPatient($patientId);
+    if (! $patient) {
+        return ServiceResult::error('Patient not found.', null, null, 404);
+    }
+
+    $rows = InsuranceApproval::query()
+        ->with(['company:id,name,code', 'services'])
+        ->where('clinic_id', $this->currentClinicId())
+        ->where('patient_id', $patient->id)
+        ->when($filters['status'] ?? null, function ($query, string $status) {
+            if (strtolower($status) !== 'all') {
+                $query->where('status', $this->approvalStatus($status));
+            }
+        })
+        ->when($filters['search'] ?? null, function ($query, string $search) {
+            $query->where(function ($nested) use ($search) {
+                $nested->where('code', 'like', "%{$search}%")
+                    ->orWhere('approval_number', 'like', "%{$search}%")
+                    ->orWhere('ref_id', 'like', "%{$search}%")
+                    ->orWhereHas('company', fn ($company) => $company->where('name', 'like', "%{$search}%"));
+            });
+        })
+        ->latest('date')
+        ->get();
+
+    return ServiceResult::success([
+        'patient_id' => $patient->id,
+        'is_insurance_case' => (bool) ($patient->insurance_company_id || $patient->insurance_provider || $rows->isNotEmpty()),
+        'items' => $rows->map(fn (InsuranceApproval $approval) => $this->mapApproval($approval))->values()->all(),
+    ], 'Insurance approvals fetched successfully');
+}
+
+public function createApproval(int $patientId, array $data): array
+{
+    $patient = $this->findClinicPatient($patientId);
+    if (! $patient) {
+        return ServiceResult::error('Patient not found.', null, null, 404);
+    }
+
+    $clinicId = $this->currentClinicId();
+    $company = InsuranceCompany::query()
+        ->where('clinic_id', $clinicId)
+        ->find($data['insurance_company_id']);
+
+    if (! $company) {
+        return ServiceResult::error('Insurance company not found.', null, ['insurance_company_id' => ['Insurance company not found.']], 422);
+    }
+
+    $approval = DB::transaction(function () use ($clinicId, $company, $data, $patient) {
+        $services = collect($data['services'] ?? []);
+        $approval = InsuranceApproval::query()->create([
+            'clinic_id' => $clinicId,
+            'patient_id' => $patient->id,
+            'insurance_company_id' => $company->id,
+            'code' => $data['code'] ?? $data['approval_number'] ?? $data['ref_id'] ?? ('APR-' . now()->format('YmdHis')),
+            'approval_number' => $data['approval_number'] ?? $data['ref_id'] ?? null,
+            'ref_id' => $data['ref_id'] ?? $data['approval_number'] ?? null,
+            'status' => $this->approvalStatus($data['status'] ?? 'Pending'),
+            'date' => $data['date'],
+            'expiry_date' => $data['expiry_date'] ?? null,
+            'coverage_percent' => $data['coverage_percent'] ?? $data['coverage'] ?? 0,
+            'approved_amount' => $data['approved_amount'] ?? $services->sum(fn ($item) => (float) ($item['amount'] ?? 0)),
+            'used_amount' => $data['used_amount'] ?? 0,
+            'documents' => $this->normalizeApprovalDocuments($data['documents'] ?? []),
+            'notes' => $data['notes'] ?? null,
+        ]);
+
+        $services->each(fn (array $item) => $approval->services()->create([
+            'service_name' => $item['service_name'] ?? $item['name'] ?? 'Service',
+            'service_code' => $item['service_code'] ?? $item['code'] ?? null,
+            'amount' => $item['amount'] ?? $item['value'] ?? 0,
+            'co_pay' => $item['co_pay'] ?? $item['copay'] ?? 0,
+            'tooth_number' => $item['tooth_number'] ?? $item['tooth'] ?? null,
+        ]));
+
+        return $approval->load(['company:id,name,code', 'services']);
+    });
+
+    return ServiceResult::success($this->mapApproval($approval), 'Insurance approval created successfully', 201);
+}
+
+public function approvalPdfPayloadForClinic(int $clinicId, int $approvalId): array
+{
+    $approval = InsuranceApproval::query()
+        ->with(['clinic:id,name', 'patient.user:id,name', 'company:id,name,code', 'services'])
+        ->where('clinic_id', $clinicId)
+        ->find($approvalId);
+
+    if (! $approval) {
+        return ServiceResult::error('Insurance approval not found.', null, null, 404);
+    }
+
+    return ServiceResult::success([
+        'filename' => 'insurance-approval-' . $approval->id . '.pdf',
+        'content_type' => 'application/pdf',
+        'content' => Pdf::loadView('pdf.insurance-approval', ['approval' => $approval])->setPaper('a4')->output(),
+    ], 'Insurance approval PDF generated successfully');
+}
+
+private function mapApproval(InsuranceApproval $approval): array
+{
+    return [
+        'id' => $approval->id,
+        'code' => $approval->code,
+        'approval_number' => $approval->approval_number,
+        'ref_id' => $approval->ref_id,
+        'insurance_company_id' => $approval->insurance_company_id,
+        'insurance_company' => $approval->company?->name,
+        'company' => [
+            'id' => $approval->company?->id,
+            'name' => $approval->company?->name,
+            'code' => $approval->company?->code,
+        ],
+        'status' => $approval->status,
+        'date' => optional($approval->date)?->toDateString(),
+        'expiry_date' => optional($approval->expiry_date)?->toDateString(),
+        'coverage_percent' => (float) $approval->coverage_percent,
+        'approved_amount' => (float) $approval->approved_amount,
+        'used_amount' => (float) $approval->used_amount,
+        'services' => $approval->services->map(fn ($service) => [
+            'service_name' => $service->service_name,
+            'service_code' => $service->service_code,
+            'amount' => (float) $service->amount,
+            'co_pay' => (float) $service->co_pay,
+            'tooth_number' => $service->tooth_number,
+        ])->values()->all(),
+        'documents' => collect($approval->documents ?? [])->map(fn ($document) => [
+            'type' => $document['type'] ?? 'Document',
+            'name' => $document['name'] ?? basename((string) ($document['path'] ?? $document['url'] ?? 'document')),
+            'url' => $document['url'] ?? $this->documentUrl($document['path'] ?? null),
+        ])->values()->all(),
+        'download_full_approval_pdf_url' => $this->approvalDownloadUrl($approval),
+        'downloadUrl' => $this->approvalDownloadUrl($approval),
+        'created_at' => optional($approval->created_at)?->toISOString(),
+    ];
+}
+
+private function approvalDownloadUrl(InsuranceApproval $approval): string
+{
+    return URL::temporarySignedRoute(self::APPROVAL_DOWNLOAD_ROUTE, now()->addMinutes(self::APPROVAL_DOWNLOAD_TTL_MINUTES), [
+        'approval' => $approval->id,
+        'clinic_id' => $approval->clinic_id,
+    ]);
+}
+
+private function normalizeApprovalDocuments(array $documents): array
+{
+    return collect($documents)->map(fn ($document) => is_array($document) ? $document : [
+        'type' => 'Document',
+        'url' => (string) $document,
+    ])->values()->all();
+}
+
+private function documentUrl(?string $path): ?string
+{
+    if (! $path) {
+        return null;
+    }
+
+    if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+        return $path;
+    }
+
+    return asset(Storage::url($path));
+}
+
+private function approvalStatus(string $status): string
+{
+    return match (strtolower($status)) {
+        'approved' => 'Approved',
+        'rejected' => 'Rejected',
+        default => 'Pending',
+    };
 }
 }

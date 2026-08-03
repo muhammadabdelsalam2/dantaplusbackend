@@ -1,0 +1,2671 @@
+{
+  "info": {
+    "name": "DantaPlus_Dashbord.Patient",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000/api"
+    },
+    {
+      "key": "patient_id",
+      "value": "1"
+    },
+    {
+      "key": "clinic_id",
+      "value": "1"
+    },
+    {
+      "key": "appointment_id",
+      "value": "1"
+    },
+    {
+      "key": "treatment_id",
+      "value": "1"
+    },
+    {
+      "key": "invoice_id",
+      "value": "1"
+    },
+    {
+      "key": "doctor_id",
+      "value": "1"
+    },
+    {
+      "key": "lab_id",
+      "value": "1"
+    },
+    {
+      "key": "category_id",
+      "value": "1"
+    },
+    {
+      "key": "expense_id",
+      "value": "1"
+    },
+    {
+      "key": "task_id",
+      "value": "1"
+    },
+    {
+      "key": "ticket_id",
+      "value": "1"
+    },
+    {
+      "key": "radiology_record_id",
+      "value": "1"
+    },
+    {
+      "key": "lab_case_id",
+      "value": "1"
+    },
+    {
+      "key": "branch_id",
+      "value": "1"
+    },
+    {
+      "key": "user_id",
+      "value": "1"
+    },
+    {
+      "key": "dentist_id",
+      "value": "1"
+    },
+    {
+      "key": "year",
+      "value": "2026"
+    },
+    {
+      "key": "token",
+      "value": ""
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Get Dashboard Cards",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/clinic/dashboard/cards"
+          },
+          "response": [
+            {
+              "name": "Example",
+              "originalRequest": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/dashboard/cards"
+              },
+              "status": "OK",
+              "code": 200,
+              "body": "{\"success\":true,\"message\":\"Dashboard cards fetched successfully\",\"data\":{\"cards\":[{\"label\":\"Today's Appointments\",\"value\":8,\"change_percentage\":12.5,\"trend\":\"up\"},{\"label\":\"Patients\",\"value\":240,\"change_percentage\":4.35,\"trend\":\"up\"},{\"label\":\"Monthly Revenue\",\"value\":12500,\"change_percentage\":8.2,\"trend\":\"up\"},{\"label\":\"New Patients\",\"value\":18,\"change_percentage\":5.5,\"trend\":\"down\"}]}}"
+            }
+          ]
+        },
+        {
+          "name": "Get Revenue Generation Tracking",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/clinic/dashboard/revenue-generation-tracking"
+          },
+          "response": [
+            {
+              "name": "Example",
+              "originalRequest": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/dashboard/revenue-generation-tracking"
+              },
+              "status": "OK",
+              "code": 200,
+              "body": "{\"success\":true,\"data\":[{\"month\":\"Jan\",\"revenue\":3000},{\"month\":\"Feb\",\"revenue\":4500}]}"
+            }
+          ]
+        },
+        {
+          "name": "Get Services Distribution",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/clinic/dashboard/services-distribution"
+          },
+          "response": [
+            {
+              "name": "Example",
+              "originalRequest": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/dashboard/services-distribution"
+              },
+              "status": "OK",
+              "code": 200,
+              "body": "{\"success\":true,\"data\":[{\"service_type\":\"Cleanings\",\"percentage\":35},{\"service_type\":\"Crowns\",\"percentage\":20},{\"service_type\":\"Fillings\",\"percentage\":30},{\"service_type\":\"Other\",\"percentage\":15}]}"
+            }
+          ]
+        },
+        {
+          "name": "Get Marketing Lead Attribution",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/clinic/dashboard/marketing-lead-attribution"
+          },
+          "response": [
+            {
+              "name": "Example",
+              "originalRequest": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/dashboard/marketing-lead-attribution"
+              },
+              "status": "OK",
+              "code": 200,
+              "body": "{\"success\":true,\"data\":{\"source_distribution\":[{\"source\":\"Phone\",\"percentage\":60},{\"source\":\"Website\",\"percentage\":40}],\"platform_roi\":[{\"platform\":\"Facebook\",\"bookings_count\":10,\"conversion_rate\":25,\"cost\":0},{\"platform\":\"Instagram\",\"bookings_count\":10,\"conversion_rate\":25,\"cost\":0},{\"platform\":\"Google\",\"bookings_count\":10,\"conversion_rate\":25,\"cost\":0},{\"platform\":\"TikTok\",\"bookings_count\":10,\"conversion_rate\":25,\"cost\":0}]}}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Patient",
+      "item": [
+        {
+          "name": "Get Patients List",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/patient?clinic_id={{clinic_id}}"
+          },
+          "response": [
+            {
+              "name": "Example",
+              "originalRequest": {
+                "method": "GET",
+                "url": "{{base_url}}/patient"
+              },
+              "status": "OK",
+              "code": 200,
+              "body": "{\"success\":true,\"data\":{\"items\":[{\"id\":1,\"patient_name\":\"Sarah Ahmed\",\"contact\":\"+201000000000\",\"age\":32,\"gender\":\"female\"}]}}"
+            }
+          ]
+        },
+        {
+          "name": "Profile",
+          "item": [
+            {
+              "name": "Get Patient Profile",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/patient/{{patient_id}}"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "GET",
+                    "url": "{{base_url}}/patient/{{patient_id}}"
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "body": "{\"success\":true,\"data\":{\"id\":1,\"full_name\":\"Sarah Ahmed\",\"age\":32,\"gender\":\"female\",\"phone\":\"+201000000000\",\"address\":\"Cairo\",\"medical_history\":\"None\",\"insurance\":{\"provider\":\"Axa\",\"policy_number\":\"POL-123\"}}}"
+                }
+              ]
+            },
+            {
+              "name": "Update Patient Profile (PATCH)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"full_name\":\"Sarah Ahmed\",\"age\":33,\"phone\":\"+201011111111\",\"medical_history\":\"Penicillin allergy\",\"insurance_provider\":\"Axa\",\"policy_number\":\"POL-456\"}"
+                },
+                "url": "{{base_url}}/patient/{{patient_id}}"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "PATCH",
+                    "url": "{{base_url}}/patient/{{patient_id}}"
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "body": "{\"success\":true,\"message\":\"Patient updated successfully\",\"data\":{\"id\":1,\"full_name\":\"Sarah Ahmed\",\"age\":33}}"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Dental Chart",
+          "item": [
+            {
+              "name": "Get Dental Chart (3D Data)",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/patient/{{patient_id}}/dental-chart"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "GET",
+                    "url": "{{base_url}}/patient/{{patient_id}}/dental-chart"
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "body": "{\"success\":true,\"data\":{\"model_type\":\"3d_dental_chart\",\"numbering_system\":\"FDI\",\"statuses\":[\"healthy\",\"treated\",\"inprogress\",\"planned\",\"problematic\"],\"teeth\":[{\"tooth_number\":\"11\",\"status\":\"healthy\",\"is_present\":true}],\"records\":[],\"lab_3d_source\":null}}"
+                }
+              ]
+            },
+            {
+              "name": "Update Tooth Presence (is_present)",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"tooth_number\":\"11\",\"is_present\":false}"
+                },
+                "url": "{{base_url}}/patient/{{patient_id}}/dental-chart/presence"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "PATCH",
+                    "url": "{{base_url}}/patient/{{patient_id}}/dental-chart/presence"
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "body": "{\"success\":true,\"message\":\"Tooth presence updated successfully\",\"data\":[{\"tooth_number\":\"11\",\"status\":\"healthy\",\"is_present\":false}]}"
+                }
+              ]
+            },
+            {
+              "name": "Record Procedure",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"tooth_numbers\":[\"11\",\"12\"],\"target_area\":\"teeth\",\"procedure_id\":1,\"treating_doctor_id\":{{doctor_id}},\"status\":\"Completed\",\"billing_method\":\"Cash\",\"clinical_notes\":\"Composite filling completed\",\"notes\":\"Composite filling\"}"
+                },
+                "url": "{{base_url}}/patient/{{patient_id}}/dental-chart/procedures"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "POST",
+                    "url": "{{base_url}}/patient/{{patient_id}}/dental-chart/procedures"
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "body": "{\"success\":true,\"data\":[{\"tooth_number\":\"11\",\"status\":\"treated\",\"is_present\":true,\"procedure_id\":1,\"treating_doctor_id\":2,\"billing_method\":\"Cash\",\"clinical_notes\":\"Composite filling completed\"}]}"
+                }
+              ]
+            },
+            {
+              "name": "Get Procedures Select (id, name)",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/patient/treatments/services?clinic_id={{clinic_id}}"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "GET",
+                    "url": "{{base_url}}/patient/treatments/services"
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "body": "{\"success\":true,\"data\":[{\"id\":1,\"name\":\"Dental Cleaning\",\"service_name\":\"Dental Cleaning\"}]}"
+                }
+              ]
+            },
+            {
+              "name": "Get Doctors Select (id, name)",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/patient/treatments/dentists?clinic_id={{clinic_id}}"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "GET",
+                    "url": "{{base_url}}/patient/treatments/dentists"
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "body": "{\"success\":true,\"data\":[{\"id\":2,\"name\":\"Dr Mona\",\"dentist\":\"Dr Mona\"}]}"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Analytics",
+          "item": [
+            {
+              "name": "Get Financial Performance",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/patient/{{patient_id}}/analytics/financial-performance"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "GET",
+                    "url": "{{base_url}}/patient/{{patient_id}}/analytics/financial-performance"
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "body": "{\"success\":true,\"data\":{\"cards\":[{\"label\":\"Total Billed\",\"value\":1000},{\"label\":\"Total Paid\",\"value\":700},{\"label\":\"Outstanding\",\"value\":300},{\"label\":\"Avg / Visit\",\"value\":250}]}}"
+                }
+              ]
+            },
+            {
+              "name": "Get Revenue Over Time",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/patient/{{patient_id}}/analytics/revenue-over-time"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "GET",
+                    "url": "{{base_url}}/patient/{{patient_id}}/analytics/revenue-over-time"
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "body": "{\"success\":true,\"data\":[{\"month\":\"Jan\",\"revenue\":200}]}"
+                }
+              ]
+            },
+            {
+              "name": "Get Payment Method Distribution",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/patient/{{patient_id}}/analytics/payment-method-distribution"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "GET",
+                    "url": "{{base_url}}/patient/{{patient_id}}/analytics/payment-method-distribution"
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "body": "{\"success\":true,\"data\":[{\"payment_method\":\"Cash\",\"percentage\":70,\"total\":700}]}"
+                }
+              ]
+            },
+            {
+              "name": "Get Visit & Behavioral Trends",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/patient/{{patient_id}}/analytics/visit-behavioral-trends"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "GET",
+                    "url": "{{base_url}}/patient/{{patient_id}}/analytics/visit-behavioral-trends"
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "body": "{\"success\":true,\"data\":{\"attendance_rate\":80,\"cancellation_rate\":10,\"attendance_breakdown\":[{\"status\":\"Attended\",\"count\":8},{\"status\":\"Cancelled\",\"count\":1},{\"status\":\"No-Show\",\"count\":1}],\"history_log\":[{\"procedure\":\"Cleaning\",\"date\":\"2026-07-20\",\"status\":\"Attended\"}]}}"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Radiology",
+          "item": [
+            {
+              "name": "Get Radiology List (with modality/search/teeth filters)",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/patient/{{patient_id}}/radiology?modality=CBCT&search=crown&teeth=11"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "GET",
+                    "url": "{{base_url}}/patient/{{patient_id}}/radiology?modality=CBCT&search=crown&teeth=11"
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "body": "{\"success\":true,\"data\":{\"header\":{\"total_records\":1,\"cases_finished\":\"0 / 1\"},\"modalities\":[\"Periapical\",\"Bitewing\",\"Panoramic\",\"CBCT\"],\"items\":[{\"id\":1,\"modality\":\"CBCT\",\"teeth\":\"11,12\",\"date\":\"2026-08-01\",\"notes\":\"Before crown prep\"}]}}"
+                }
+              ]
+            },
+            {
+              "name": "Upload Radiology Record (with date + linked appointment/treatment)",
+              "request": {
+                "method": "POST",
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "modality",
+                      "value": "CBCT",
+                      "type": "text"
+                    },
+                    {
+                      "key": "teeth",
+                      "value": "11,12",
+                      "type": "text"
+                    },
+                    {
+                      "key": "date",
+                      "value": "2026-08-01",
+                      "type": "text"
+                    },
+                    {
+                      "key": "linked_appointment_id",
+                      "value": "{{appointment_id}}",
+                      "type": "text"
+                    },
+                    {
+                      "key": "linked_treatment_id",
+                      "value": "{{treatment_id}}",
+                      "type": "text"
+                    },
+                    {
+                      "key": "notes",
+                      "value": "Before crown prep",
+                      "type": "text"
+                    },
+                    {
+                      "key": "before_image",
+                      "type": "file",
+                      "src": ""
+                    },
+                    {
+                      "key": "after_image",
+                      "type": "file",
+                      "src": ""
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/patient/{{patient_id}}/radiology"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "POST",
+                    "url": "{{base_url}}/patient/{{patient_id}}/radiology"
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "body": "{\"success\":true,\"data\":{\"id\":1,\"modality\":\"CBCT\",\"teeth\":\"11,12\",\"date\":\"2026-08-01\",\"linked_appointment_id\":1,\"linked_treatment_id\":1,\"before_image_url\":\"http://localhost/storage/before.jpg\"}}"
+                }
+              ]
+            },
+            {
+              "name": "Get Appointments Select (for linking)",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/patient/{{patient_id}}/radiology/appointments-select"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "GET",
+                    "url": "{{base_url}}/patient/{{patient_id}}/radiology/appointments-select"
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "body": "{\"success\":true,\"data\":[{\"id\":1,\"label\":\"01/08/2026 - Dental Cleaning\"}]}"
+                }
+              ]
+            },
+            {
+              "name": "Get Treatments Select (for linking)",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/patient/{{patient_id}}/radiology/treatments-select"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "GET",
+                    "url": "{{base_url}}/patient/{{patient_id}}/radiology/treatments-select"
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "body": "{\"success\":true,\"data\":[{\"id\":1,\"label\":\"22/07/2026 - Scaling & Polishing\"}]}"
+                }
+              ]
+            },
+            {
+              "name": "Generate Report",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"report_format\":\"clinical_summary\",\"findings\":\"Periapical radiolucency noted around tooth 11.\",\"diagnosis\":\"Follow-up endodontic assessment recommended.\"}"
+                },
+                "url": "{{base_url}}/patient/{{patient_id}}/radiology/reports"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "POST",
+                    "url": "{{base_url}}/patient/{{patient_id}}/radiology/reports"
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "body": "{\"success\":true,\"data\":{\"report\":{\"clinic\":{\"name\":\"Denta+ Clinic\",\"department\":\"Radiology Department\"},\"reference_code\":\"RAD-20260801120000-ABCDE\",\"case_selection\":[1,2],\"patient_information\":{\"name\":\"Sarah Ahmed\",\"file_id\":\"PID-1\",\"gender\":\"female\",\"age\":32},\"ordering_clinician\":{\"name\":\"Dr Mona\",\"department\":\"Dental Clinic\"},\"electronic_signature\":{\"doctor_name\":\"Dr Mona\"},\"qr_code_data\":\"http://localhost/verify/radiology-reports/RAD-20260801120000-ABCDE\"}}}"
+                }
+              ]
+            },
+            {
+              "name": "Get Report",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/patient/{{patient_id}}/radiology/{{radiology_record_id}}/report"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "GET",
+                    "url": "{{base_url}}/patient/{{patient_id}}/radiology/{{radiology_record_id}}/report"
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "body": "{\"success\":true,\"data\":{\"report\":{\"reference_code\":\"RAD-000001\",\"patient_information\":{\"name\":\"Sarah Ahmed\",\"file_id\":\"PID-1\"},\"findings\":\"Periapical radiolucency noted around tooth 11.\",\"diagnosis\":\"Follow-up recommended.\"}}}"
+                }
+              ]
+            },
+            {
+              "name": "Compare Cases",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"record_ids\":[1,2]}"
+                },
+                "url": "{{base_url}}/patient/{{patient_id}}/radiology/compare"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "POST",
+                    "url": "{{base_url}}/patient/{{patient_id}}/radiology/compare"
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "body": "{\"success\":true,\"data\":{\"records\":[{\"id\":1},{\"id\":2}]}}"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Treatments",
+          "item": [
+            {
+              "name": "Get Clinical Services History",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/patient/{{patient_id}}/treatments"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "GET",
+                    "url": "{{base_url}}/patient/{{patient_id}}/treatments"
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "body": "{\"success\":true,\"data\":{\"active_planned_queue\":[],\"clinical_history\":[{\"date\":\"2026-07-20\",\"procedure\":\"E-Max Crown\",\"teeth\":\"11\",\"fee\":500,\"status\":\"Completed\"}]}}"
+                }
+              ]
+            },
+            {
+              "name": "Add New Service",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"service_name\":\"E-Max Crown\",\"tooth_number\":\"11\",\"description\":\"Shade A2\",\"status\":\"Completed\",\"date\":\"2026-07-31\",\"cost\":500,\"dentist\":2,\"payment_method\":\"Cash\"}"
+                },
+                "url": "{{base_url}}/patient/{{patient_id}}/treatments"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "POST",
+                    "url": "{{base_url}}/patient/{{patient_id}}/treatments"
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "body": "{\"success\":true,\"data\":{\"title\":\"E-Max Crown\",\"tooth_number\":\"11\",\"cost\":500,\"status\":\"Completed\"}}"
+                }
+              ]
+            },
+            {
+              "name": "Get Services List (filtered by clinic_id)",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/patient/treatments/services?clinic_id={{clinic_id}}"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "GET",
+                    "url": "{{base_url}}/patient/treatments/services"
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "body": "{\"success\":true,\"data\":[{\"id\":1,\"service_name\":\"Cleaning\",\"base_price\":100}]}"
+                }
+              ]
+            },
+            {
+              "name": "Get Dentists List (filtered by clinic_id)",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/patient/treatments/dentists?clinic_id={{clinic_id}}"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "GET",
+                    "url": "{{base_url}}/patient/treatments/dentists"
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "body": "{\"success\":true,\"data\":[{\"id\":2,\"dentist\":\"Dr Mona\",\"email\":\"mona@example.com\"}]}"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Billing",
+          "item": [
+            {
+              "name": "Get Patient Invoices",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/patient/{{patient_id}}/billing/invoices"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "GET",
+                    "url": "{{base_url}}/patient/{{patient_id}}/billing/invoices"
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "body": "{\"success\":true,\"data\":[{\"id\":1,\"invoice_number\":\"INV-0001\",\"total\":1000,\"paid\":700,\"remaining\":300,\"status\":\"partial\"}]}"
+                }
+              ]
+            },
+            {
+              "name": "Add Payment",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"amount_to_pay\":300,\"payment_method\":\"Cash\"}"
+                },
+                "url": "{{base_url}}/patient/{{patient_id}}/billing/invoices/{{invoice_id}}/payments"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "POST",
+                    "url": "{{base_url}}/patient/{{patient_id}}/billing/invoices/{{invoice_id}}/payments"
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "body": "{\"success\":true,\"data\":{\"invoice_number\":\"INV-0001\",\"total\":1000,\"paid\":1000,\"remaining\":0,\"status\":\"paid\"}}"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Labs",
+          "item": [
+            {
+              "name": "Get Lab Case History",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/patient/{{patient_id}}/labs"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "GET",
+                    "url": "{{base_url}}/patient/{{patient_id}}/labs"
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "body": "{\"success\":true,\"data\":{\"items\":[{\"case_id\":\"LO-003\",\"lab_name\":\"Prime Lab\",\"case_type\":\"E-Max Veneer\",\"delivery_date\":\"2026-08-05\",\"status\":\"Pending\",\"action\":\"Track Case\"}]}}"
+                }
+              ]
+            },
+            {
+              "name": "Track Case (Live Progress + Activity Log)",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/patient/{{patient_id}}/labs/{{lab_case_id}}/track"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "GET",
+                    "url": "{{base_url}}/patient/{{patient_id}}/labs/{{lab_case_id}}/track"
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "body": "{\"success\":true,\"data\":{\"title\":\"E-Max Veneer - Sarah Ahmed\",\"live_progress\":[{\"step\":\"Pending\",\"status\":\"completed\"},{\"step\":\"Accepted\",\"status\":\"current\"}],\"activity_log\":[{\"actor\":\"Lab Admin\",\"action\":\"accepted\",\"created_at\":\"2026-07-31T10:00:00Z\"}]}}"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Discussion",
+          "item": [
+            {
+              "name": "Get Discussion Notes",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/patient/{{patient_id}}/discussion"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "GET",
+                    "url": "{{base_url}}/patient/{{patient_id}}/discussion"
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "body": "{\"success\":true,\"data\":[{\"id\":1,\"type\":\"text\",\"text\":\"Review CBCT before next visit\",\"user\":{\"id\":2,\"name\":\"Dr Mona\"},\"mentions\":[{\"id\":3,\"name\":\"Reception\"}]}]}"
+                }
+              ]
+            },
+            {
+              "name": "Add Note (text / attachment / voice / mention)",
+              "request": {
+                "method": "POST",
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "text",
+                      "value": "Please review this note @2",
+                      "type": "text"
+                    },
+                    {
+                      "key": "mentions[]",
+                      "value": "2",
+                      "type": "text"
+                    },
+                    {
+                      "key": "attachment",
+                      "type": "file",
+                      "src": ""
+                    },
+                    {
+                      "key": "voice_note",
+                      "type": "file",
+                      "src": ""
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/patient/{{patient_id}}/discussion"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "POST",
+                    "url": "{{base_url}}/patient/{{patient_id}}/discussion"
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "body": "{\"success\":true,\"data\":{\"id\":2,\"type\":\"file\",\"text\":\"Please review this note @2\",\"attachments\":[],\"mentions\":[{\"id\":2,\"name\":\"Dr Mona\"}]}}"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Approvals",
+          "item": [
+            {
+              "name": "List Insurance Approvals",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "value": "application/json",
+                    "key": "Content-Type"
+                  }
+                ],
+                "url": "{{base_url}}/clinic/patients/{{patient_id}}/approvals?search=&status=All"
+              }
+            },
+            {
+              "name": "Create Insurance Approval",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "value": "application/json",
+                    "key": "Content-Type"
+                  }
+                ],
+                "url": "{{base_url}}/clinic/patients/{{patient_id}}/approvals",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"insurance_company_id\": 1,\r\n  \"approval_number\": \"APR-2026-0001\",\r\n  \"ref_id\": \"REF-2026-0001\",\r\n  \"code\": \"APR-2026-0001\",\r\n  \"date\": \"2026-08-04\",\r\n  \"expiry_date\": \"2026-09-04\",\r\n  \"coverage_percent\": 80,\r\n  \"approved_amount\": 1500,\r\n  \"used_amount\": 0,\r\n  \"status\": \"Pending\",\r\n  \"documents\": [\r\n    {\r\n      \"url\": \"https://example.com/card.jpg\",\r\n      \"type\": \"Insurance Card\",\r\n      \"name\": \"card.jpg\"\r\n    },\r\n    {\r\n      \"url\": \"https://example.com/claim.pdf\",\r\n      \"type\": \"Claim Document\",\r\n      \"name\": \"claim.pdf\"\r\n    },\r\n    {\r\n      \"url\": \"https://example.com/xray.jpg\",\r\n      \"type\": \"X-Ray\",\r\n      \"name\": \"xray.jpg\"\r\n    }\r\n  ],\r\n  \"services\": [\r\n    {\r\n      \"co_pay\": 200,\r\n      \"service_code\": \"RC01\",\r\n      \"amount\": 1000,\r\n      \"tooth_number\": \"16\",\r\n      \"service_name\": \"Root Canal\"\r\n    },\r\n    {\r\n      \"co_pay\": 100,\r\n      \"service_code\": \"ZC22\",\r\n      \"amount\": 500,\r\n      \"tooth_number\": \"16\",\r\n      \"service_name\": \"Zirconia Crown\"\r\n    }\r\n  ]\r\n}"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Billing",
+      "item": [
+        {
+          "name": "Lab Invoices",
+          "item": [
+            {
+              "name": "List Lab Invoices",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "value": "application/json",
+                    "key": "Content-Type"
+                  }
+                ],
+                "url": "{{base_url}}/clinic/billing/lab-invoices?status=&date_from=&date_to="
+              }
+            },
+            {
+              "name": "View Lab Invoice",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "value": "application/json",
+                    "key": "Content-Type"
+                  }
+                ],
+                "url": "{{base_url}}/clinic/billing/lab-invoices/{{lab_invoice_id}}"
+              }
+            },
+            {
+              "name": "Update Lab Invoice Status",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "value": "application/json",
+                    "key": "Content-Type"
+                  }
+                ],
+                "url": "{{base_url}}/clinic/billing/lab-invoices/{{lab_invoice_id}}/status",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"status\": \"Paid\"\r\n}"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Material Invoices",
+          "item": [
+            {
+              "name": "List Material Invoices",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "value": "application/json",
+                    "key": "Content-Type"
+                  }
+                ],
+                "url": "{{base_url}}/clinic/billing/material-invoices?status=&date_from=&date_to="
+              }
+            },
+            {
+              "name": "View Material Invoice",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "value": "application/json",
+                    "key": "Content-Type"
+                  }
+                ],
+                "url": "{{base_url}}/clinic/billing/material-invoices/{{material_invoice_id}}"
+              }
+            },
+            {
+              "name": "Contact Material Company",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "value": "application/json",
+                    "key": "Content-Type"
+                  }
+                ],
+                "url": "{{base_url}}/clinic/billing/material-invoices/{{material_invoice_id}}/contact"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Doctor Earnings",
+          "item": [
+            {
+              "name": "Reports",
+              "item": [
+                {
+                  "name": "Doctor Earnings Report",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "value": "application/json",
+                        "key": "Content-Type"
+                      }
+                    ],
+                    "url": "{{base_url}}/clinic/billing/doctor-earnings?date_range=All%20Time&doctor_id=&case_type=All%20Case%20Types"
+                  }
+                },
+                {
+                  "name": "Download Doctor Earnings PDF",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "value": "application/json",
+                        "key": "Content-Type"
+                      }
+                    ],
+                    "url": "{{base_url}}/clinic/billing/doctor-earnings/download?format=pdf&date_range=All%20Time&doctor_id=&case_type=All%20Case%20Types"
+                  }
+                },
+                {
+                  "name": "Download Doctor Earnings Excel",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "value": "application/json",
+                        "key": "Content-Type"
+                      }
+                    ],
+                    "url": "{{base_url}}/clinic/billing/doctor-earnings/download?format=excel&date_range=All%20Time&doctor_id=&case_type=All%20Case%20Types"
+                  }
+                },
+                {
+                  "name": "Send Doctor Earnings Row",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "value": "application/json",
+                        "key": "Content-Type"
+                      }
+                    ],
+                    "url": "{{base_url}}/clinic/billing/doctor-earnings/{{doctor_id}}/send",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\r\n  \"case_type\": \"All Case Types\",\r\n  \"date_range\": \"All Time\",\r\n  \"sent_to\": \"doctor@example.com\",\r\n  \"channel\": \"InApp\"\r\n}"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Analytics",
+              "item": [
+                {
+                  "name": "Doctor Earnings Analytics",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "value": "application/json",
+                        "key": "Content-Type"
+                      }
+                    ],
+                    "url": "{{base_url}}/clinic/billing/doctor-earnings?date_range=This%20Month&case_type=All%20Case%20Types"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Extract Accounts",
+          "item": [
+            {
+              "name": "Generate Report Preview",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "value": "application/json",
+                    "key": "Content-Type"
+                  }
+                ],
+                "url": "{{base_url}}/clinic/billing/extract-accounts?date_from=2026-08-01&date_to=2026-08-31&doctor_id="
+              }
+            },
+            {
+              "name": "Preview & Send Report",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "value": "application/json",
+                    "key": "Content-Type"
+                  }
+                ],
+                "url": "{{base_url}}/clinic/billing/extract-accounts/send",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"sent_to\": \"+201000000000\",\r\n  \"channel\": \"WhatsApp\",\r\n  \"date_from\": \"2026-08-01\",\r\n  \"doctor_id\": null,\r\n  \"date_to\": \"2026-08-31\"\r\n}"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Settings",
+      "item": [
+        {
+          "name": "Clinic Info",
+          "item": [
+            {
+              "name": "Get Clinic Info",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/settings/clinic-info"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "GET",
+                    "url": "{{base_url}}/clinic/settings/clinic-info"
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "body": "{\"success\":true,\"data\":{\"id\":1,\"name\":\"Denta+ Clinic\",\"location\":{\"address\":\"456 Oak Ave, Star City\",\"latitude\":30.0444,\"longitude\":31.2357}}}"
+                }
+              ]
+            },
+            {
+              "name": "Update Clinic Info (incl. latitude/longitude)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"name\":\"Denta+ Clinic\",\"owner_name\":\"Dr Ahmed\",\"email\":\"clinic@example.com\",\"phone\":\"+201000000000\",\"address\":\"456 Oak Ave, Star City\",\"latitude\":30.0444,\"longitude\":31.2357}"
+                },
+                "url": "{{base_url}}/clinic/settings/clinic-info"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "POST",
+                    "url": "{{base_url}}/clinic/settings/clinic-info"
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "body": "{\"success\":true,\"message\":\"Clinic info updated successfully\",\"data\":{\"location\":{\"address\":\"456 Oak Ave, Star City\",\"latitude\":30.0444,\"longitude\":31.2357}}}"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Branch Management",
+          "item": [
+            {
+              "name": "Get Branches List (address under location key)",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/settings/branches"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "GET",
+                    "url": "{{base_url}}/clinic/settings/branches"
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "body": "{\"success\":true,\"data\":{\"items\":[{\"id\":1,\"name\":\"Main Branch\",\"location\":{\"address\":\"456 Oak Ave, Star City\",\"latitude\":30.0444,\"longitude\":31.2357}}]}}"
+                }
+              ]
+            },
+            {
+              "name": "Get Managers (Select: id, name)",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/settings/branches/managers"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "GET",
+                    "url": "{{base_url}}/clinic/settings/branches/managers"
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "body": "{\"success\":true,\"data\":[{\"id\":2,\"name\":\"Mona Manager\"}]}"
+                }
+              ]
+            },
+            {
+              "name": "Add Branch",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"name\":\"Downtown Branch\",\"manager_id\":2,\"address\":\"789 Pine St\",\"latitude\":30.05,\"longitude\":31.24,\"phone\":\"+201011111111\",\"rooms_count\":4,\"status\":\"Active\"}"
+                },
+                "url": "{{base_url}}/clinic/settings/branches"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "POST",
+                    "url": "{{base_url}}/clinic/settings/branches"
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "body": "{\"success\":true,\"data\":{\"id\":2,\"name\":\"Downtown Branch\",\"location\":{\"address\":\"789 Pine St\",\"latitude\":30.05,\"longitude\":31.24}}}"
+                }
+              ]
+            },
+            {
+              "name": "Edit Branch",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"address\":\"456 Oak Ave, Star City\",\"latitude\":30.0444,\"longitude\":31.2357,\"rooms_count\":5}"
+                },
+                "url": "{{base_url}}/clinic/settings/branches/{{branch_id}}"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "POST",
+                    "url": "{{base_url}}/clinic/settings/branches/{{branch_id}}"
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "body": "{\"success\":true,\"message\":\"Branch updated successfully\"}"
+                }
+              ]
+            },
+            {
+              "name": "Delete Branch",
+              "request": {
+                "method": "DELETE",
+                "url": "{{base_url}}/clinic/settings/branches/{{branch_id}}"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "DELETE",
+                    "url": "{{base_url}}/clinic/settings/branches/{{branch_id}}"
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "body": "{\"success\":true,\"message\":\"Branch deleted successfully\"}"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Users & Roles",
+          "item": [
+            {
+              "name": "Get Users List (with status)",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/settings/users"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "GET",
+                    "url": "{{base_url}}/clinic/settings/users"
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "body": "{\"success\":true,\"data\":[{\"id\":3,\"name\":\"Reception User\",\"role\":\"receptionist\",\"status\":\"Active\"}]}"
+                }
+              ]
+            },
+            {
+              "name": "Update User Status (Active/Inactive)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"status\":\"Inactive\"}"
+                },
+                "url": "{{base_url}}/clinic/settings/users/{{user_id}}/status"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "POST",
+                    "url": "{{base_url}}/clinic/settings/users/{{user_id}}/status"
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "body": "{\"success\":true,\"data\":{\"id\":3,\"status\":\"Inactive\",\"is_active\":false}}"
+                }
+              ]
+            },
+            {
+              "name": "Get Roles List (incl. clinic_admin)",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/settings/users/roles"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "GET",
+                    "url": "{{base_url}}/clinic/settings/users/roles"
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "body": "{\"success\":true,\"data\":[{\"id\":\"doctor\",\"name\":\"doctor\",\"label\":\"Doctor\"},{\"id\":\"clinic_admin\",\"name\":\"clinic_admin\",\"label\":\"Clinic Admin\"}]}"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Dentists",
+          "item": [
+            {
+              "name": "Get Dentists List",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/settings/dentists"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "GET",
+                    "url": "{{base_url}}/clinic/settings/dentists"
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "body": "{\"success\":true,\"data\":[{\"id\":5,\"name\":\"Dr Mona\",\"email\":\"mona@example.com\"}]}"
+                }
+              ]
+            },
+            {
+              "name": "Add Dentist (triggers credentials email)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"name\":\"Dr Mona\",\"email\":\"mona@example.com\",\"phone\":\"+201022222222\",\"specialization\":\"Orthodontics\",\"branch_id\":1,\"working_hours_from\":\"09:00\",\"working_hours_to\":\"17:00\"}"
+                },
+                "url": "{{base_url}}/clinic/settings/dentists"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "POST",
+                    "url": "{{base_url}}/clinic/settings/dentists"
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "body": "{\"success\":true,\"message\":\"Dentist created successfully\",\"data\":{\"id\":5,\"name\":\"Dr Mona\",\"email\":\"mona@example.com\"}}"
+                }
+              ]
+            },
+            {
+              "name": "Edit Dentist",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"specialization\":\"Endodontics\",\"working_hours_from\":\"10:00\",\"working_hours_to\":\"18:00\"}"
+                },
+                "url": "{{base_url}}/clinic/settings/dentists/{{dentist_id}}"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "POST",
+                    "url": "{{base_url}}/clinic/settings/dentists/{{dentist_id}}"
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "body": "{\"success\":true,\"message\":\"Dentist updated successfully\"}"
+                }
+              ]
+            },
+            {
+              "name": "Delete Dentist",
+              "request": {
+                "method": "DELETE",
+                "url": "{{base_url}}/clinic/settings/dentists/{{dentist_id}}"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "DELETE",
+                    "url": "{{base_url}}/clinic/settings/dentists/{{dentist_id}}"
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "body": "{\"success\":true,\"message\":\"Dentist deleted successfully\"}"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Syndicate Prices",
+          "item": [
+            {
+              "name": "Get Prices by Year",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/settings/syndicate-prices?year={{year}}"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "GET",
+                    "url": "{{base_url}}/clinic/settings/syndicate-prices?year={{year}}"
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "body": "{\"success\":true,\"data\":{\"year\":2026,\"is_active_year\":true,\"last_updated\":\"2026-08-01T10:00:00Z\",\"items\":[{\"code\":\"S-001\",\"service_name\":\"Cleaning\",\"category\":\"Preventive\",\"price\":250}]}}"
+                }
+              ]
+            },
+            {
+              "name": "Add Service",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"year\":2026,\"code\":\"S-001\",\"service_name\":\"Cleaning\",\"category\":\"Preventive\",\"price\":250,\"is_active_year\":true}"
+                },
+                "url": "{{base_url}}/clinic/settings/syndicate-prices"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "POST",
+                    "url": "{{base_url}}/clinic/settings/syndicate-prices"
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "body": "{\"success\":true,\"data\":{\"code\":\"S-001\",\"service_name\":\"Cleaning\",\"category\":\"Preventive\",\"price\":250}}"
+                }
+              ]
+            },
+            {
+              "name": "Import from Excel (Preview)",
+              "request": {
+                "method": "POST",
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "year",
+                      "value": "2026",
+                      "type": "text"
+                    },
+                    {
+                      "key": "file",
+                      "type": "file",
+                      "src": ""
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/clinic/settings/syndicate-prices/import/preview"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "POST",
+                    "url": "{{base_url}}/clinic/settings/syndicate-prices/import/preview"
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "body": "{\"success\":true,\"data\":{\"year\":2026,\"rows_count\":1,\"items\":[{\"code\":\"S-001\",\"service_name\":\"Cleaning\",\"category\":\"Preventive\",\"price\":250}]}}"
+                }
+              ]
+            },
+            {
+              "name": "Import from Excel (Confirm)",
+              "request": {
+                "method": "POST",
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "year",
+                      "value": "2026",
+                      "type": "text"
+                    },
+                    {
+                      "key": "is_active_year",
+                      "value": "true",
+                      "type": "text"
+                    },
+                    {
+                      "key": "file",
+                      "type": "file",
+                      "src": ""
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/clinic/settings/syndicate-prices/import/confirm"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "POST",
+                    "url": "{{base_url}}/clinic/settings/syndicate-prices/import/confirm"
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "body": "{\"success\":true,\"data\":{\"year\":2026,\"imported_count\":1,\"is_active_year\":true}}"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "WhatsApp Bot",
+          "item": [
+            {
+              "name": "Get Bot Settings",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/settings/whatsapp-bot"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "GET",
+                    "url": "{{base_url}}/clinic/settings/whatsapp-bot"
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "body": "{\"success\":true,\"data\":{\"enabled\":true,\"welcome_message\":\"Hello {PatientName}\",\"bot_working_hours\":{\"start_time\":\"09:00\",\"end_time\":\"17:00\"},\"language_preference\":\"Auto-detect (English/Arabic)\",\"payment_requirement\":\"Require Deposit\",\"deposit_amount\":100,\"allowed_services_for_bot_booking\":[\"Cleaning\"],\"available_services_for_bot_booking\":[{\"id\":1,\"name\":\"Cleaning\"}]}}"
+                }
+              ]
+            },
+            {
+              "name": "Update Bot Settings",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"enabled\":true,\"welcome_message\":\"Hello {PatientName}, welcome to {ClinicName}\",\"out_of_hours_message\":\"Working hours are {StartTime} to {EndTime}\",\"bot_working_hours\":{\"start_time\":\"09:00\",\"end_time\":\"17:00\"},\"language_preference\":\"Auto-detect (English/Arabic)\",\"payment_requirement\":\"Require Deposit\",\"deposit_amount\":100,\"allowed_services_for_bot_booking\":[\"Cleaning\"]}"
+                },
+                "url": "{{base_url}}/clinic/settings/whatsapp-bot"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "PATCH",
+                    "url": "{{base_url}}/clinic/settings/whatsapp-bot"
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "body": "{\"success\":true,\"message\":\"WhatsApp bot settings updated successfully.\"}"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Team Chat",
+          "item": [
+            {
+              "name": "Get Communication Permissions",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/settings/team-chat/communication-permissions"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "GET",
+                    "url": "{{base_url}}/clinic/settings/team-chat/communication-permissions"
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "body": "{\"success\":true,\"data\":{\"items\":[{\"role\":\"clinic_admin\",\"label\":\"Admin\",\"can_send_notes\":true,\"can_send_voice_notes\":true,\"can_access_patient_discussions\":true,\"can_delete_messages\":true}]}}"
+                }
+              ]
+            },
+            {
+              "name": "Update Communication Permissions",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"permissions\":[{\"role\":\"Admin\",\"can_send_notes\":true,\"can_send_voice_notes\":true,\"can_access_patient_discussions\":true,\"can_delete_messages\":true},{\"role\":\"Receptionist\",\"can_send_notes\":true,\"can_send_voice_notes\":false,\"can_access_patient_discussions\":false,\"can_delete_messages\":false}]}"
+                },
+                "url": "{{base_url}}/clinic/settings/team-chat/communication-permissions"
+              },
+              "response": [
+                {
+                  "name": "Example",
+                  "originalRequest": {
+                    "method": "PATCH",
+                    "url": "{{base_url}}/clinic/settings/team-chat/communication-permissions"
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "body": "{\"success\":true,\"message\":\"Communication permissions fetched successfully\"}"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Tasks",
+      "item": [
+        {
+          "name": "Get Tasks List",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/clinic/tasks?status=To%20Do&per_page=15"
+          },
+          "response": [
+            {
+              "name": "Example",
+              "originalRequest": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/tasks"
+              },
+              "status": "OK",
+              "code": 200,
+              "body": "{\"success\":true,\"message\":\"Tasks fetched successfully\",\"data\":{\"items\":[{\"id\":1,\"task_title\":\"Review lab results for Emma Brown\",\"assignee\":{\"id\":2,\"name\":\"Dr Susan Bones\"},\"priority\":\"Low\",\"due_date\":\"2026-08-01\",\"status\":\"To Do\"}],\"pagination\":{\"total\":1}}}"
+            }
+          ]
+        },
+        {
+          "name": "Create Task",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"task_title\":\"Review lab results for Emma Brown\",\"assignee_id\":{{doctor_id}},\"priority\":\"low\",\"due_date\":\"2026-08-01\",\"status\":\"To Do\",\"description\":\"Check uploaded reports before appointment\"}"
+            },
+            "url": "{{base_url}}/clinic/tasks"
+          },
+          "response": [
+            {
+              "name": "Example",
+              "originalRequest": {
+                "method": "POST",
+                "url": "{{base_url}}/clinic/tasks"
+              },
+              "status": "Created",
+              "code": 201,
+              "body": "{\"success\":true,\"message\":\"Task created successfully\",\"data\":{\"id\":1,\"task_title\":\"Review lab results for Emma Brown\",\"assignee\":{\"id\":2,\"name\":\"Dr Susan Bones\"},\"priority\":\"Low\",\"due_date\":\"2026-08-01\",\"status\":\"To Do\"}}"
+            }
+          ]
+        },
+        {
+          "name": "Update Task Status (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"In Progress\"}"
+            },
+            "url": "{{base_url}}/clinic/tasks/{{task_id}}/status"
+          },
+          "response": [
+            {
+              "name": "Example",
+              "originalRequest": {
+                "method": "PATCH",
+                "url": "{{base_url}}/clinic/tasks/{{task_id}}/status"
+              },
+              "status": "OK",
+              "code": 200,
+              "body": "{\"success\":true,\"message\":\"Task status updated successfully\",\"data\":{\"id\":1,\"task_title\":\"Review lab results for Emma Brown\",\"status\":\"In Progress\"}}"
+            }
+          ]
+        },
+        {
+          "name": "Get Assignees (Select: id, name)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/clinic/tasks/assignees"
+          },
+          "response": [
+            {
+              "name": "Example",
+              "originalRequest": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/tasks/assignees"
+              },
+              "status": "OK",
+              "code": 200,
+              "body": "{\"success\":true,\"message\":\"Task assignees fetched successfully\",\"data\":[{\"id\":2,\"name\":\"Dr Susan Bones\"},{\"id\":3,\"name\":\"Reception User\"}]}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Support",
+      "item": [
+        {
+          "name": "Get My Tickets",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/clinic/support/tickets?per_page=15"
+          },
+          "response": [
+            {
+              "name": "Example",
+              "originalRequest": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/support/tickets"
+              },
+              "status": "OK",
+              "code": 200,
+              "body": "{\"success\":true,\"message\":\"Support tickets fetched successfully\",\"data\":{\"items\":[{\"id\":1,\"code\":\"SUP-83963\",\"ticket_title\":\"Unable to add new patient\",\"category\":\"Technical\",\"priority\":\"Medium\",\"description\":\"Create patient form fails\",\"attachment\":null,\"status\":\"open\"}],\"pagination\":{\"total\":1}}}"
+            }
+          ]
+        },
+        {
+          "name": "Create Support Ticket",
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "ticket_title",
+                  "value": "Unable to add new patient",
+                  "type": "text"
+                },
+                {
+                  "key": "category",
+                  "value": "Technical",
+                  "type": "text"
+                },
+                {
+                  "key": "priority",
+                  "value": "Medium",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "The patient create form fails after submit.",
+                  "type": "text"
+                },
+                {
+                  "key": "attachment",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            },
+            "url": "{{base_url}}/clinic/support/tickets"
+          },
+          "response": [
+            {
+              "name": "Example",
+              "originalRequest": {
+                "method": "POST",
+                "url": "{{base_url}}/clinic/support/tickets"
+              },
+              "status": "Created",
+              "code": 201,
+              "body": "{\"success\":true,\"message\":\"Support ticket created successfully\",\"data\":{\"id\":1,\"ticket_title\":\"Unable to add new patient\",\"category\":\"Technical\",\"priority\":\"Medium\",\"description\":\"The patient create form fails after submit.\",\"attachment\":{\"file_name\":\"screenshot.png\"}}}"
+            }
+          ]
+        },
+        {
+          "name": "Get Ticket Detail (with Messages)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/clinic/support/tickets/{{ticket_id}}"
+          },
+          "response": [
+            {
+              "name": "Example",
+              "originalRequest": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/support/tickets/{{ticket_id}}"
+              },
+              "status": "OK",
+              "code": 200,
+              "body": "{\"success\":true,\"message\":\"Support ticket fetched successfully\",\"data\":{\"ticket_id\":\"SUP-83963\",\"title\":\"Unable to add new patient\",\"priority\":\"Medium\",\"status\":\"open\",\"messages\":[{\"sender_name\":\"Dr Marcus Green\",\"message\":\"Please check this issue\",\"sent_at\":\"2026-08-01T15:03:00Z\"}]}}"
+            }
+          ]
+        },
+        {
+          "name": "Reply to Ticket",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"message\":\"We still see the same error after refresh.\"}"
+            },
+            "url": "{{base_url}}/clinic/support/tickets/{{ticket_id}}/reply"
+          },
+          "response": [
+            {
+              "name": "Example",
+              "originalRequest": {
+                "method": "POST",
+                "url": "{{base_url}}/clinic/support/tickets/{{ticket_id}}/reply"
+              },
+              "status": "Created",
+              "code": 201,
+              "body": "{\"success\":true,\"message\":\"Reply added successfully\",\"data\":{\"sender_name\":\"Dr Marcus Green\",\"message\":\"We still see the same error after refresh.\",\"sent_at\":\"2026-08-01T15:05:00Z\"}}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Insurance",
+      "item": [
+        {
+          "name": "Claims",
+          "item": [
+            {
+              "name": "List Claims",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/insurance/claims?status=approved&insurance_company_id=1&patient_id=1"
+              }
+            },
+            {
+              "name": "Add New Claim",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"insurance_company_id\": 1,\n  \"patient_id\": 1,\n  \"title\": \"Root Canal Therapy\",\n  \"service_date\": \"2026-08-02\",\n  \"gross_amount\": 960,\n  \"coverage_percentage\": 80,\n  \"status\": \"submitted\",\n  \"items\": [\n    { \"service_name\": \"Root Canal Therapy\", \"quantity\": 1, \"unit_price\": 960 }\n  ]\n}"
+                },
+                "url": "{{base_url}}/clinic/insurance/claims"
+              }
+            },
+            {
+              "name": "Update Claim Status - Approved with Limit",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"approved_with_limit\",\n  \"approved_amount\": 450\n}"
+                },
+                "url": "{{base_url}}/clinic/insurance/claims/1/status"
+              }
+            },
+            {
+              "name": "Update Claim Status - Any Status",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"under_review\"\n}"
+                },
+                "url": "{{base_url}}/clinic/insurance/claims/1/status"
+              }
+            },
+            {
+              "name": "Claim Status Select",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/select/claim-statuses"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Insurance Companies",
+          "item": [
+            {
+              "name": "List Insurance Companies",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/insurance/companies?search=Cigna"
+              }
+            },
+            {
+              "name": "Insurance Company Select",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/select/insurance-companies"
+              }
+            },
+            {
+              "name": "Add Company",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Cigna Dental\",\n  \"contact_person\": \"John Doe\",\n  \"phone\": \"555-0301\",\n  \"email\": \"claims@cigna-dental.example\",\n  \"coverage\": \"80%\",\n  \"payment_terms\": \"Net 30\",\n  \"syndicate_price_list_id\": null,\n  \"is_active\": true\n}"
+                },
+                "url": "{{base_url}}/clinic/insurance/companies"
+              }
+            },
+            {
+              "name": "Syndicate Price List Select",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/select/syndicate-price-lists"
+              }
+            },
+            {
+              "name": "Company Price List Items",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/insurance/companies/1/price-list-items?per_page=50"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Insurance Analytics",
+          "item": [
+            {
+              "name": "Insurance Management Cards",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/insurance/cards?date_range=Last%2090%20Days&insurance_company_id=1"
+              }
+            },
+            {
+              "name": "Insurance Analytics",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/insurance/analytics?date_range=Last%2090%20Days&insurance_company_id=1&status=approved"
+              }
+            },
+            {
+              "name": "Insurance Company Select",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/select/insurance-companies"
+              }
+            },
+            {
+              "name": "Claim Status Select",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/select/claim-statuses"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Monthly Insurance Approvals Report",
+          "item": [
+            {
+              "name": "Monthly Insurance Approvals Report",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/insurance/approval-report?insurance_company_id=1&doctor_id=1&branch_id=1&date_from=2026-07-03&date_to=2026-08-02&status=approved&search=Root"
+              }
+            },
+            {
+              "name": "Doctor Select",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/select/doctors"
+              }
+            },
+            {
+              "name": "Clinic Branch Select",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/select/branches"
+              }
+            },
+            {
+              "name": "Insurance Company Select",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/select/insurance-companies"
+              }
+            },
+            {
+              "name": "Claim Status Select",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/select/claim-statuses"
+              }
+            },
+            {
+              "name": "Open PDF URL From Report Response",
+              "request": {
+                "method": "GET",
+                "url": "{{pdf_url}}"
+              }
+            },
+            {
+              "name": "Download Excel URL From Report Response",
+              "request": {
+                "method": "GET",
+                "url": "{{excel_url}}"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Inventory",
+      "item": [
+        {
+          "name": "Inventory View",
+          "item": [
+            {
+              "name": "List Inventory",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/inventory?search=Aquasil&category_id=1&supplier=Dentsply&status=in_stock"
+              }
+            },
+            {
+              "name": "Material Category Select",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/select/material-categories"
+              }
+            },
+            {
+              "name": "Inventory Unit Select",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/select/inventory-units"
+              }
+            },
+            {
+              "name": "Add Material",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"material_name\": \"Aquasil Ultra+\",\n  \"category\": 1,\n  \"initial_qty\": 23,\n  \"unit_type\": \"Piece\",\n  \"min_threshold\": 5,\n  \"reorder_qty\": 20,\n  \"supplier\": \"Dentsply Sirona\",\n  \"unit_price\": 85.5,\n  \"auto_purchase\": false\n}"
+                },
+                "url": "{{base_url}}/clinic/inventory"
+              }
+            },
+            {
+              "name": "Scan Material",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"barcode\": \"1234567890\"\n}"
+                },
+                "url": "{{base_url}}/clinic/inventory/scan"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Procurement",
+          "item": [
+            {
+              "name": "Procurement & Receiving Queue",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/procurement?status=pending&search=PO-&per_page=15"
+              }
+            },
+            {
+              "name": "Approve Procurement Request",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/clinic/procurement/1/approve"
+              }
+            },
+            {
+              "name": "Receive Procurement Request",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/clinic/procurement/1/receive"
+              }
+            },
+            {
+              "name": "Cancel Procurement Request",
+              "request": {
+                "method": "DELETE",
+                "url": "{{base_url}}/clinic/procurement/1"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Equipment",
+      "item": [
+        {
+          "name": "Equipment List",
+          "item": [
+            {
+              "name": "Equipment Maintenance List",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/equipment?search=chair&status=operational"
+              }
+            },
+            {
+              "name": "Maintenance Company Select",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/equipment/companies?search=maintenance"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Report Malfunction",
+          "item": [
+            {
+              "name": "Report Malfunction",
+              "request": {
+                "method": "POST",
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "equipment_id",
+                      "value": "1",
+                      "type": "text"
+                    },
+                    {
+                      "key": "equipment_name",
+                      "value": "Dental Chair Unit A",
+                      "type": "text"
+                    },
+                    {
+                      "key": "malfunction_type",
+                      "value": "Leaking",
+                      "type": "text"
+                    },
+                    {
+                      "key": "description",
+                      "value": "Water leakage under the chair base.",
+                      "type": "text"
+                    },
+                    {
+                      "key": "urgency",
+                      "value": "Normal",
+                      "type": "text"
+                    },
+                    {
+                      "key": "attachment",
+                      "type": "file",
+                      "src": ""
+                    }
+                  ]
+                },
+                "url": "{{base_url}}/clinic/equipment/1/report"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Appointments",
+      "item": [
+        {
+          "name": "Calendar",
+          "item": [
+            {
+              "name": "Calendar - Day View Today",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/appointments?view=day&date=2026-08-02&branch_id=1&room_id=1"
+              }
+            },
+            {
+              "name": "Calendar - Week View",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/appointments?view=week&date=2026-08-02&branch_id=1"
+              }
+            },
+            {
+              "name": "Calendar - Month View",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/appointments?view=month&date=2026-08-02"
+              }
+            },
+            {
+              "name": "Calendar - Previous Day",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/appointments?view=day&date=2026-08-01"
+              }
+            },
+            {
+              "name": "Calendar - Next Week",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/appointments?view=week&date=2026-08-09"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Appointment Actions",
+          "item": [
+            {
+              "name": "View Details",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/appointments/1"
+              }
+            },
+            {
+              "name": "Confirm Appointment",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/clinic/appointments/1/confirm"
+              }
+            },
+            {
+              "name": "Checked In / Attended",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/clinic/appointments/1/attend"
+              }
+            },
+            {
+              "name": "Mark Completed",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/clinic/appointments/1/complete"
+              }
+            },
+            {
+              "name": "Payment Preview",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/appointments/1/payment?discount=0&amount_paid_now=75&full_payment=1"
+              }
+            },
+            {
+              "name": "Add Payment + Confirm & Complete",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"total_cost\": 75,\n  \"discount\": 0,\n  \"discount_reason\": \"Promo\",\n  \"payment_method\": \"Cash\",\n  \"amount_paid_now\": 75,\n  \"full_payment\": true,\n  \"whatsapp_receipt\": true,\n  \"generate_invoice\": true,\n  \"add_follow_up_reminder\": false\n}"
+                },
+                "url": "{{base_url}}/clinic/appointments/1/payment"
+              }
+            },
+            {
+              "name": "Reschedule",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"doctor_id\": 1,\n  \"service_id\": 1,\n  \"new_date\": \"2026-08-03\",\n  \"new_time\": \"14:00\",\n  \"branch_id\": 1,\n  \"room_id\": 1,\n  \"notes\": \"Rescheduled from original appointment on 02/08/2026\"\n}"
+                },
+                "url": "{{base_url}}/clinic/appointments/1/reschedule"
+              }
+            },
+            {
+              "name": "Cancel Appointment",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reason\": \"Patient requested cancellation\"\n}"
+                },
+                "url": "{{base_url}}/clinic/appointments/1/cancel"
+              }
+            },
+            {
+              "name": "Move Appointment",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"date\": \"2026-08-02\",\n  \"time\": \"15:00\",\n  \"branch_id\": 1,\n  \"room_id\": 2\n}"
+                },
+                "url": "{{base_url}}/clinic/appointments/1/move"
+              }
+            },
+            {
+              "name": "Extend/Shrink Duration",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"duration_minutes\": 45\n}"
+                },
+                "url": "{{base_url}}/clinic/appointments/1/duration"
+              }
+            },
+            {
+              "name": "WhatsApp Reminder",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/clinic/appointments/1/whatsapp-reminder"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Book Appointment",
+          "item": [
+            {
+              "name": "Book Appointment",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"patient_id\": 1,\n  \"doctor_id\": 1,\n  \"branch_id\": 1,\n  \"room_id\": 1,\n  \"service_id\": 1,\n  \"date\": \"2026-08-02\",\n  \"time\": \"09:00\",\n  \"duration_minutes\": 30,\n  \"payment_type\": \"cash\",\n  \"notes\": \"Booked from empty calendar slot\"\n}"
+                },
+                "url": "{{base_url}}/clinic/appointments"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Quick Book",
+          "item": [
+            {
+              "name": "Quick Book New/Existing Patient",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"patient_name\": \"Noah Williams\",\n  \"phone_number\": \"+201000000000\",\n  \"doctor_id\": 1,\n  \"service_id\": 1,\n  \"date\": \"2026-08-02\",\n  \"time\": \"09:00\",\n  \"branch_id\": 1,\n  \"room_id\": 1,\n  \"payment_type\": \"none\"\n}"
+                },
+                "url": "{{base_url}}/clinic/appointments/quick-book"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Select Sources",
+          "item": [
+            {
+              "name": "Branches",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/select/branches"
+              }
+            },
+            {
+              "name": "Rooms by Branch",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/select/rooms?branch_id=1"
+              }
+            },
+            {
+              "name": "Doctors",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/select/doctors"
+              }
+            },
+            {
+              "name": "Services",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/select/services"
+              }
+            },
+            {
+              "name": "Payment Types",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/appointments/payment-types"
+              }
+            },
+            {
+              "name": "Payment Methods",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/appointments/payment-methods"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Patient Portal Sync",
+          "item": [
+            {
+              "name": "Available Slots",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/clinic/appointments/available-slots?doctor_id=1&date=2026-08-02&branch_id=1&room_id=1&duration_minutes=30"
+              }
+            },
+            {
+              "name": "Patient Booking Request",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"patient_id\": 1,\n  \"doctor_id\": 1,\n  \"service_id\": 1,\n  \"date\": \"2026-08-02\",\n  \"time\": \"10:00\",\n  \"branch_id\": 1,\n  \"room_id\": 1,\n  \"payment_type\": \"none\",\n  \"status\": \"pending\"\n}"
+                },
+                "url": "{{base_url}}/clinic/appointments"
+              }
+            },
+            {
+              "name": "Accept Booking",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/clinic/appointments/1/confirm"
+              }
+            },
+            {
+              "name": "Reject Booking",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reason\": \"Slot not suitable\"\n}"
+                },
+                "url": "{{base_url}}/clinic/appointments/1/reject"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

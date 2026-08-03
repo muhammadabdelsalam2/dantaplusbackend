@@ -30,6 +30,8 @@ class IndexClinicBillingRequest extends FormRequest
             'start_date' => ['nullable', 'date'],
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
             'payment_method' => ['nullable', 'string', 'max:50'],
+            'date_range' => ['nullable', 'string', 'max:50'],
+            'case_type' => ['nullable', 'string', 'max:50'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ];
     }

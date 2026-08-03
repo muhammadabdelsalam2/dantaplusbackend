@@ -350,9 +350,47 @@ class BillingController extends Controller
             : ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
     }
 
+    public function labInvoiceShow(int $id)
+    {
+        $result = $this->service->labInvoiceShow($id);
+
+        return $result['success']
+            ? ApiResponse::success($result['data'], $result['message'], $result['code'])
+            : ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+    }
+
+    public function updateLabInvoiceStatus(Request $request, int $id)
+    {
+        $result = $this->service->updateLabInvoiceStatus($id, $request->validate([
+            'status' => ['required', 'in:Paid,Disputed,paid,disputed'],
+        ]));
+
+        return $result['success']
+            ? ApiResponse::success($result['data'], $result['message'], $result['code'])
+            : ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+    }
+
     public function materialInvoices(IndexClinicBillingRequest $request)
     {
         $result = $this->service->materialInvoices($request->validated());
+
+        return $result['success']
+            ? ApiResponse::success($result['data'], $result['message'], $result['code'])
+            : ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+    }
+
+    public function materialInvoiceShow(int $id)
+    {
+        $result = $this->service->materialInvoiceShow($id);
+
+        return $result['success']
+            ? ApiResponse::success($result['data'], $result['message'], $result['code'])
+            : ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+    }
+
+    public function materialInvoiceContact(int $id)
+    {
+        $result = $this->service->materialInvoiceContact($id);
 
         return $result['success']
             ? ApiResponse::success($result['data'], $result['message'], $result['code'])
@@ -368,6 +406,38 @@ class BillingController extends Controller
             : ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
     }
 
+    public function doctorEarningsDownload(Request $request)
+    {
+        $result = $this->service->doctorEarningsDownloadUrl($request->validate([
+            'date_range' => ['nullable', 'in:all_time,this_week,this_month,this_year,All Time,This Week,This Month,This Year'],
+            'date_from' => ['nullable', 'date'],
+            'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
+            'doctor_id' => ['nullable', 'integer'],
+            'case_type' => ['nullable', 'in:All Case Types,Cash,Insurance,all,cash,insurance'],
+            'format' => ['required', 'in:pdf,excel'],
+        ]));
+
+        return $result['success']
+            ? ApiResponse::success($result['data'], $result['message'], $result['code'])
+            : ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+    }
+
+    public function sendDoctorEarnings(Request $request, int $doctor)
+    {
+        $result = $this->service->sendDoctorEarnings($doctor, $request->validate([
+            'date_range' => ['nullable', 'in:all_time,this_week,this_month,this_year,All Time,This Week,This Month,This Year'],
+            'date_from' => ['nullable', 'date'],
+            'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
+            'case_type' => ['nullable', 'in:All Case Types,Cash,Insurance,all,cash,insurance'],
+            'channel' => ['nullable', 'string', 'max:50'],
+            'sent_to' => ['nullable', 'string', 'max:255'],
+        ]));
+
+        return $result['success']
+            ? ApiResponse::success($result['data'], $result['message'], $result['code'])
+            : ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+    }
+
     public function extractAccounts(IndexClinicBillingRequest $request)
     {
         $result = $this->service->extractAccounts($request->validated());
@@ -375,6 +445,45 @@ class BillingController extends Controller
         return $result['success']
             ? ApiResponse::success($result['data'], $result['message'], $result['code'])
             : ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+    }
+
+    public function sendExtractAccountsReport(Request $request)
+    {
+        $result = $this->service->sendExtractAccountsReport($request->validate([
+            'doctor_id' => ['nullable', 'integer'],
+            'date_from' => ['nullable', 'date'],
+            'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
+            'channel' => ['nullable', 'string', 'max:50'],
+            'sent_to' => ['required', 'string', 'max:255'],
+        ]));
+
+        return $result['success']
+            ? ApiResponse::success($result['data'], $result['message'], $result['code'])
+            : ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+    }
+
+    public function billingDownloadSigned(Request $request)
+    {
+        $result = $this->service->signedBillingDownload($request->validate([
+            'clinic_id' => ['required', 'integer'],
+            'type' => ['required', 'in:lab_invoice,material_invoice,doctor_earnings'],
+            'format' => ['required', 'in:pdf,excel'],
+            'id' => ['nullable', 'integer'],
+            'date_range' => ['nullable', 'string'],
+            'date_from' => ['nullable', 'date'],
+            'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
+            'doctor_id' => ['nullable', 'integer'],
+            'case_type' => ['nullable', 'string'],
+        ]));
+
+        if (! $result['success']) {
+            return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+        }
+
+        return response($result['data']['content'], 200, [
+            'Content-Type' => $result['data']['content_type'],
+            'Content-Disposition' => 'attachment; filename="' . $result['data']['filename'] . '"',
+        ]);
     }
 
     public function sendExtractAccountWhatsApp(Request $request)

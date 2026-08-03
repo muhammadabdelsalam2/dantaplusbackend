@@ -49,6 +49,14 @@ Route::get('clinic/billing/profit-loss/download-file', [BillingController::class
     ->middleware(['api.error', 'signed'])
     ->name('clinic.billing.profit-loss.download.signed');
 
+Route::get('clinic/billing/download-file', [BillingController::class, 'billingDownloadSigned'])
+    ->middleware(['api.error', 'signed'])
+    ->name('clinic.billing.download.signed');
+
+Route::get('clinic/patients/approvals/{approval}/download-file', [PatientController::class, 'downloadApprovalSigned'])
+    ->middleware(['api.error', 'signed'])
+    ->name('clinic.patients.approvals.download.signed');
+
 Route::get('clinic/insurance/approval-report/pdf', [InsuranceClaimController::class, 'approvalReportPdf'])
     ->middleware(['api.error', 'signed'])
     ->name('clinic.insurance.approval-report.pdf');
@@ -262,6 +270,8 @@ Route::prefix('clinic')
         Route::middleware('permission:patients.view')->get('/patients/{id}/analytics',            [PatientController::class, 'analytics']);
         Route::middleware('permission:patients.view')->get('/patients/{id}/documents', [PatientController::class, 'documents']);
 Route::middleware('permission:patients.update')->post('/patients/{id}/documents/upload', [PatientController::class, 'uploadDocument']);
+        Route::middleware('permission:patients.view')->get('/patients/{id}/approvals', [PatientController::class, 'approvals']);
+        Route::middleware('permission:patients.update')->post('/patients/{id}/approvals', [PatientController::class, 'storeApproval']);
         Route::middleware('permission:appointments.view')->get('/appointments',       [AppointmentController::class, 'index']);
         Route::middleware('permission:appointments.view')->get('/appointments/available-slots', [AppointmentController::class, 'availableSlots']);
         Route::middleware('permission:appointments.view')->get('/appointments/payment-types', [AppointmentController::class, 'paymentTypes']);
@@ -400,9 +410,16 @@ Route::middleware('permission:patients.update')->post('/patients/{id}/documents/
             Route::get('/billing/profit-loss/download',        [BillingController::class, 'downloadProfitLoss']);
             Route::post('/billing/profit-loss/send-whatsapp',  [BillingController::class, 'sendProfitLossWhatsApp']);
             Route::get('/billing/lab-invoices',                [BillingController::class, 'labInvoices']);
+            Route::get('/billing/lab-invoices/{id}',            [BillingController::class, 'labInvoiceShow']);
+            Route::post('/billing/lab-invoices/{id}/status',    [BillingController::class, 'updateLabInvoiceStatus']);
             Route::get('/billing/material-invoices',           [BillingController::class, 'materialInvoices']);
+            Route::get('/billing/material-invoices/{id}',       [BillingController::class, 'materialInvoiceShow']);
+            Route::get('/billing/material-invoices/{id}/contact', [BillingController::class, 'materialInvoiceContact']);
             Route::get('/billing/doctor-earnings',             [BillingController::class, 'doctorEarnings']);
+            Route::get('/billing/doctor-earnings/download',     [BillingController::class, 'doctorEarningsDownload']);
+            Route::post('/billing/doctor-earnings/{doctor}/send', [BillingController::class, 'sendDoctorEarnings']);
             Route::get('/billing/extract-accounts',            [BillingController::class, 'extractAccounts']);
+            Route::post('/billing/extract-accounts/send',       [BillingController::class, 'sendExtractAccountsReport']);
             Route::post('/billing/extract-accounts/send-whatsapp', [BillingController::class, 'sendExtractAccountWhatsApp']);
             Route::get('/billing/expense-categories',          [BillingController::class, 'expenseCategories']);
             Route::post('/billing/expense-categories',         [BillingController::class, 'storeExpenseCategory']);

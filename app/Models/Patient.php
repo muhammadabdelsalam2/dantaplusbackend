@@ -84,6 +84,11 @@ class Patient extends Model
         return $this->hasMany(PatientDocument::class);
     }
 
+    public function insuranceApprovals(): HasMany
+    {
+        return $this->hasMany(InsuranceApproval::class);
+    }
+
     public function insuranceCompany(): BelongsTo
     {
         return $this->belongsTo(InsuranceCompany::class, 'insurance_company_id');
