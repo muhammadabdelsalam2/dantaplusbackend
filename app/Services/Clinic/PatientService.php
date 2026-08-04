@@ -1431,14 +1431,13 @@ public function addApprovalService(int $patientId, int $approvalId, array $data)
         return ServiceResult::error('Insurance approval not found.', null, null, 404);
     }
 
-    $service = $approval->services()->create([
+    $approval->services()->create([
         'service_name' => $data['service_name'],
-        'service_code' => $data['code'] ?? null,
-        'amount' => $data['price'],
+        'service_code' => $data['service_code'] ?? null,
+        'amount' => $data['amount'],          // ← بدل price
         'co_pay' => $data['co_pay'] ?? 0,
         'tooth_number' => $data['tooth_number'] ?? null,
     ]);
-
 
     $approval->update([
         'approved_amount' => $approval->services()->sum('amount'),
@@ -1450,6 +1449,9 @@ public function addApprovalService(int $patientId, int $approvalId, array $data)
         201
     );
 }
+
+
+
 private function mapApproval(InsuranceApproval $approval): array
 {
     return [
