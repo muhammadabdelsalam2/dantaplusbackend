@@ -272,6 +272,10 @@ Route::prefix('clinic')
 Route::middleware('permission:patients.update')->post('/patients/{id}/documents/upload', [PatientController::class, 'uploadDocument']);
         Route::middleware('permission:patients.view')->get('/patients/{id}/approvals', [PatientController::class, 'approvals']);
         Route::middleware('permission:patients.update')->post('/patients/{id}/approvals', [PatientController::class, 'storeApproval']);
+        Route::middleware('permission:patients.update')->post(
+    '/patients/{id}/approvals/{approvalId}/services',
+    [PatientController::class, 'storeApprovalService']
+);
         Route::middleware('permission:appointments.view')->get('/appointments',       [AppointmentController::class, 'index']);
         Route::middleware('permission:appointments.view')->get('/appointments/available-slots', [AppointmentController::class, 'availableSlots']);
         Route::middleware('permission:appointments.view')->get('/appointments/payment-types', [AppointmentController::class, 'paymentTypes']);

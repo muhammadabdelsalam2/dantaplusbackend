@@ -14,6 +14,7 @@ class ApprovalService extends Model
         'amount',
         'co_pay',
         'tooth_number',
+        'requires_dental_lab'
     ];
 
     protected function casts(): array

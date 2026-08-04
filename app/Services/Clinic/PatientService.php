@@ -1127,33 +1127,114 @@ class PatientService
         ], 'Lab case tracking fetched successfully');
     }
 
-    public function analytics(int $patientId): array
-    {
-        $patient = $this->findClinicPatient($patientId);
-        if (! $patient) {
-            return ServiceResult::error('Patient not found.', null, null, 404);
-        }
-
-        $clinicId = $this->currentClinicId();
-
-        return ServiceResult::success([
-            'outstanding_invoices_count' => ClinicInvoice::query()
-                ->where('clinic_id', $clinicId)
-                ->where('patient_id', $patient->id)
-                ->where('remaining', '>', 0)
-                ->count(),
-            'completed_treatments_count' => ClinicTreatment::query()
-                ->where('clinic_id', $clinicId)
-                ->where('patient_id', $patient->id)
-                ->where('status', 'completed')
-                ->count(),
-            'upcoming_appointments' => ClinicAppointment::query()
-                ->where('clinic_id', $clinicId)
-                ->where('patient_id', $patient->id)
-                ->where('appointment_at', '>=', now())
-                ->count(),
-        ], 'Patient analytics fetched successfully');
+   public function analytics(int $patientId): array
+{
+    $patient = $this->findClinicPatient($patientId);
+    if (! $patient) {
+        return ServiceResult::error('Patient not found.', null, null, 404);
     }
+
+    $clinicId = $this->currentClinicId();
+
+    return ServiceResult::success([
+        'outstanding_invoices_count' => ClinicInvoice::query()
+            ->where('clinic_id', $clinicId)
+            ->where('patient_id', $patient->id)
+            ->where('remaining', '>', 0)
+            ->count(),
+        'completed_treatments_count' => ClinicTreatment::query()
+            ->where('clinic_id', $clinicId)
+            ->where('patient_id', $patient->id)
+            ->where('status', 'completed')
+            ->count(),
+        'upcoming_appointments' => ClinicAppointment::query()
+            ->where('clinic_id', $clinicId)
+            ->where('patient_id', $patient->id)
+            ->where('appointment_at', '>=', now())
+            ->count(),
+        'patient_behavior_classification' => $this->patientBehaviorClassification($patient->id, $clinicId),
+        'insurance_coverage_utilization' => $this->insuranceCoverageUtilization($patient->id, $clinicId),
+    ], 'Patient analytics fetched successfully');
+}
+
+private function patientBehaviorClassification(int $patientId, int $clinicId): array
+{
+    $appointments = ClinicAppointment::query()
+        ->where('clinic_id', $clinicId)
+        ->where('patient_id', $patientId)
+        ->get();
+
+    $total = $appointments->count();
+
+    if ($total < 3) {
+        return [
+            'label' => 'New Patient',
+            'description' => 'Not enough visit history yet to classify this patient.',
+            'confidence' => null,
+        ];
+    }
+
+    $attended = $appointments->filter(fn ($row) => $this->appointmentStatus($row->status) === 'Attended')->count();
+    $noShow = $appointments->filter(fn ($row) => $this->appointmentStatus($row->status) === 'No Show')->count();
+    $cancelled = $appointments->filter(fn ($row) => $this->appointmentStatus($row->status) === 'Cancelled')->count();
+
+    $attendanceRate = round(($attended / $total) * 100, 2);
+    $noShowRate = round(($noShow / $total) * 100, 2);
+
+    [$label, $description] = match (true) {
+        $noShowRate >= 25 => ['At Risk', 'Frequent no-shows detected. May need reminder calls or deposit policy.'],
+        $attendanceRate >= 85 => ['Reliable Patient', 'Consistently attends scheduled appointments.'],
+        $cancelled > $attended => ['Frequently Reschedules', 'Tends to cancel or reschedule visits often.'],
+        default => ['Moderate Engagement', 'Attendance pattern is average, no major red flags.'],
+    };
+
+    return [
+        'label' => $label,
+        'description' => $description,
+        'attendance_rate' => $attendanceRate,
+        'no_show_rate' => $noShowRate,
+        'total_visits' => $total,
+    ];
+}
+
+private function insuranceCoverageUtilization(int $patientId, int $clinicId): array
+{
+    $approvals = InsuranceApproval::query()
+        ->with('services')
+        ->where('clinic_id', $clinicId)
+        ->where('patient_id', $patientId)
+        ->get();
+
+    $activeApprovals = $approvals->filter(fn ($a) => $a->status === 'Approved'
+        && (! $a->expiry_date || $a->expiry_date->isFuture()));
+
+    $usedTotal = (float) $approvals->sum('used_amount');
+    $limitTotal = (float) $approvals->sum('approved_amount');
+    $utilizationPercent = $limitTotal > 0 ? round(($usedTotal / $limitTotal) * 100, 1) : 0;
+
+    $decided = $approvals->whereIn('status', ['Approved', 'Rejected']);
+    $successRate = $decided->count() > 0
+        ? round(($approvals->where('status', 'Approved')->count() / $decided->count()) * 100)
+        : 0;
+
+    $mostApprovedServices = $approvals->where('status', 'Approved')
+        ->flatMap(fn ($a) => $a->services)
+        ->groupBy('service_name')
+        ->map(fn ($group, $name) => ['service_name' => $name, 'count' => $group->count()])
+        ->sortByDesc('count')
+        ->take(3)
+        ->values()
+        ->all();
+
+    return [
+        'coverage_utilization_percent' => $utilizationPercent,
+        'used_amount' => $usedTotal,
+        'limit_amount' => $limitTotal,
+        'active_approvals' => $activeApprovals->count(),
+        'avg_success_rate' => $successRate,
+        'most_approved_services' => $mostApprovedServices,
+    ];
+}
 
     private function generatedPatientEmail(int $clinicId): string
     {
@@ -1334,7 +1415,41 @@ public function approvalPdfPayloadForClinic(int $clinicId, int $approvalId): arr
         'content' => Pdf::loadView('pdf.insurance-approval', ['approval' => $approval])->setPaper('a4')->output(),
     ], 'Insurance approval PDF generated successfully');
 }
+public function addApprovalService(int $patientId, int $approvalId, array $data): array
+{
+    $patient = $this->findClinicPatient($patientId);
+    if (! $patient) {
+        return ServiceResult::error('Patient not found.', null, null, 404);
+    }
 
+    $approval = InsuranceApproval::query()
+        ->where('clinic_id', $this->currentClinicId())
+        ->where('patient_id', $patient->id)
+        ->find($approvalId);
+
+    if (! $approval) {
+        return ServiceResult::error('Insurance approval not found.', null, null, 404);
+    }
+
+    $service = $approval->services()->create([
+        'service_name' => $data['service_name'],
+        'service_code' => $data['code'] ?? null,
+        'amount' => $data['price'],
+        'co_pay' => $data['co_pay'] ?? 0,
+        'tooth_number' => $data['tooth_number'] ?? null,
+    ]);
+
+
+    $approval->update([
+        'approved_amount' => $approval->services()->sum('amount'),
+    ]);
+
+    return ServiceResult::success(
+        $this->mapApproval($approval->fresh(['company:id,name,code', 'services'])),
+        'Service added to approval successfully',
+        201
+    );
+}
 private function mapApproval(InsuranceApproval $approval): array
 {
     return [

@@ -359,11 +359,12 @@ public function storeApproval(Request $request, int $id)
         'insurance_company_id' => ['required', 'integer', 'exists:insurance_companies,id'],
         'approval_number' => ['required_without:ref_id', 'string', 'max:255'],
         'ref_id' => ['required_without:approval_number', 'string', 'max:255'],
-        'code' => ['nullable', 'string', 'max:255'],
         'date' => ['required', 'date'],
-        'expiry_date' => ['nullable', 'date', 'after_or_equal:date'],
         'coverage_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
         'coverage' => ['nullable', 'numeric', 'min:0', 'max:100'],
+        /////////////////////////////
+          'code' => ['nullable', 'string', 'max:255'],
+        'expiry_date' => ['nullable', 'date', 'after_or_equal:date'],
         'approved_amount' => ['nullable', 'numeric', 'min:0'],
         'used_amount' => ['nullable', 'numeric', 'min:0'],
         'status' => ['nullable', 'in:Pending,Approved,Rejected,pending,approved,rejected'],
@@ -387,6 +388,19 @@ public function storeApproval(Request $request, int $id)
     ])));
 }
 
+public function storeApprovalService(Request $request, int $id, int $approvalId)
+{
+    $data = $request->validate([
+        'service_name' => ['required', 'string', 'max:255'],
+        'service_code' => ['nullable', 'string', 'max:100'],
+        'amount' => ['required', 'numeric', 'min:0'],
+        'requires_dental_lab' => ['nullable', 'boolean'],
+        'tooth_number' => ['nullable', 'string', 'max:20'],
+        'co_pay' => ['nullable', 'numeric', 'min:0'],
+    ]);
+
+    return $this->respond($this->service->addApprovalService($id, $approvalId, $data));
+}
 public function downloadApprovalSigned(Request $request, int $approval)
 {
     $data = $request->validate([
