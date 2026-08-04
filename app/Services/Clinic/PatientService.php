@@ -140,6 +140,7 @@ class PatientService
                 'insurance_provider' => $data['insurance_provider'] ?? $insuranceCompany?->name,
                 'insurance_company_id' => $insuranceCompany?->id,
                 'insurance_number' => $data['insurance_number'] ?? null,
+                  'payment_type' => $data['payment_type'] ?? ($insuranceCompany ? 'insurance' : 'cash'),
                 'notes' => $data['notes'] ?? null,
             ]);
         });
@@ -199,6 +200,7 @@ class PatientService
                 'current_medication',
                 'insurance_provider',
                 'insurance_number',
+                'payment_type',
                 'notes',
             ] as $field) {
                 if (array_key_exists($field, $data)) {

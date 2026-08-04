@@ -27,6 +27,7 @@ class StorePatientRequest extends FormRequest
             'current_medication' => ['nullable', 'string'],
             'insurance_company_id' => ['nullable', 'integer', 'exists:insurance_companies,id'],
             'insurance_provider' => ['nullable', 'string', 'max:255'],
+            'payment_type' => ['nullable', 'in:cash,insurance'],
             'insurance_number' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
         ];

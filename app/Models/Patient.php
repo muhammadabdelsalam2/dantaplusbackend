@@ -24,6 +24,7 @@ class Patient extends Model
         'insurance_provider',
         'insurance_company_id',
         'insurance_number',
+         'payment_type',
         'notes',
     ];
 
