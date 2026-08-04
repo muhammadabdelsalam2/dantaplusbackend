@@ -33,7 +33,8 @@ use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-
+use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\Storage;
 class PatientService
 {
   public function index(array $filters = []): array
