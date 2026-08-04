@@ -316,7 +316,37 @@ class PatientController extends Controller
     {
         return $this->respond($this->service->trackLabCase($id, $caseId));
     }
+public function downloadRadiologySigned(Request $request, int $patient, int $record)
+{
+    $clinicId = (int) $request->query('clinic_id');
 
+    $result = $this->service->radiologyPdfPayloadForClinic($clinicId, $patient, $record);
+
+    if (! $result['success']) {
+        return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+    }
+
+    return response($result['data']['content'], 200, [
+        'Content-Type' => $result['data']['content_type'],
+        'Content-Disposition' => 'attachment; filename="' . $result['data']['filename'] . '"',
+    ]);
+}
+
+public function downloadApprovalSigned(Request $request, int $approval)
+{
+    $clinicId = (int) $request->query('clinic_id');
+
+    $result = $this->service->approvalPdfPayloadForClinic($clinicId, $approval);
+
+    if (! $result['success']) {
+        return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+    }
+
+    return response($result['data']['content'], 200, [
+        'Content-Type' => $result['data']['content_type'],
+        'Content-Disposition' => 'attachment; filename="' . $result['data']['filename'] . '"',
+    ]);
+}
     private function respond(array $result)
     {
         return $result['success']
