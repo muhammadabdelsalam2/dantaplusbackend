@@ -37,6 +37,10 @@ use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Storage;
 class PatientService
 {
+    private const RADIOLOGY_DOWNLOAD_ROUTE = 'clinic.patients.radiology.download.signed';
+private const RADIOLOGY_DOWNLOAD_TTL_MINUTES = 60;
+private const APPROVAL_DOWNLOAD_ROUTE = 'clinic.patients.approvals.download.signed';
+private const APPROVAL_DOWNLOAD_TTL_MINUTES = 60;
   public function index(array $filters = []): array
     {
         $clinicId = $this->currentClinicId();
