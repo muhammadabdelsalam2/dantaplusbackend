@@ -1374,7 +1374,7 @@ public function createApproval(int $patientId, array $data): array
             'code' => $data['code'] ?? $data['approval_number'] ?? $data['ref_id'] ?? ('APR-' . now()->format('YmdHis')),
             'approval_number' => $data['approval_number'] ?? $data['ref_id'] ?? null,
             'ref_id' => $data['ref_id'] ?? $data['approval_number'] ?? null,
-            'status' => $this->approvalStatus($data['status'] ?? 'Pending'),
+            'status' => $this->approvalStatus($data['status'] ?? 'Approved'),
             'date' => $data['date'],
             'expiry_date' => $data['expiry_date'] ?? null,
             'coverage_percent' => $data['coverage_percent'] ?? $data['coverage'] ?? 0,
