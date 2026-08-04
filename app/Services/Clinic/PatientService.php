@@ -318,7 +318,17 @@ private const APPROVAL_DOWNLOAD_TTL_MINUTES = 60;
             ]
         );
     }
+private function imageAsBase64(?string $relativePath): ?string
+{
+    if (! $relativePath || ! Storage::disk('public')->exists($relativePath)) {
+        return null;
+    }
 
+    $contents = Storage::disk('public')->get($relativePath);
+    $mime = Storage::disk('public')->mimeType($relativePath) ?: 'image/jpeg';
+
+    return 'data:' . $mime . ';base64,' . base64_encode($contents);
+}
     /**
      * Build & render a radiology PDF for download via signed URL.
      * Returns ['filename', 'content_type', 'content'] on success.
@@ -382,10 +392,11 @@ private const APPROVAL_DOWNLOAD_TTL_MINUTES = 60;
                 'signed_at' => optional($record->report_generated_at)->toISOString(),
             ],
             'qr_code_data' => url('/verify/radiology-reports/' . $reference),
-            'images' => [
-                'before_image_url' => (new RadiologyResource($record))->resolve()['before_image_url'] ?? null,
-                'after_image_url'  => (new RadiologyResource($record))->resolve()['after_image_url'] ?? null,
-            ],
+    'images' => [
+    'before_image_url' => $this->imageAsBase64($record->before_image_path)
+        ?? $this->imageAsBase64($record->file_path),
+    'after_image_url'  => $this->imageAsBase64($record->after_image_path),
+],
             'created_at'       => optional($record->created_at)?->toISOString(),
             // Signed PDF download link
             'download_pdf_url' => $this->radiologyDownloadUrl($record),
