@@ -174,13 +174,16 @@ class BillingService
             return ServiceResult::error('Invoice not found.', null, null, 404);
         }
 
-        if ((float) $invoice->remaining <= 0) {
+        // Compute remaining live to avoid stale stored value
+        $liveRemaining = round((float) $invoice->total - (float) $invoice->paid, 2);
+
+        if ($liveRemaining <= 0) {
             return ServiceResult::error('Invoice is already fully paid.', null, ['amount' => ['Invoice is already fully paid.']], 422);
         }
 
         $amount = (float) ($data['amount'] ?? $data['amount_to_pay']);
-        if ($amount > (float) $invoice->remaining) {
-            return ServiceResult::error('Payment amount exceeds remaining balance.', null, ['amount' => ['Payment amount exceeds remaining balance.']], 422);
+        if ($amount > $liveRemaining + 0.01) {
+            return ServiceResult::error('Payment amount exceeds remaining balance.', null, ['amount' => ["Payment amount exceeds remaining balance ({$liveRemaining})."]], 422);
         }
 
         $payment = DB::transaction(function () use ($amount, $invoice, $data) {

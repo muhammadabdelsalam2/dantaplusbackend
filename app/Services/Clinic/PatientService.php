@@ -28,19 +28,15 @@ use App\Models\PatientTooth;
 use App\Models\Service;
 use App\Models\User;
 use App\Support\ServiceResult;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 
 class PatientService
 {
-    private const APPROVAL_DOWNLOAD_ROUTE = 'clinic.patients.approvals.download.signed';
-    private const APPROVAL_DOWNLOAD_TTL_MINUTES = 30;
-
   public function index(array $filters = []): array
     {
         $clinicId = $this->currentClinicId();
@@ -303,6 +299,52 @@ class PatientService
         };
     }
 
+    /**
+     * Generate a temporary signed download URL for a radiology PDF.
+     */
+    private function radiologyDownloadUrl(PatientRadiology $record): string
+    {
+        return URL::temporarySignedRoute(
+            self::RADIOLOGY_DOWNLOAD_ROUTE,
+            now()->addMinutes(self::RADIOLOGY_DOWNLOAD_TTL_MINUTES),
+            [
+                'patient'   => $record->patient_id,
+                'record'    => $record->id,
+                'clinic_id' => $record->clinic_id,
+            ]
+        );
+    }
+
+    /**
+     * Build & render a radiology PDF for download via signed URL.
+     * Returns ['filename', 'content_type', 'content'] on success.
+     */
+    public function radiologyPdfPayloadForClinic(int $clinicId, int $patientId, int $recordId): array
+    {
+        $record = PatientRadiology::query()
+            ->with(['patient.user', 'clinic', 'reportDoctor'])
+            ->where('clinic_id', $clinicId)
+            ->where('patient_id', $patientId)
+            ->find($recordId);
+
+        if (! $record) {
+            return ServiceResult::error('Radiology record not found.', null, null, 404);
+        }
+
+        $report  = $this->radiologyReportPayload($record);
+        $content = Pdf::loadView('pdf.radiology-report', ['report' => $report])
+            ->setPaper('a4')
+            ->output();
+
+        $filename = 'radiology-report-' . ($report['reference_code'] ?? $recordId) . '.pdf';
+
+        return ServiceResult::success([
+            'filename'     => $filename,
+            'content_type' => 'application/pdf',
+            'content'      => $content,
+        ], 'Radiology PDF generated successfully');
+    }
+
     private function radiologyReportPayload(PatientRadiology $record): array
     {
         $record->loadMissing(['patient.user', 'clinic', 'reportDoctor']);
@@ -338,9 +380,11 @@ class PatientService
             'qr_code_data' => url('/verify/radiology-reports/' . $reference),
             'images' => [
                 'before_image_url' => (new RadiologyResource($record))->resolve()['before_image_url'] ?? null,
-                'after_image_url' => (new RadiologyResource($record))->resolve()['after_image_url'] ?? null,
+                'after_image_url'  => (new RadiologyResource($record))->resolve()['after_image_url'] ?? null,
             ],
-            'created_at' => optional($record->created_at)?->toISOString(),
+            'created_at'       => optional($record->created_at)?->toISOString(),
+            // Signed PDF download link
+            'download_pdf_url' => $this->radiologyDownloadUrl($record),
         ];
     }
 
@@ -494,16 +538,29 @@ class PatientService
             ->latest('id')
             ->get();
 
-        $total = $rows->count();
+        $total    = $rows->count();
         $finished = $rows->filter(fn ($row) => in_array(strtolower((string) $row->status), ['finished', 'completed', 'done'], true))->count();
+
+        // Build resource collection and attach download_pdf_url per item using original $rows
+        $items = collect(RadiologyResource::collection($rows)->resolve())
+            ->map(function (array $resource, int $index) use ($rows) {
+                /** @var PatientRadiology $record */
+                $record = $rows->values()->get($index);
+
+                return $resource + [
+                    'download_pdf_url' => $record ? $this->radiologyDownloadUrl($record) : null,
+                ];
+            })
+            ->values()
+            ->all();
 
         return ServiceResult::success([
             'header' => [
-                'total_records' => $total,
+                'total_records'  => $total,
                 'cases_finished' => $finished . ' / ' . $total,
             ],
             'modalities' => ['Periapical', 'Bitewing', 'Panoramic', 'CBCT'],
-            'items' => RadiologyResource::collection($rows)->resolve(),
+            'items'      => $items,
         ], 'Radiology archive fetched successfully');
     }
 
@@ -1061,8 +1118,13 @@ class PatientService
             return ServiceResult::error('Invoice not found.', null, null, 404);
         }
 
-        if ((float) $data['amount_to_pay'] > (float) $invoice->remaining) {
-            return ServiceResult::error('Payment amount exceeds remaining balance.', null, ['amount_to_pay' => ['Payment amount exceeds remaining balance.']], 422);
+        // Compute remaining live to avoid stale stored value causing false 422s
+        $currentRemaining = round((float) $invoice->total - (float) $invoice->paid, 2);
+
+        if ((float) $data['amount_to_pay'] > $currentRemaining + 0.01) {
+            return ServiceResult::error('Payment amount exceeds remaining balance.', null, [
+                'amount_to_pay' => ["Payment amount exceeds remaining balance ({$currentRemaining})."],
+            ], 422);
         }
 
         DB::transaction(function () use ($data, $invoice) {
