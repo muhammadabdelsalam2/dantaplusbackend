@@ -344,4 +344,30 @@ public function uploadDocument(UploadPatientDocumentRequest $request, int $id)
 
     return ApiResponse::success($result['data'], $result['message'], $result['code']);
 }
+
+public function downloadRadiologySigned(Request $request, int $patient, int $record)
+{
+    $data = $request->validate([
+        'clinic_id' => ['required', 'integer'],
+    ]);
+
+    $result = $this->service->radiologyPdfPayloadForClinic(
+        (int) $data['clinic_id'],
+        $patient,
+        $record
+    );
+
+    if (! $result['success']) {
+        return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+    }
+
+    return response(
+        $result['data']['content'],
+        200,
+        [
+            'Content-Type'        => $result['data']['content_type'],
+            'Content-Disposition' => 'attachment; filename="' . $result['data']['filename'] . '"',
+        ]
+    );
+}
 }

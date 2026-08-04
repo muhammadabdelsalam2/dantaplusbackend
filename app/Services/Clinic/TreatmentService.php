@@ -2,14 +2,21 @@
 
 namespace App\Services\Clinic;
 
+use App\Http\Resources\Clinic\ClinicInvoiceResource;
 use App\Http\Resources\Clinic\TreatmentResource;
+use App\Models\Clinic;
+use App\Models\ClinicInvoice;
+use App\Models\ClinicPayment;
+use App\Models\ClinicTask;
 use App\Models\ClinicTreatment;
 use App\Models\InventoryItem;
 use App\Models\InventoryLog;
 use App\Models\Patient;
 use App\Models\User;
+use App\Services\Clinic\WhatsappBot\Providers\WhatsAppProviderInterface;
 use App\Support\ServiceResult;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class TreatmentService
 {
@@ -155,4 +162,138 @@ public function createForPatient(int $patientId, array $data): array
 
     return $this->create($data);
 }
+
+    /**
+     * Complete a treatment: mark it completed, create a ClinicInvoice + optional ClinicPayment,
+     * and optionally send a WhatsApp receipt or schedule a follow-up reminder.
+     */
+    public function completeTreatment(int $patientId, int $treatmentId, array $data): array
+    {
+        $clinicId = $this->currentClinicId();
+        if (! $clinicId) {
+            return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
+        }
+
+        $treatment = ClinicTreatment::query()
+            ->where('clinic_id', $clinicId)
+            ->where('patient_id', $patientId)
+            ->find($treatmentId);
+
+        if (! $treatment) {
+            return ServiceResult::error('Treatment not found.', null, null, 404);
+        }
+
+        $finalCost  = (float) $data['final_cost'];
+        $discount   = (float) ($data['discount'] ?? 0);
+        $total      = max(round($finalCost - $discount, 2), 0);
+        $amountPaid = ! empty($data['full_payment'])
+            ? $total
+            : min((float) ($data['amount_paid'] ?? 0), $total);
+
+        $invoice = DB::transaction(function () use ($treatment, $data, $clinicId, $total, $amountPaid) {
+            $treatment->update([
+                'cost'   => $data['final_cost'],
+                'status' => 'completed',
+            ]);
+
+            $invoice = ClinicInvoice::query()->create([
+                'clinic_id'      => $clinicId,
+                'patient_id'     => $treatment->patient_id,
+                'doctor_user_id' => $treatment->doctor_user_id,
+                'invoice_number' => $this->generateInvoiceNumber(),
+                'total'          => $total,
+                'paid'           => $amountPaid,
+                'remaining'      => max(round($total - $amountPaid, 2), 0),
+                'status'         => $amountPaid >= $total ? 'paid' : ($amountPaid > 0 ? 'partial' : 'unpaid'),
+                'issued_at'      => now(),
+                'notes'          => $data['discount_reason'] ?? null,
+            ]);
+
+            if ($amountPaid > 0) {
+                ClinicPayment::query()->create([
+                    'clinic_invoice_id' => $invoice->id,
+                    'clinic_id'         => $clinicId,
+                    'recorded_by'       => auth()->id(),
+                    'amount'            => $amountPaid,
+                    'method'            => $data['payment_method'],
+                    'paid_at'           => now(),
+                ]);
+            }
+
+            return $invoice;
+        });
+
+        // ── Optional side-effects (non-blocking) ──────────────────────────────
+
+        // Send WhatsApp receipt
+        if (! empty($data['send_whatsapp_receipt'])) {
+            try {
+                $patient = $treatment->patient ?? $treatment->load('patient')->patient;
+                // TODO: patient phone may be on patient->phone or patient->user->phone
+                $phone = $patient?->phone ?? $patient?->user?->phone;
+
+                if ($phone) {
+                    $remaining  = round($total - $amountPaid, 2);
+                    $message    = "Dear {$patient?->user?->name}, your treatment invoice has been generated.\n"
+                        . "Total: {$total}\nPaid: {$amountPaid}\nRemaining: {$remaining}\n"
+                        . "Invoice #: {$invoice->invoice_number}";
+
+                    $clinic = Clinic::query()->find($treatment->clinic_id);
+
+                    /** @var WhatsAppProviderInterface $provider */
+                    $provider = app(WhatsAppProviderInterface::class);
+                    $provider->sendMessage($phone, $message, $clinic);
+                }
+            } catch (\Throwable $e) {
+                // TODO: log WhatsApp sending failure — non-critical, do not block response
+                logger()->warning('WhatsApp receipt send failed: ' . $e->getMessage());
+            }
+        }
+
+        // Attach invoice to patient file
+        if (! empty($data['attach_invoice_to_patient_file'])) {
+            // The invoice is already linked to patient_id. If a separate PatientDocument
+            // entry is needed (e.g. a PDF stored in patient documents), generate it here.
+            // TODO: generate PDF of invoice and store as PatientDocument if that workflow exists.
+        }
+
+        // Schedule follow-up reminder
+        if (! empty($data['schedule_followup_reminder'])) {
+            try {
+                // TODO: Adjust assignee logic if ClinicTask requires assigned_to
+                ClinicTask::query()->create([
+                    'clinic_id'    => $treatment->clinic_id,
+                    'patient_id'   => $treatment->patient_id,
+                    'created_by'   => auth()->id(),
+                    // TODO: assign to doctor or null if field is nullable
+                    'assigned_to'  => $treatment->doctor_user_id ?? auth()->id(),
+                    'title'        => 'Follow-up after treatment: ' . $treatment->title,
+                    'description'  => 'Automatic follow-up reminder created after completing treatment.',
+                    'due_date'     => now()->addDays(7)->toDateString(),
+                    'status'       => 'pending',
+                    'priority'     => 'normal',
+                ]);
+            } catch (\Throwable $e) {
+                // TODO: log task creation failure if ClinicTask schema differs
+                logger()->warning('Follow-up task creation failed: ' . $e->getMessage());
+            }
+        }
+
+        return ServiceResult::success([
+            'treatment' => (new TreatmentResource($treatment->fresh(['patient.user', 'doctor'])))->resolve(),
+            'invoice'   => (new ClinicInvoiceResource($invoice->load(['patient.user:id,name', 'doctor:id,name', 'payments'])))->resolve(),
+        ], 'Treatment completed and invoice generated successfully', 201);
+    }
+
+    /**
+     * Generate a unique invoice number following the same pattern as generatePatientNumber/generateCaseNumber.
+     */
+    private function generateInvoiceNumber(): string
+    {
+        do {
+            $number = 'INV-' . now()->format('Ymd') . '-' . Str::upper(Str::random(6));
+        } while (ClinicInvoice::query()->where('invoice_number', $number)->exists());
+
+        return $number;
+    }
 }

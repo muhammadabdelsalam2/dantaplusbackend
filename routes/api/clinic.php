@@ -57,6 +57,10 @@ Route::get('clinic/insurance/approval-report/excel', [InsuranceClaimController::
     ->middleware(['api.error', 'signed'])
     ->name('clinic.insurance.approval-report.excel');
 
+Route::get('clinic/patients/{patient}/radiology/{record}/download-file', [PatientController::class, 'downloadRadiologySigned'])
+    ->middleware(['api.error', 'signed'])
+    ->name('clinic.patients.radiology.download.signed');
+
 Route::prefix('clinic')
     ->middleware(['api.error', 'auth:sanctum', 'role:clinic_admin|doctor|nurse|accountant|receptionist|staff'])
     ->group(function () {
@@ -296,6 +300,10 @@ Route::middleware('permission:patients.update')->post('/patients/{id}/documents/
         Route::middleware('permission:treatments.manage')->get('/treatments/{id}',  [TreatmentController::class, 'show']);
         Route::middleware('permission:patients.view')->get('/patients/{id}/treatments',  [TreatmentController::class, 'indexForPatient']);
         Route::middleware('permission:patients.update')->post('/patients/{id}/treatments', [TreatmentController::class, 'storeForPatient']);
+        Route::middleware('permission:patients.update')->post(
+            '/patients/{patientId}/treatments/{treatmentId}/complete',
+            [TreatmentController::class, 'completeTreatment']
+        );
 
         Route::get('/select/{resource}', [SelectController::class, 'show']);
 
