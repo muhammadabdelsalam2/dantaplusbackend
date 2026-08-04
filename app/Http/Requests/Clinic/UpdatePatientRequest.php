@@ -35,6 +35,7 @@ class UpdatePatientRequest extends FormRequest
             'insurance_provider' => ['sometimes', 'nullable', 'string', 'max:255'],
             'insurance_number' => ['sometimes', 'nullable', 'string', 'max:255'],
             'policy_number' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'payment_type' => ['nullable', 'in:cash,insurance'],
             'notes' => ['sometimes', 'nullable', 'string'],
         ];
     }
