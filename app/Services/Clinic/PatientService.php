@@ -105,12 +105,17 @@ class PatientService
             return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
         }
 
-        $insuranceCompany = $this->resolveInsuranceCompanyId($clinicId, $data['insurance_company_id'] ?? null);
-        if (! empty($data['insurance_company_id']) && ! $insuranceCompany) {
-            return ServiceResult::error('Insurance company not found.', null, ['insurance_company_id' => ['Insurance company not found for this clinic.']], 422);
+        $paymentType = $data['payment_type'] ?? null;
+        $insuranceCompany = null;
+
+        if ($paymentType === 'insurance' || ($paymentType === null && array_key_exists('insurance_company_id', $data) && $data['insurance_company_id'] !== null)) {
+            $insuranceCompany = $this->resolveInsuranceCompanyId($clinicId, $data['insurance_company_id'] ?? null);
+            if (array_key_exists('insurance_company_id', $data) && $data['insurance_company_id'] !== null && ! $insuranceCompany) {
+                return ServiceResult::error('Insurance company not found.', null, ['insurance_company_id' => ['Insurance company not found for this clinic.']], 422);
+            }
         }
 
-        $patient = DB::transaction(function () use ($clinicId, $data, $insuranceCompany) {
+        $patient = DB::transaction(function () use ($clinicId, $data, $insuranceCompany, $paymentType) {
             $user = User::query()->create([
                 'clinic_id' => $clinicId,
                 'name' => $data['name'],
@@ -126,7 +131,8 @@ class PatientService
 
             $user->syncRoles(['patient']);
 
-            return Patient::query()->create([
+            $finalPaymentType = $paymentType ?? ($insuranceCompany ? 'insurance' : 'cash');
+            $patientData = [
                 'user_id' => $user->id,
                 'clinic_id' => $clinicId,
                 'patient_number' => $this->generatePatientNumber(),
@@ -137,12 +143,21 @@ class PatientService
                 'medical_history' => $data['medical_history'] ?? null,
                 'allergies' => $data['allergies'] ?? null,
                 'current_medication' => $data['current_medication'] ?? null,
-                'insurance_provider' => $data['insurance_provider'] ?? $insuranceCompany?->name,
-                'insurance_company_id' => $insuranceCompany?->id,
-                'insurance_number' => $data['insurance_number'] ?? null,
-                  'payment_type' => $data['payment_type'] ?? ($insuranceCompany ? 'insurance' : 'cash'),
+                'payment_type' => $finalPaymentType,
                 'notes' => $data['notes'] ?? null,
-            ]);
+            ];
+
+            if ($finalPaymentType === 'insurance') {
+                $patientData['insurance_provider'] = $data['insurance_provider'] ?? $insuranceCompany?->name;
+                $patientData['insurance_company_id'] = $insuranceCompany?->id;
+                $patientData['insurance_number'] = $data['insurance_number'] ?? null;
+            } else {
+                $patientData['insurance_provider'] = null;
+                $patientData['insurance_company_id'] = null;
+                $patientData['insurance_number'] = null;
+            }
+
+            return Patient::query()->create($patientData);
         });
 
         return $this->show($patient->id);
@@ -160,8 +175,10 @@ class PatientService
             return ServiceResult::error('Patient not found.', null, null, 404);
         }
 
+        $isCashUpdate = array_key_exists('payment_type', $data) && $data['payment_type'] === 'cash';
         $insuranceCompany = null;
-        if (array_key_exists('insurance_company_id', $data)) {
+
+        if (! $isCashUpdate && array_key_exists('insurance_company_id', $data)) {
             $insuranceCompany = $this->resolveInsuranceCompanyId($clinicId, $data['insurance_company_id']);
             if ($data['insurance_company_id'] !== null && ! $insuranceCompany) {
                 return ServiceResult::error('Insurance company not found.', null, ['insurance_company_id' => ['Insurance company not found for this clinic.']], 422);
@@ -178,7 +195,7 @@ class PatientService
             $data['date_of_birth'] = now()->subYears((int) $data['age'])->startOfYear()->toDateString();
         }
 
-        DB::transaction(function () use ($data, $insuranceCompany, $patient) {
+        DB::transaction(function () use ($data, $insuranceCompany, $isCashUpdate, $patient) {
             $userData = array_filter([
                 'name' => $data['name'] ?? null,
                 'email' => array_key_exists('email', $data) ? $data['email'] : null,
@@ -212,7 +229,11 @@ class PatientService
                 $patientData['phone'] = $data['phone'];
             }
 
-            if (array_key_exists('insurance_company_id', $data)) {
+            if ($isCashUpdate) {
+                $patientData['insurance_company_id'] = null;
+                $patientData['insurance_provider'] = null;
+                $patientData['insurance_number'] = null;
+            } elseif (array_key_exists('insurance_company_id', $data)) {
                 $patientData['insurance_company_id'] = $insuranceCompany?->id;
                 if (! array_key_exists('insurance_provider', $data)) {
                     $patientData['insurance_provider'] = $insuranceCompany?->name;
