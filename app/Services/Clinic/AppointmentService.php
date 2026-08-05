@@ -3,12 +3,17 @@
 namespace App\Services\Clinic;
 
 use App\Http\Resources\Clinic\AppointmentResource;
+use App\Models\CaseAttachment;
+use App\Models\CaseModel;
 use App\Models\Branch;
 use App\Models\ClinicAppointment;
 use App\Models\ClinicInvoice;
 use App\Models\ClinicInvoiceItem;
 use App\Models\ClinicPayment;
 use App\Models\ClinicServicePrice;
+use App\Models\DentalLab;
+use App\Models\Doctor;
+use App\Models\LabService;
 use App\Models\Notification;
 use App\Models\Patient;
 use App\Models\ReminderLog;
@@ -22,6 +27,7 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class AppointmentService
@@ -395,6 +401,105 @@ class AppointmentService
         $this->logWhatsApp($appointment, 'reminder', $this->appointmentMessage($appointment, true));
 
         return ServiceResult::success(['sent' => true], 'WhatsApp reminder queued successfully');
+    }
+
+    public function sendToLab(int $id, array $data): array
+    {
+        $appointment = $this->findClinicAppointment($id);
+        if (! $appointment) {
+            return ServiceResult::error('Appointment not found.', null, null, 404);
+        }
+
+        if (! $appointment->patient_id) {
+            return ServiceResult::error('Appointment is not linked to a patient.', null, ['patient_id' => ['Appointment is not linked to a patient.']], 422);
+        }
+
+        $clinicId = (int) $appointment->clinic_id;
+        $lab = DentalLab::query()
+            ->whereHas('partnerships', fn ($query) => $query->where('clinic_id', $clinicId))
+            ->find($data['lab_id']);
+
+        if (! $lab) {
+            return ServiceResult::error('Dental lab not found.', null, ['lab_id' => ['Dental lab not found for this clinic.']], 422);
+        }
+
+        $service = LabService::query()
+            ->where('lab_id', $lab->id)
+            ->find($data['service_id']);
+
+        if (! $service) {
+            return ServiceResult::error('Lab service not found.', null, ['service_id' => ['Lab service not found for this lab.']], 422);
+        }
+
+        $dentistId = $this->doctorModelIdForUser((int) $appointment->doctor_user_id, $clinicId);
+        if (! $dentistId) {
+            return ServiceResult::error('No dentist profile is linked to this appointment.', null, ['doctor_id' => ['No dentist profile is linked to this appointment.']], 422);
+        }
+
+        $material = $this->materialName((int) $data['material_id']);
+        $shade = $this->shadeName((int) $data['shade_id']);
+
+        $order = DB::transaction(function () use ($appointment, $clinicId, $lab, $service, $dentistId, $data, $material, $shade) {
+            $order = CaseModel::query()->create([
+                'case_number' => $this->generateLabCaseNumber(),
+                'clinic_id' => $clinicId,
+                'lab_id' => $lab->id,
+                'patient_id' => $appointment->patient_id,
+                'dentist_id' => $dentistId,
+                'status' => CaseModel::STATUS_PENDING,
+                'priority' => CaseModel::PRIORITY_NORMAL,
+                'due_date' => $data['delivery_date'],
+                'case_type' => $service->service_name,
+                'tooth_numbers' => $data['tooth_numbers'],
+                'tooth_chart_3d' => [
+                    'is_3d' => (bool) ($data['is_3d'] ?? false),
+                    'material_id' => (int) $data['material_id'],
+                    'material' => $material,
+                    'shade_id' => (int) $data['shade_id'],
+                    'shade' => $shade,
+                    'appointment_id' => $appointment->id,
+                ],
+                'description' => trim(collect([
+                    'Appointment ID: ' . $appointment->id,
+                    'Material: ' . $material,
+                    'Shade: ' . $shade,
+                    '3D: ' . ((bool) ($data['is_3d'] ?? false) ? 'Yes' : 'No'),
+                    filled($data['notes'] ?? null) ? 'Notes: ' . $data['notes'] : null,
+                ])->filter()->implode("\n")),
+                'created_by' => auth()->id(),
+            ]);
+
+            foreach (($data['files'] ?? []) as $file) {
+                $path = Storage::disk('public')->putFile('clinic/lab-orders/' . $order->id, $file);
+                CaseAttachment::query()->create([
+                    'case_id' => $order->id,
+                    'uploaded_by' => auth()->id(),
+                    'file_name' => $file->getClientOriginalName(),
+                    'file_path' => $path,
+                    'mime_type' => $file->getMimeType(),
+                    'file_size' => $file->getSize(),
+                    'attachment_type' => 'appointment_lab_file',
+                ]);
+            }
+
+            return $order;
+        });
+
+        return ServiceResult::success([
+            'order_id' => $order->id,
+            'appointment_id' => $appointment->id,
+            'lab' => ['id' => $lab->id, 'name' => $lab->name],
+            'service' => ['id' => $service->id, 'name' => $service->service_name],
+            'patient' => [
+                'id' => $appointment->patient_id,
+                'name' => $appointment->patient?->user?->name ?? $appointment->patient_name,
+            ],
+            'teeth' => $data['tooth_numbers'],
+            'material' => $material,
+            'shade' => $shade,
+            'delivery_date' => $order->due_date->toDateString(),
+            'created_at' => $order->created_at->toISOString(),
+        ], 'Case sent to lab successfully', 201);
     }
 
     public function availableSlots(array $filters): array
@@ -924,6 +1029,46 @@ class AppointmentService
         do {
             $number = 'INV-APT-' . now()->format('YmdHis') . '-' . random_int(100, 999);
         } while (ClinicInvoice::query()->where('invoice_number', $number)->exists());
+
+        return $number;
+    }
+
+    private function doctorModelIdForUser(int $userId, int $clinicId): ?int
+    {
+        return Doctor::query()
+            ->where('user_id', $userId)
+            ->whereHas('user', fn ($query) => $query->where('clinic_id', $clinicId))
+            ->value('id')
+            ?: Doctor::query()
+                ->whereHas('user', fn ($query) => $query->where('clinic_id', $clinicId))
+                ->value('id');
+    }
+
+    private function materialName(int $id): string
+    {
+        return [
+            1 => 'Zirconia',
+            2 => 'Porcelain',
+            3 => 'E-max',
+            4 => 'Metal Ceramic',
+        ][$id] ?? 'Material #' . $id;
+    }
+
+    private function shadeName(int $id): string
+    {
+        return [
+            1 => 'Shade A1',
+            2 => 'Shade A2',
+            3 => 'Shade B1',
+            4 => 'Shade C1',
+        ][$id] ?? 'Shade #' . $id;
+    }
+
+    private function generateLabCaseNumber(): string
+    {
+        do {
+            $number = 'LO-' . Str::upper(Str::random(6));
+        } while (CaseModel::query()->where('case_number', $number)->exists());
 
         return $number;
     }

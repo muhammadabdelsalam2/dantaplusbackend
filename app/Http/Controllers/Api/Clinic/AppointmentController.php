@@ -236,6 +236,29 @@ class AppointmentController extends Controller
         return $this->respondResult($this->service->sendWhatsAppReminder($id));
     }
 
+    public function sendToLab(Request $request, int $id)
+    {
+        $validated = $request->validate([
+            'lab_id' => ['required', 'integer', 'exists:dental_labs,id'],
+            'service_id' => ['required', 'integer', 'exists:lab_services,id'],
+            'tooth_numbers' => ['required', 'array', 'min:1'],
+            'tooth_numbers.*' => ['integer', 'min:1', 'max:32'],
+            'material_id' => ['required', 'integer', 'min:1'],
+            'shade_id' => ['required', 'integer', 'min:1'],
+            'is_3d' => ['nullable', 'boolean'],
+            'delivery_date' => ['required', 'date'],
+            'files' => ['nullable', 'array'],
+            'files.*' => ['file', 'max:10240'],
+            'notes' => ['nullable', 'string'],
+        ]);
+
+        $result = $this->service->sendToLab($id, $validated);
+
+        return $result['success']
+            ? response()->json(['success' => true, 'data' => $result['data']], $result['code'])
+            : ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+    }
+
     public function availableSlots(Request $request)
     {
         $validated = $request->validate([

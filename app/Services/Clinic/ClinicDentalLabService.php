@@ -454,6 +454,151 @@ class ClinicDentalLabService
         );
     }
 
+    public function prototypeIndex(): array
+    {
+        $clinicId = $this->currentClinicId();
+        if (! $clinicId) {
+            return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
+        }
+
+        $labs = DentalLab::query()
+            ->withCount('reviews')
+            ->whereHas('partnerships', fn ($query) => $query->where('clinic_id', $clinicId))
+            ->orderBy('name')
+            ->get()
+            ->map(fn (DentalLab $lab) => [
+                'id' => $lab->id,
+                'name' => $lab->name,
+                'location' => $lab->city ?? $lab->address,
+                'rating' => (float) ($lab->rating ?? 0),
+                'reviews_count' => (int) $lab->reviews_count,
+                'avg_delivery_days' => (float) ($lab->avg_delivery_days ?? 0),
+                'on_time_percentage' => (float) ($lab->on_time_percentage ?? 0),
+                'rejection_rate' => (float) ($lab->rejection_rate ?? 0),
+            ])
+            ->values();
+
+        return ServiceResult::success($labs, 'Dental labs fetched successfully');
+    }
+
+    public function prototypeShow(int $labId): array
+    {
+        $clinicId = $this->currentClinicId();
+        if (! $clinicId) {
+            return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
+        }
+
+        $lab = DentalLab::query()
+            ->with(['reviews' => fn ($query) => $query->latest('id')])
+            ->withCount('reviews')
+            ->whereHas('partnerships', fn ($query) => $query->where('clinic_id', $clinicId))
+            ->find($labId);
+
+        if (! $lab) {
+            return ServiceResult::error('Dental lab not found.', null, null, 404);
+        }
+
+        return ServiceResult::success([
+            'lab' => [
+                'id' => $lab->id,
+                'name' => $lab->name,
+                'location' => $lab->city ?? $lab->address,
+                'rating' => (float) ($lab->rating ?? 0),
+                'reviews_count' => (int) $lab->reviews_count,
+                'avg_delivery_days' => (float) ($lab->avg_delivery_days ?? 0),
+                'on_time_percentage' => (float) ($lab->on_time_percentage ?? 0),
+                'rejection_rate' => (float) ($lab->rejection_rate ?? 0),
+            ],
+            'reviews' => $lab->reviews->map(fn (DentalLabReview $review) => [
+                'doctor_name' => $review->user_name,
+                'rating' => (int) $review->rating,
+                'comment' => $review->comment,
+                'created_at' => optional($review->created_at)->toISOString(),
+            ])->values(),
+        ], 'Dental lab fetched successfully');
+    }
+
+    public function prototypeStoreOrder(array $data): array
+    {
+        $clinicId = $this->currentClinicId();
+        if (! $clinicId) {
+            return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
+        }
+
+        $lab = DentalLab::query()
+            ->whereHas('partnerships', fn ($query) => $query->where('clinic_id', $clinicId))
+            ->find($data['lab_id']);
+        if (! $lab) {
+            return ServiceResult::error('Dental lab not found.', null, ['lab_id' => ['Dental lab not found for this clinic.']], 422);
+        }
+
+        $patient = Patient::query()->where('clinic_id', $clinicId)->find($data['patient_id']);
+        if (! $patient) {
+            return ServiceResult::error('Patient not found.', null, ['patient_id' => ['Patient not found for this clinic.']], 422);
+        }
+
+        $dentist = Doctor::query()
+            ->whereKey($data['dentist_id'])
+            ->whereHas('user', fn ($query) => $query->where('clinic_id', $clinicId))
+            ->first();
+        if (! $dentist) {
+            return ServiceResult::error('Dentist not found.', null, ['dentist_id' => ['Dentist not found for this clinic.']], 422);
+        }
+
+        $caseType = $this->caseTypeName((int) $data['case_type_id']);
+        $material = $this->materialName((int) $data['material_id']);
+        $shade = $this->shadeName((int) $data['shade_id']);
+
+        $order = DB::transaction(function () use ($clinicId, $lab, $patient, $dentist, $data, $caseType, $material, $shade) {
+            $order = $this->repository->createOrder([
+                'case_number' => $this->generateCaseNumber(),
+                'clinic_id' => $clinicId,
+                'lab_id' => $lab->id,
+                'patient_id' => $patient->id,
+                'dentist_id' => $dentist->id,
+                'status' => CaseModel::STATUS_PENDING,
+                'priority' => CaseModel::PRIORITY_NORMAL,
+                'due_date' => $data['delivery_date'],
+                'case_type' => $caseType,
+                'tooth_numbers' => $data['tooth_numbers'],
+                'tooth_chart_3d' => [
+                    'material_id' => (int) $data['material_id'],
+                    'material' => $material,
+                    'shade_id' => (int) $data['shade_id'],
+                    'shade' => $shade,
+                ],
+                'description' => trim(collect([
+                    $data['description'] ?? null,
+                    'Material: ' . $material,
+                    'Shade: ' . $shade,
+                ])->filter()->implode("\n")),
+                'created_by' => auth()->id(),
+            ]);
+
+            foreach (($data['files'] ?? []) as $file) {
+                $path = Storage::disk('public')->putFile('clinic/lab-orders/' . $order->id, $file);
+                CaseAttachment::query()->create([
+                    'case_id' => $order->id,
+                    'uploaded_by' => auth()->id(),
+                    'file_name' => $file->getClientOriginalName(),
+                    'file_path' => $path,
+                    'mime_type' => $file->getMimeType(),
+                    'file_size' => $file->getSize(),
+                    'attachment_type' => 'lab_order_file',
+                ]);
+            }
+
+            return $order;
+        });
+
+        $this->refreshPartnershipMetrics($clinicId, $lab->id);
+
+        return ServiceResult::success([
+            'order_id' => $order->id,
+            'status' => 'created',
+        ], 'Dental lab order created successfully', 201);
+    }
+
     private function resolveDentalLab(int $labId): ?DentalLab
     {
         $clinicId = $this->currentClinicId();
@@ -511,6 +656,46 @@ class ClinicDentalLabService
         return Doctor::query()
             ->whereHas('user', fn ($query) => $query->where('clinic_id', $clinicId))
             ->value('id');
+    }
+
+    private function caseTypeName(int $id): string
+    {
+        $names = LabService::query()
+            ->select('service_name')
+            ->distinct()
+            ->orderBy('service_name')
+            ->pluck('service_name')
+            ->merge(CaseModel::query()->select('case_type')->distinct()->pluck('case_type'))
+            ->filter()
+            ->unique()
+            ->values();
+
+        return $names->get($id - 1) ?? [
+            1 => 'Crown',
+            2 => 'Bridge',
+            3 => 'Veneer',
+            4 => 'Denture',
+        ][$id] ?? 'Case Type #' . $id;
+    }
+
+    private function materialName(int $id): string
+    {
+        return [
+            1 => 'Zirconia',
+            2 => 'Porcelain',
+            3 => 'E-max',
+            4 => 'Metal Ceramic',
+        ][$id] ?? 'Material #' . $id;
+    }
+
+    private function shadeName(int $id): string
+    {
+        return [
+            1 => 'Shade A1',
+            2 => 'Shade A2',
+            3 => 'Shade B1',
+            4 => 'Shade C1',
+        ][$id] ?? 'Shade #' . $id;
     }
 
     private function generateCaseNumber(): string

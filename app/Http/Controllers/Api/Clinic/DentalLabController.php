@@ -16,6 +16,7 @@ use App\Http\Requests\Clinic\UpdateClinicDentalLabOrderStatusRequest;
 use App\Http\Resources\Clinic\ClinicDentalLabOrderDetailResource;
 use App\Services\Clinic\ClinicDentalLabService;
 use App\Support\ApiResponse;
+use Illuminate\Http\Request;
 
 class DentalLabController extends Controller
 {
@@ -157,6 +158,48 @@ class DentalLabController extends Controller
 
         return $result['success']
             ? ApiResponse::success($result['data'], $result['message'], $result['code'])
+            : ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+    }
+
+    public function prototypeIndex()
+    {
+        $result = $this->service->prototypeIndex();
+
+        return $result['success']
+            ? response()->json(['data' => $result['data']], $result['code'])
+            : ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+    }
+
+    public function prototypeShow(int $id)
+    {
+        $result = $this->service->prototypeShow($id);
+
+        return $result['success']
+            ? response()->json($result['data'], $result['code'])
+            : ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+    }
+
+    public function prototypeStoreOrder(Request $request)
+    {
+        $validated = $request->validate([
+            'lab_id' => ['required', 'integer', 'exists:dental_labs,id'],
+            'patient_id' => ['required', 'integer', 'exists:patients,id'],
+            'dentist_id' => ['required', 'integer', 'exists:doctors,id'],
+            'case_type_id' => ['required', 'integer', 'min:1'],
+            'tooth_numbers' => ['required', 'array', 'min:1'],
+            'tooth_numbers.*' => ['integer', 'min:1', 'max:32'],
+            'description' => ['nullable', 'string'],
+            'material_id' => ['required', 'integer', 'min:1'],
+            'shade_id' => ['required', 'integer', 'min:1'],
+            'delivery_date' => ['required', 'date'],
+            'files' => ['nullable', 'array'],
+            'files.*' => ['file', 'max:10240'],
+        ]);
+
+        $result = $this->service->prototypeStoreOrder($validated);
+
+        return $result['success']
+            ? response()->json($result['data'], $result['code'])
             : ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
     }
 }

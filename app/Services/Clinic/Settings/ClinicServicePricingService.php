@@ -23,14 +23,17 @@ class ClinicServicePricingService
 
         $services = $this->serviceQuery($clinicId, $filters)->get();
 
+        $items = ServicePricingResource::collection($services)->resolve();
+
         return ServiceResult::success([
+            'data' => $items,
             'categories' => Category::query()
                 ->whereIn('id', $services->pluck('category_id')->filter()->unique()->values())
                 ->orderBy('name')
                 ->get(['id', 'name', 'slug'])
                 ->values()
                 ->all(),
-            'services' => ServicePricingResource::collection($services)->resolve(),
+            'services' => $items,
         ], 'Service pricing fetched successfully');
     }
 
@@ -72,7 +75,7 @@ class ClinicServicePricingService
                 [
                     'price' => $dto->price ?? 0,
                     'cost' => $dto->cost ?? 0,
-                    'lab_cost' => $dto->labCost ?? 0,
+                    'lab_cost' => ($dto->hasLab ?? false) ? ($dto->labCost ?? 0) : 0,
                     'has_lab' => $dto->hasLab ?? false,
                 ]
             );
@@ -152,7 +155,9 @@ class ClinicServicePricingService
                     [
                         'price' => $dto->price ?? (float) (ClinicServicePrice::query()->where('clinic_id', $clinicId)->where('service_id', $service->id)->value('price') ?? $service->base_price ?? 0),
                         'cost' => array_key_exists('cost', $data) ? ($dto->cost ?? 0) : (float) (ClinicServicePrice::query()->where('clinic_id', $clinicId)->where('service_id', $service->id)->value('cost') ?? 0),
-                        'lab_cost' => array_key_exists('lab_cost', $data) ? ($dto->labCost ?? 0) : (float) (ClinicServicePrice::query()->where('clinic_id', $clinicId)->where('service_id', $service->id)->value('lab_cost') ?? 0),
+                        'lab_cost' => ($dto->hasLab ?? (bool) (ClinicServicePrice::query()->where('clinic_id', $clinicId)->where('service_id', $service->id)->value('has_lab') ?? false))
+                            ? (array_key_exists('lab_cost', $data) ? ($dto->labCost ?? 0) : (float) (ClinicServicePrice::query()->where('clinic_id', $clinicId)->where('service_id', $service->id)->value('lab_cost') ?? 0))
+                            : 0,
                         'has_lab' => array_key_exists('has_lab', $data) ? ($dto->hasLab ?? false) : (bool) (ClinicServicePrice::query()->where('clinic_id', $clinicId)->where('service_id', $service->id)->value('has_lab') ?? false),
                     ]
                 );

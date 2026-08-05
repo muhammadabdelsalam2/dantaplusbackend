@@ -22,6 +22,18 @@ class StoreServicePricingRequest extends FormRequest
             $this->merge(['name' => $this->input('service_name')]);
         }
 
+        if ($this->has('selling_price') && ! $this->has('price')) {
+            $this->merge(['price' => $this->input('selling_price')]);
+        }
+
+        if ($this->has('service_cost') && ! $this->has('cost')) {
+            $this->merge(['cost' => $this->input('service_cost')]);
+        }
+
+        if ($this->has('requires_dental_lab') && ! $this->has('has_lab')) {
+            $this->merge(['has_lab' => $this->input('requires_dental_lab')]);
+        }
+
         if ($this->has('is_active')) {
             $this->merge([
                 'is_active' => filter_var($this->input('is_active'), FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE)
@@ -47,7 +59,7 @@ class StoreServicePricingRequest extends FormRequest
             'description' => ['nullable', 'string'],
             'price' => ['required', 'numeric', 'min:0'],
             'cost' => ['nullable', 'numeric', 'min:0'],
-            'lab_cost' => ['nullable', 'numeric', 'min:0'],
+            'lab_cost' => ['nullable', 'required_if:has_lab,true', 'numeric', 'min:0'],
             'has_lab' => ['nullable', 'boolean'],
             'is_active' => ['nullable', 'boolean'],
         ];

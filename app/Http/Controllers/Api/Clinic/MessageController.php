@@ -18,7 +18,7 @@ class MessageController extends Controller
     public function patients(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'date' => ['required', 'date_format:Y-m-d'],
+            'date' => ['nullable', 'date_format:Y-m-d'],
             'doctor_id' => ['nullable', 'integer', 'exists:users,id'],
             'patient_id' => ['nullable', 'integer', 'exists:patients,id'],
             'patient_ids' => ['nullable', 'array'],
@@ -32,18 +32,26 @@ class MessageController extends Controller
 
         $filters = [
             'clinic_id' => $clinicId,
-            'appointment_date' => $data['date'],
+            'appointment_date' => $data['date'] ?? null,
             'doctor_user_id' => $data['doctor_id'] ?? null,
             'patient_ids' => $data['patient_ids'] ?? (! empty($data['patient_id']) ? [$data['patient_id']] : null),
         ];
 
         $items = $this->patientRows($filters);
+        $patients = $items->map(fn (array $row) => [
+            'id' => $row['patient_id'],
+            'name' => $row['patient_name'],
+            'phone' => $row['patient_phone'],
+            'appointment_time' => $row['appointment_time'],
+            'doctor' => $row['doctor_name'],
+        ])->values();
 
         return response()->json([
             'success' => true,
             'message' => 'Messaging patients fetched successfully.',
+            'patients' => $patients,
             'data' => [
-                'date' => $data['date'],
+                'date' => $data['date'] ?? null,
                 'doctor_id' => $data['doctor_id'] ?? null,
                 'count' => $items->count(),
                 'items' => $items,
@@ -142,12 +150,17 @@ class MessageController extends Controller
             ->map(function ($row) {
                 return [
                     'appointment_id' => $row->appointment_id,
+                    'id' => $row->patient_id,
                     'patient_id'     => $row->patient_id,
+                    'name'           => $row->patient_user_name ?: $row->patient_name,
                     'patient_name'   => $row->patient_user_name ?: $row->patient_name,
+                    'phone'          => $row->patient_user_phone ?: $row->patient_phone,
                     'patient_phone'  => $row->patient_user_phone ?: $row->patient_phone,
                     'doctor_user_id' => $row->doctor_user_id,
+                    'doctor'         => $row->doctor_name,
                     'doctor_name'    => $row->doctor_name,
                     'service_name'   => $row->service_name,
+                    'appointment_time' => $row->appointment_at ? date('H:i', strtotime($row->appointment_at)) : null,
                     'appointment_at' => $row->appointment_at,
                     'status'         => $row->status,
                 ];

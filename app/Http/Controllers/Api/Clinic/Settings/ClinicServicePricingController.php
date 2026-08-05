@@ -31,7 +31,9 @@ class ClinicServicePricingController extends Controller
             return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
         }
 
-        return ApiResponse::success($result['data'], $result['message'], $result['code']);
+        return response()->json([
+            'data' => $result['data']['data'] ?? $result['data'],
+        ], $result['code']);
     }
 
     public function store(StoreServicePricingRequest $request)

@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\Clinic\Insurance\InsuranceClaimController;
 use App\Http\Controllers\Api\Clinic\Insurance\InsuranceCompanyController;
 use App\Http\Controllers\Api\Clinic\PatientController;
 use App\Http\Controllers\Api\Clinic\SelectController;
+use App\Http\Controllers\Api\Clinic\SelectsController;
 use App\Http\Controllers\Api\Clinic\Settings\ClinicDoctorReminderSettingsController;
 use App\Http\Controllers\Api\Clinic\Settings\ClinicFeedbackSettingsController;
 use App\Http\Controllers\Api\Clinic\Settings\ClinicAppointmentSettingsController;
@@ -106,6 +107,18 @@ Route::prefix('clinic')
             Route::get('/selects', [MessageController::class, 'selects']);
         });
 
+        Route::prefix('selects')->group(function () {
+            Route::get('/labs', [SelectsController::class, 'labs']);
+            Route::get('/labs/{labId}/services', [SelectsController::class, 'labServices']);
+            Route::get('/case-types', [SelectsController::class, 'caseTypes']);
+            Route::get('/materials', [SelectsController::class, 'materials']);
+            Route::get('/shades', [SelectsController::class, 'shades']);
+            Route::get('/service-categories', [SelectsController::class, 'serviceCategories']);
+            Route::get('/patients', [SelectsController::class, 'patients']);
+            Route::get('/dentists', [SelectsController::class, 'dentists']);
+            Route::get('/doctors', [SelectsController::class, 'doctors']);
+        });
+
         Route::middleware('permission:communication.send')
             ->prefix('communication/conversations')
             ->group(function () {
@@ -169,6 +182,7 @@ Route::prefix('clinic')
 
                 Route::get('/service-pricing',           [ClinicServicePricingController::class, 'index']);
                 Route::post('/service-pricing',          [ClinicServicePricingController::class, 'store']);
+                Route::put('/service-pricing/{serviceId}', [ClinicServicePricingController::class, 'update']);
                 Route::post('/service-pricing/{serviceId}', [ClinicServicePricingController::class, 'update']);
                 Route::delete('/service-pricing/{id}',   [ClinicServicePricingController::class, 'destroy']);
                 Route::get('/services',                  [ClinicServicePricingController::class, 'index']);
@@ -301,6 +315,7 @@ Route::middleware('permission:patients.update')->post('/patients/{id}/documents/
         Route::middleware('permission:appointments.view')->get('/appointments/payment-methods', [AppointmentController::class, 'paymentMethods']);
         Route::middleware('permission:appointments.create')->post('/appointments',    [AppointmentController::class, 'store']);
         Route::middleware('permission:appointments.create')->post('/appointments/quick-book', [AppointmentController::class, 'quickBook']);
+        Route::middleware('permission:appointments.update')->put('/appointments/{id}', [AppointmentController::class, 'update']);
         Route::middleware('permission:appointments.update')->post('/appointments/{id}', [AppointmentController::class, 'update']);
         Route::middleware('permission:appointments.update')->post('/appointments/{id}', [AppointmentController::class, 'update']);
         Route::middleware('permission:appointments.update')->post('/appointments/{id}/status', [AppointmentController::class, 'updateStatus']);
@@ -318,6 +333,7 @@ Route::middleware('permission:patients.update')->post('/patients/{id}/documents/
         Route::post('/appointments/{id}/cancel', [AppointmentController::class, 'cancel']);
         Route::post('/appointments/{id}/reject', [AppointmentController::class, 'reject']);
         Route::post('/appointments/{id}/whatsapp-reminder', [AppointmentController::class, 'whatsappReminder']);
+        Route::middleware('permission:dental_labs.manage')->post('/appointments/{id}/send-to-lab', [AppointmentController::class, 'sendToLab']);
 
         // ─── Notifications ───────────────────────────────────────────────────
         Route::get('/notifications',                     [NotificationCenterController::class, 'index']);
@@ -420,6 +436,9 @@ Route::middleware('permission:patients.update')->post('/patients/{id}/documents/
         Route::middleware('permission:dental_labs.view')->get('/dental-lab-orders/{id}',      [DentalLabController::class, 'showOrder']);
         Route::middleware('permission:dental_labs.manage')->post('/dental-lab-orders',         [DentalLabController::class, 'storeOrder']);
         Route::middleware('permission:dental_labs.manage')->post('/dental-lab-orders/{id}/status', [DentalLabController::class, 'updateOrderStatus']);
+        Route::middleware('permission:dental_labs.manage')->post('/labs/orders', [DentalLabController::class, 'prototypeStoreOrder']);
+        Route::middleware('permission:dental_labs.view')->get('/labs', [DentalLabController::class, 'prototypeIndex']);
+        Route::middleware('permission:dental_labs.view')->get('/labs/{id}', [DentalLabController::class, 'prototypeShow']);
 
         // ─── Billing ─────────────────────────────────────────────────────────
         Route::middleware('permission:billing.manage')->group(function () {

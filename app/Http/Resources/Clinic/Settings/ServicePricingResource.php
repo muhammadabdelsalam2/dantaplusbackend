@@ -37,11 +37,15 @@ class ServicePricingResource extends JsonResource
             'clinic_price' => $clinicPrice,
             'override_price' => $clinicPrice,
             'price' => $clinicPrice ?? $basePrice ?? 0,
+            'selling_price' => $clinicPrice ?? $basePrice ?? 0,
             'cost' => $cost,
+            'service_cost' => $cost,
             'lab_cost' => $labCost,
             'has_lab' => $hasLab,
+            'requires_dental_lab' => $hasLab,
             'has_override' => (bool) $override,
             'is_active' => (bool) $this->is_active,
+            'last_updated' => $override?->updated_at ? $override->updated_at->toDateTimeString() : 'N/A',
         ];
     }
 }
