@@ -224,9 +224,9 @@ class ClinicDentalLabService
             }
         }
 
-        $doctorId = $this->resolveDoctorId($clinicId);
+        $doctorId = $this->resolveDentistDoctorId($clinicId, $data['dentist_id'] ?? null);
         if (! $doctorId) {
-            return ServiceResult::error('No doctor profile is linked to this clinic yet.', null, null, 422);
+            return ServiceResult::error('Dentist not found for this clinic.', null, ['dentist_id' => ['The selected dentist id is invalid.']], 422);
         }
 
         $order = $this->repository->createOrder([
@@ -270,16 +270,17 @@ class ClinicDentalLabService
             return ServiceResult::error('Patient not found.', null, ['patient_id' => ['Patient not found.']], 422);
         }
 
-        $doctorId = $this->resolveDoctorId($clinicId);
+        $doctorId = $this->resolveDentistDoctorId($clinicId, $data['dentist_id'] ?? null);
         if (! $doctorId) {
-            return ServiceResult::error('No doctor profile is linked to this clinic yet.', null, null, 422);
+            return ServiceResult::error('Dentist not found for this clinic.', null, ['dentist_id' => ['The selected dentist id is invalid.']], 422);
         }
 
         $order = DB::transaction(function () use ($clinicId, $lab, $patient, $doctorId, $data) {
             $description = collect([
-                'Service: ' . $data['service'],
-                'Material: ' . $data['material'],
-                'Shade: ' . $data['shade'],
+                'Service: ' . ($data['service'] ?? ('Case Type #' . $data['case_type_id'])),
+                'Material: ' . ($data['material'] ?? ('Material #' . $data['material_id'])),
+                'Shade: ' . ($data['shade'] ?? ('Shade #' . $data['shade_id'])),
+                filled($data['description'] ?? null) ? 'Description: ' . $data['description'] : null,
                 filled($data['notes'] ?? null) ? 'Notes: ' . $data['notes'] : null,
             ])->filter()->implode("\n");
 
@@ -292,20 +293,25 @@ class ClinicDentalLabService
                 'status' => CaseModel::STATUS_PENDING,
                 'priority' => CaseModel::PRIORITY_NORMAL,
                 'due_date' => $data['delivery_date'],
-                'case_type' => $data['service'],
+                'case_type' => $data['service'] ?? ('Case Type #' . $data['case_type_id']),
+                'tooth_numbers' => $data['tooth_numbers'] ?? null,
                 'description' => $description,
                 'created_by' => auth()->id(),
             ]);
 
-            if (! empty($data['file_upload']) && $data['file_upload'] instanceof UploadedFile) {
-                $path = Storage::disk('public')->putFile('clinic/lab-orders/'.$order->id, $data['file_upload']);
+            $files = collect($data['files'] ?? [])
+                ->when(! empty($data['file_upload']), fn ($collection) => $collection->push($data['file_upload']))
+                ->filter(fn ($file) => $file instanceof UploadedFile);
+
+            foreach ($files as $file) {
+                $path = Storage::disk('public')->putFile('clinic/lab-orders/'.$order->id, $file);
                 CaseAttachment::query()->create([
                     'case_id' => $order->id,
                     'uploaded_by' => auth()->id(),
-                    'file_name' => $data['file_upload']->getClientOriginalName(),
+                    'file_name' => $file->getClientOriginalName(),
                     'file_path' => $path,
-                    'mime_type' => $data['file_upload']->getMimeType(),
-                    'file_size' => $data['file_upload']->getSize(),
+                    'mime_type' => $file->getMimeType(),
+                    'file_size' => $file->getSize(),
                     'attachment_type' => 'lab_order_file',
                 ]);
             }
@@ -319,11 +325,11 @@ class ClinicDentalLabService
             'order' => (new ClinicDentalLabOrderResource($this->repository->findOrder($clinicId, $order->id)))->resolve(),
             'prototype_fields' => [
                 'Lab' => $lab->name,
-                'Service' => $data['service'],
-                'Material' => $data['material'],
-                'Shade' => $data['shade'],
+                'Service' => $data['service'] ?? ('Case Type #' . $data['case_type_id']),
+                'Material' => $data['material'] ?? ('Material #' . $data['material_id']),
+                'Shade' => $data['shade'] ?? ('Shade #' . $data['shade_id']),
                 'Delivery Date' => $data['delivery_date'],
-                'File Upload' => ! empty($data['file_upload']),
+                'File Upload' => ! empty($data['file_upload']) || ! empty($data['files']),
                 'Notes' => $data['notes'] ?? null,
             ],
         ], 'Dental lab order sent successfully', 201);
@@ -462,20 +468,13 @@ class ClinicDentalLabService
         }
 
         $labs = DentalLab::query()
+            ->with(['latestReview'])
+            ->withAvg('reviews', 'rating')
             ->withCount('reviews')
             ->whereHas('partnerships', fn ($query) => $query->where('clinic_id', $clinicId))
             ->orderBy('name')
             ->get()
-            ->map(fn (DentalLab $lab) => [
-                'id' => $lab->id,
-                'name' => $lab->name,
-                'location' => $lab->city ?? $lab->address,
-                'rating' => (float) ($lab->rating ?? 0),
-                'reviews_count' => (int) $lab->reviews_count,
-                'avg_delivery_days' => (float) ($lab->avg_delivery_days ?? 0),
-                'on_time_percentage' => (float) ($lab->on_time_percentage ?? 0),
-                'rejection_rate' => (float) ($lab->rejection_rate ?? 0),
-            ])
+            ->map(fn (DentalLab $lab) => $this->prototypeLabPayload($lab))
             ->values();
 
         return ServiceResult::success($labs, 'Dental labs fetched successfully');
@@ -489,7 +488,8 @@ class ClinicDentalLabService
         }
 
         $lab = DentalLab::query()
-            ->with(['reviews' => fn ($query) => $query->latest('id')])
+            ->with(['reviews' => fn ($query) => $query->latest('id'), 'latestReview'])
+            ->withAvg('reviews', 'rating')
             ->withCount('reviews')
             ->whereHas('partnerships', fn ($query) => $query->where('clinic_id', $clinicId))
             ->find($labId);
@@ -499,16 +499,7 @@ class ClinicDentalLabService
         }
 
         return ServiceResult::success([
-            'lab' => [
-                'id' => $lab->id,
-                'name' => $lab->name,
-                'location' => $lab->city ?? $lab->address,
-                'rating' => (float) ($lab->rating ?? 0),
-                'reviews_count' => (int) $lab->reviews_count,
-                'avg_delivery_days' => (float) ($lab->avg_delivery_days ?? 0),
-                'on_time_percentage' => (float) ($lab->on_time_percentage ?? 0),
-                'rejection_rate' => (float) ($lab->rejection_rate ?? 0),
-            ],
+            'lab' => $this->prototypeLabPayload($lab),
             'reviews' => $lab->reviews->map(fn (DentalLabReview $review) => [
                 'doctor_name' => $review->user_name,
                 'rating' => (int) $review->rating,
@@ -537,17 +528,17 @@ class ClinicDentalLabService
             return ServiceResult::error('Patient not found.', null, ['patient_id' => ['Patient not found for this clinic.']], 422);
         }
 
-        $dentist = Doctor::query()
-            ->whereKey($data['dentist_id'])
-            ->whereHas('user', fn ($query) => $query->where('clinic_id', $clinicId))
-            ->first();
-        if (! $dentist) {
-            return ServiceResult::error('Dentist not found.', null, ['dentist_id' => ['Dentist not found for this clinic.']], 422);
+        $dentistId = $this->resolveDentistDoctorId($clinicId, (int) $data['dentist_id']);
+        if (! $dentistId) {
+            return ServiceResult::error('Dentist not found.', null, ['dentist_id' => ['The selected dentist id is invalid.']], 422);
         }
+        $dentist = Doctor::query()->find($dentistId);
 
         $caseType = $this->caseTypeName((int) $data['case_type_id']);
-        $material = $this->materialName((int) $data['material_id']);
-        $shade = $this->shadeName((int) $data['shade_id']);
+        $materialId = (int) ($data['material_id'] ?? 0);
+        $shadeId = (int) ($data['shade_id'] ?? 0);
+        $material = $materialId > 0 ? $this->materialName($materialId) : null;
+        $shade = $shadeId > 0 ? $this->shadeName($shadeId) : null;
 
         $order = DB::transaction(function () use ($clinicId, $lab, $patient, $dentist, $data, $caseType, $material, $shade) {
             $order = $this->repository->createOrder([
@@ -562,15 +553,15 @@ class ClinicDentalLabService
                 'case_type' => $caseType,
                 'tooth_numbers' => $data['tooth_numbers'],
                 'tooth_chart_3d' => [
-                    'material_id' => (int) $data['material_id'],
+                    'material_id' => $materialId ?: null,
                     'material' => $material,
-                    'shade_id' => (int) $data['shade_id'],
+                    'shade_id' => $shadeId ?: null,
                     'shade' => $shade,
                 ],
                 'description' => trim(collect([
                     $data['description'] ?? null,
-                    'Material: ' . $material,
-                    'Shade: ' . $shade,
+                    $material ? 'Material: ' . $material : null,
+                    $shade ? 'Shade: ' . $shade : null,
                 ])->filter()->implode("\n")),
                 'created_by' => auth()->id(),
             ]);
@@ -604,6 +595,28 @@ class ClinicDentalLabService
         $clinicId = $this->currentClinicId();
 
         return $clinicId ? $this->repository->findDentalLab($clinicId, $labId) : null;
+    }
+
+    private function prototypeLabPayload(DentalLab $lab): array
+    {
+        $latestReview = $lab->relationLoaded('latestReview') ? $lab->latestReview : null;
+
+        return [
+            'id' => $lab->id,
+            'name' => $lab->name,
+            'location' => $lab->city ?? $lab->address,
+            'rating' => round((float) ($lab->reviews_avg_rating ?? $lab->rating ?? 0), 1),
+            'reviews_count' => (int) ($lab->reviews_count ?? 0),
+            'latest_review' => $latestReview ? [
+                'rating' => (int) $latestReview->rating,
+                'comment' => $latestReview->comment,
+                'reviewed_by' => $latestReview->user_name,
+                'reviewed_at' => optional($latestReview->reviewed_at)->toDateString(),
+            ] : null,
+            'avg_delivery_days' => (float) ($lab->avg_delivery_days ?? 0),
+            'on_time_percentage' => (float) ($lab->on_time_percentage ?? 0),
+            'rejection_rate' => (float) ($lab->rejection_rate ?? 0),
+        ];
     }
 
     private function refreshPartnershipMetrics(int $clinicId, int $labId): void
@@ -655,6 +668,35 @@ class ClinicDentalLabService
     {
         return Doctor::query()
             ->whereHas('user', fn ($query) => $query->where('clinic_id', $clinicId))
+            ->value('id');
+    }
+
+    private function resolveDentistDoctorId(int $clinicId, ?int $dentistId = null): ?int
+    {
+        if (! $dentistId) {
+            return $this->resolveDoctorId($clinicId);
+        }
+
+        $byDoctorId = Doctor::query()
+            ->whereKey($dentistId)
+            ->whereHas('user', fn ($query) => $query->where('clinic_id', $clinicId))
+            ->value('id');
+
+        if ($byDoctorId) {
+            return (int) $byDoctorId;
+        }
+
+        return Doctor::query()
+            ->where('user_id', $dentistId)
+            ->whereHas('user', function ($query) use ($clinicId) {
+                $query
+                    ->where('clinic_id', $clinicId)
+                    ->where(function ($roleQuery) {
+                        $roleQuery
+                            ->whereIn('role', ['dentist', 'doctor'])
+                            ->orWhereHas('roles', fn ($role) => $role->whereIn('name', ['dentist', 'doctor']));
+                    });
+            })
             ->value('id');
     }
 

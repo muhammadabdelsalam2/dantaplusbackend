@@ -7,6 +7,7 @@ use App\Services\Clinic\SelectService;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
 use Spatie\Permission\Models\Role;
+use App\Models\User;
 
 class SelectController extends Controller
 {
@@ -61,5 +62,34 @@ class SelectController extends Controller
     return $result['success']
         ? ApiResponse::success($result['data'], $result['message'], $result['code'])
         : ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+}
+
+public function getDentists()
+{
+    $clinicId = auth()->user()?->clinic_id;
+
+    if (! $clinicId) {
+        return ApiResponse::error('Clinic account is not linked to a clinic.', 403);
+    }
+
+    $dentists = User::query()
+        ->with('doctor:id,user_id,specialization')
+        ->where('clinic_id', $clinicId)
+        ->where(function ($query) {
+            $query
+                ->whereIn('role', ['dentist', 'doctor'])
+                ->orWhereHas('roles', fn ($role) => $role->whereIn('name', ['dentist', 'doctor']));
+        })
+        ->orderBy('name')
+        ->get(['id', 'name', 'role'])
+        ->map(fn (User $user) => [
+            'id' => $user->id,
+            'name' => $user->name,
+            'specialization' => $user->doctor?->specialization,
+        ])
+        ->values()
+        ->all();
+
+    return ApiResponse::success($dentists, 'Dentists select fetched successfully');
 }
 }

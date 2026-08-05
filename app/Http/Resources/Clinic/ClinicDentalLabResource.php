@@ -28,6 +28,10 @@ class ClinicDentalLabResource extends JsonResource
         $onTimeRate = $deliveredOrders->count() > 0
             ? round(($onTimeCount / $deliveredOrders->count()) * 100, 2)
             : (float) ($this->on_time_percentage ?? 0);
+        $latestReview = $this->relationLoaded('latestReview') ? $this->latestReview : null;
+        $rating = $this->reviews_avg_rating !== null
+            ? round((float) $this->reviews_avg_rating, 1)
+            : (float) ($this->rating ?? 0);
 
         return [
             'id' => $this->id,
@@ -42,6 +46,14 @@ class ClinicDentalLabResource extends JsonResource
             'response_speed' => $this->response_speed,
             'working_hours' => $this->working_hours,
             'status' => $this->status,
+            'rating' => $rating,
+            'reviews_count' => (int) ($this->reviews_count ?? 0),
+            'latest_review' => $latestReview ? [
+                'rating' => (int) $latestReview->rating,
+                'comment' => $latestReview->comment,
+                'reviewed_by' => $latestReview->user_name,
+                'reviewed_at' => optional($latestReview->reviewed_at)->toDateString(),
+            ] : null,
             'partnership_status' => $partnership?->status?->value ?? $partnership?->status,
             'on_time_percentage' => $onTimeRate,
             'on_time_rate' => $onTimeRate,

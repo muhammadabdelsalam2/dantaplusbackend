@@ -91,6 +91,11 @@ class DentalLab extends Model
         return $this->hasMany(DentalLabReview::class, 'lab_id');
     }
 
+    public function latestReview(): HasOne
+    {
+        return $this->hasOne(DentalLabReview::class, 'lab_id')->latestOfMany();
+    }
+
     public function partnerships(): HasMany
     {
         return $this->hasMany(ClinicLabPartnership::class, 'lab_id');

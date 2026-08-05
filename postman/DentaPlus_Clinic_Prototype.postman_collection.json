@@ -416,7 +416,7 @@
                                       "response":  [
                                                        {
                                                            "name":  "200",
-                                                           "body":  "{\"data\":[{\"id\":1,\"name\":\"Precision Dental Labs\",\"location\":\"Metropolis\",\"rating\":5,\"reviews_count\":1,\"avg_delivery_days\":3.8,\"on_time_percentage\":96,\"rejection_rate\":1.2}]}"
+                                                           "body":  "{\"data\":[{\"id\":17,\"name\":\"Postman Dental Lab\",\"location\":\"Metropolis\",\"rating\":5.0,\"reviews_count\":1,\"latest_review\":{\"rating\":5,\"comment\":\"Excellent turnaround\",\"reviewed_by\":\"Dr. Name\",\"reviewed_at\":\"2026-08-05\"},\"avg_delivery_days\":3.8,\"on_time_percentage\":96,\"rejection_rate\":1.2}]}"
                                                        }
                                                    ]
                                   },
@@ -429,7 +429,7 @@
                                       "response":  [
                                                        {
                                                            "name":  "200",
-                                                           "body":  "{\"lab\":{\"id\":1,\"name\":\"Precision Dental Labs\"},\"reviews\":[{\"doctor_name\":\"Dr. Bones\",\"rating\":3,\"comment\":\"Very slow delivery.\",\"created_at\":\"2026-08-05T12:00:00.000000Z\"}]}"
+                                                           "body":  "{\"lab\":{\"id\":17,\"name\":\"Postman Dental Lab\",\"rating\":5.0,\"reviews_count\":1,\"latest_review\":{\"rating\":5,\"comment\":\"Excellent turnaround\",\"reviewed_by\":\"Dr. Name\",\"reviewed_at\":\"2026-08-05\"}},\"reviews\":[{\"doctor_name\":\"Dr. Name\",\"rating\":5,\"comment\":\"Excellent turnaround\",\"created_at\":\"2026-08-05T12:00:00.000000Z\"}]}"
                                                        }
                                                    ]
                                   },
@@ -453,6 +453,60 @@
                                                        {
                                                            "name":  "200",
                                                            "body":  "{\"order_id\":789,\"status\":\"created\"}"
+                                                       }
+                                                   ]
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "Radiology",
+                     "item":  [
+                                  {
+                                      "name":  "Radiology List",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  "{{base_url}}/patients/31/radiology"
+                                                  },
+                                      "response":  [
+                                                       {
+                                                           "name":  "200",
+                                                           "body":  "{\"success\":true,\"data\":[{\"id\":1,\"appointment_id\":30,\"date\":\"2026-07-24\",\"type\":\"Panoramic\",\"notes\":\"Initial scan\",\"images\":[{\"id\":11,\"type\":\"before\",\"image_url\":\"http://localhost:8000/storage/clinic/radiology/before.jpg\",\"created_at\":\"2026-07-24T00:00:00Z\"}]}]}"
+                                                       }
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Compare Radiology Cases",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "url":  "{{base_url}}/radiology/compare",
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\"case_1_id\":1,\"case_2_id\":2}"
+                                                               }
+                                                  },
+                                      "response":  [
+                                                       {
+                                                           "name":  "200",
+                                                           "body":  "{\"success\":true,\"data\":{\"case_1\":{\"id\":1,\"date\":\"2026-07-24\",\"type\":\"Panoramic\",\"images\":[]},\"case_2\":{\"id\":2,\"date\":\"2026-07-25\",\"type\":\"Panoramic\",\"images\":[]}}}"
+                                                       }
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Download Radiology PDF",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  "{{base_url}}/radiology/1/download-pdf"
+                                                  },
+                                      "response":  [
+                                                       {
+                                                           "name":  "200",
+                                                           "body":  "PDF binary response: Content-Type application/pdf"
                                                        }
                                                    ]
                                   }

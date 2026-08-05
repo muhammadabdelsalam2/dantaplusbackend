@@ -184,7 +184,7 @@ class DentalLabController extends Controller
         $validated = $request->validate([
             'lab_id' => ['required', 'integer', 'exists:dental_labs,id'],
             'patient_id' => ['required', 'integer', 'exists:patients,id'],
-            'dentist_id' => ['required', 'integer', 'exists:doctors,id'],
+            'dentist_id' => ['required', 'integer', 'exists:users,id'],
             'case_type_id' => ['required', 'integer', 'min:1'],
             'tooth_numbers' => ['required', 'array', 'min:1'],
             'tooth_numbers.*' => ['integer', 'min:1', 'max:32'],

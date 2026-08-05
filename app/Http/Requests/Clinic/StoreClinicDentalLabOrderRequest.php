@@ -17,6 +17,7 @@ class StoreClinicDentalLabOrderRequest extends FormRequest
         return [
             'dental_lab_id' => ['required', 'integer', 'exists:dental_labs,id'],
             'patient_id' => ['required', 'integer', 'exists:patients,id'],
+            'dentist_id' => ['nullable', 'integer'],
             'lab_service_id' => ['nullable', 'integer', 'exists:lab_services,id'],
             'status' => ['nullable', Rule::in(['pending', 'accepted', 'delivered'])],
             'due_date' => ['required', 'date'],

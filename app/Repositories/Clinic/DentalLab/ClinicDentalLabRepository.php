@@ -20,10 +20,13 @@ class ClinicDentalLabRepository implements ClinicDentalLabRepositoryInterface
                 'partnerships' => fn ($query) => $query->where('clinic_id', $clinicId),
                 'labServices',
                 'galleryImages',
+                'latestReview',
                 'cases' => fn ($query) => $query
                     ->where('clinic_id', $clinicId)
                     ->with(['patient.user:id,name', 'dentist.user:id,name']),
             ])
+            ->withAvg('reviews', 'rating')
+            ->withCount('reviews')
             ->whereHas('partnerships', fn ( $query) => $query->where('clinic_id', $clinicId))
             ->when($filters['search'] ?? null, function (Builder $query, string $search) {
                 $query->where(function (Builder $innerQuery) use ($search) {
@@ -45,10 +48,13 @@ class ClinicDentalLabRepository implements ClinicDentalLabRepositoryInterface
                 'partnerships' => fn ( $query) => $query->where('clinic_id', $clinicId),
                 'labServices',
                 'galleryImages',
+                'latestReview',
                 'cases' => fn ( $query) => $query
                     ->where('clinic_id', $clinicId)
                     ->with(['patient.user:id,name', 'dentist.user:id,name']),
             ])
+            ->withAvg('reviews', 'rating')
+            ->withCount('reviews')
             ->whereHas('partnerships', fn ( $query) => $query->where('clinic_id', $clinicId))
             ->find($labId);
     }

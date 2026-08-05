@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\Clinic\MessageController;
 use App\Http\Controllers\Api\Clinic\NotificationCenterController;
 use App\Http\Controllers\Api\Clinic\OrderController;
 use App\Http\Controllers\Api\Clinic\ProcurementController;
+use App\Http\Controllers\Api\Clinic\RadiologyController;
 use App\Http\Controllers\Api\Clinic\WhatsappBotController;
 use App\Http\Controllers\Api\Clinic\Insurance\InsuranceClaimController;
 use App\Http\Controllers\Api\Clinic\Insurance\InsuranceCompanyController;
@@ -69,6 +70,10 @@ Route::get('clinic/insurance/approval-report/excel', [InsuranceClaimController::
 Route::get('clinic/patients/{patient}/radiology/{record}/download-file', [PatientController::class, 'downloadRadiologySigned'])
     ->middleware(['api.error', 'signed'])
     ->name('clinic.patients.radiology.download.signed');
+
+Route::get('clinic/radiology/{radiologyId}/download-pdf', [RadiologyController::class, 'downloadPdf'])
+    ->middleware(['api.error'])
+    ->name('clinic.radiology.download-pdf');
 
 Route::prefix('clinic')
     ->middleware(['api.error', 'auth:sanctum', 'role:clinic_admin|doctor|nurse|accountant|receptionist|staff'])
@@ -291,7 +296,7 @@ Route::prefix('clinic')
         Route::middleware('permission:patients.view')->get('/patients/{id}/dental-chart',         [PatientController::class, 'dentalChart']);
         Route::middleware('permission:patients.update')->post('/patients/{id}/dental-chart/presence', [PatientController::class, 'updateToothPresence']);
         Route::middleware('permission:patients.update')->post('/patients/{id}/dental-chart',      [PatientController::class, 'storeDentalChart']);
-        Route::middleware('permission:patients.view')->get('/patients/{id}/radiology',            [PatientController::class, 'radiology']);
+        Route::middleware('permission:patients.view')->get('/patients/{id}/radiology',            [RadiologyController::class, 'index']);
         Route::middleware('permission:patients.update')->post('/patients/{id}/radiology/upload',  [PatientController::class, 'uploadRadiology']);
         Route::middleware('permission:patients.view')->get('/patients/{id}/radiology/appointments-select', [PatientController::class, 'radiologyAppointmentSelect']);
         Route::middleware('permission:patients.view')->get('/patients/{id}/radiology/treatments-select', [PatientController::class, 'radiologyTreatmentSelect']);
@@ -353,6 +358,8 @@ Route::middleware('permission:patients.update')->post('/patients/{id}/documents/
         );
 
         Route::get('/select/{resource}', [SelectController::class, 'show']);
+        Route::get('/selects/dentists', [SelectController::class, 'getDentists']);
+        Route::post('/radiology/compare', [RadiologyController::class, 'compare']);
 
         // ─── Materials ───────────────────────────────────────────────────────
         Route::middleware('permission:materials.view')->prefix('materials')->group(function () {
@@ -421,8 +428,10 @@ Route::middleware('permission:patients.update')->post('/patients/{id}/documents/
         // ─── Dental Labs ─────────────────────────────────────────────────────
         Route::middleware('permission:dental_labs.view')->get('/dental-labs/analytics',  [DentalLabController::class, 'analytics']);
         Route::middleware('permission:dental_labs.view')->get('/dental-labs',            [DentalLabController::class, 'index']);
+        Route::middleware('permission:dental_labs.view')->get('/labs',                   [DentalLabController::class, 'index']);
         Route::middleware('permission:dental_labs.manage')->post('/dental-labs',         [DentalLabController::class, 'store']);
         Route::middleware('permission:dental_labs.view')->get('/dental-labs/{id}',       [DentalLabController::class, 'show']);
+        Route::middleware('permission:dental_labs.view')->get('/labs/{id}',              [DentalLabController::class, 'show']);
         Route::middleware('permission:dental_labs.manage')->post('/dental-labs/{id}',   [DentalLabController::class, 'update']);
         Route::middleware('permission:dental_labs.manage')->delete('/dental-labs/{id}',  [DentalLabController::class, 'destroy']);
         Route::middleware('permission:dental_labs.manage')->post('/dental-labs/{id}/order', [DentalLabController::class, 'storeOrderForLab']);
