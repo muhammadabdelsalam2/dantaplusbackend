@@ -7,6 +7,7 @@ use App\Http\Requests\Clinic\Settings\StoreServicePricingRequest;
 use App\Http\Requests\Clinic\Settings\UpdateServicePricingRequest;
 use App\Services\Clinic\Settings\ClinicServicePricingService;
 use App\Support\ApiResponse;
+use Illuminate\Http\Request;
 
 class ClinicServicePricingController extends Controller
 {
@@ -16,9 +17,15 @@ class ClinicServicePricingController extends Controller
     {
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        $result = $this->service->index();
+        $filters = $request->validate([
+            'search' => ['nullable', 'string', 'max:255'],
+            'category' => ['nullable', 'string', 'max:255'],
+            'category_id' => ['nullable', 'integer', 'exists:categories,id'],
+        ]);
+
+        $result = $this->service->index($filters);
 
         if (! $result['success']) {
             return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);

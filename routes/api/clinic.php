@@ -99,6 +99,13 @@ Route::prefix('clinic')
                 Route::post('/templates/store',  [MessageController::class, 'storeTemplate']);
             });
 
+        Route::prefix('messaging')->group(function () {
+            Route::get('/patients', [MessageController::class, 'patients']);
+            Route::post('/send', [MessageController::class, 'sendDirect']);
+            Route::get('/history', [MessageController::class, 'historyDirect']);
+            Route::get('/selects', [MessageController::class, 'selects']);
+        });
+
         Route::middleware('permission:communication.send')
             ->prefix('communication/conversations')
             ->group(function () {
@@ -150,6 +157,8 @@ Route::prefix('clinic')
                 Route::get('/integrations',                      [ClinicIntegrationSettingsController::class, 'show']);
                 Route::post('/integrations/connect/google',      [ClinicIntegrationSettingsController::class, 'connectGoogle']);
                 Route::post('/integrations/connect/outlook',     [ClinicIntegrationSettingsController::class, 'connectOutlook']);
+                Route::post('/integrations/google/disconnect',   [ClinicIntegrationSettingsController::class, 'disconnectGoogle']);
+                Route::post('/integrations/outlook/disconnect',  [ClinicIntegrationSettingsController::class, 'disconnectOutlook']);
 
                 Route::get('/communication',                        [ClinicCommunicationSettingsController::class, 'show']);
                 Route::post('/communication/whatsapp',              [ClinicCommunicationSettingsController::class, 'updateWhatsApp']);
@@ -162,6 +171,10 @@ Route::prefix('clinic')
                 Route::post('/service-pricing',          [ClinicServicePricingController::class, 'store']);
                 Route::post('/service-pricing/{serviceId}', [ClinicServicePricingController::class, 'update']);
                 Route::delete('/service-pricing/{id}',   [ClinicServicePricingController::class, 'destroy']);
+                Route::get('/services',                  [ClinicServicePricingController::class, 'index']);
+                Route::post('/services',                 [ClinicServicePricingController::class, 'store']);
+                Route::put('/services/{serviceId}',      [ClinicServicePricingController::class, 'update']);
+                Route::delete('/services/{id}',          [ClinicServicePricingController::class, 'destroy']);
 
                 Route::get('/clinic-info',  [ClinicInfoController::class, 'show']);
                 Route::post('/clinic-info', [ClinicInfoController::class, 'update']);
@@ -179,6 +192,8 @@ Route::prefix('clinic')
 
                 Route::get('/syndicate-prices', [SyndicatePriceController::class, 'index']);
                 Route::post('/syndicate-prices', [SyndicatePriceController::class, 'store']);
+                Route::put('/syndicate-prices/{id}', [SyndicatePriceController::class, 'update']);
+                Route::delete('/syndicate-prices/{id}', [SyndicatePriceController::class, 'destroy']);
                 Route::post('/syndicate-prices/import/preview', [SyndicatePriceController::class, 'preview']);
                 Route::post('/syndicate-prices/import/confirm', [SyndicatePriceController::class, 'confirm']);
 
@@ -287,6 +302,8 @@ Route::middleware('permission:patients.update')->post('/patients/{id}/documents/
         Route::middleware('permission:appointments.create')->post('/appointments',    [AppointmentController::class, 'store']);
         Route::middleware('permission:appointments.create')->post('/appointments/quick-book', [AppointmentController::class, 'quickBook']);
         Route::middleware('permission:appointments.update')->post('/appointments/{id}', [AppointmentController::class, 'update']);
+        Route::middleware('permission:appointments.update')->put('/appointments/{id}', [AppointmentController::class, 'update']);
+        Route::middleware('permission:appointments.update')->put('/appointments/{id}/status', [AppointmentController::class, 'updateStatus']);
         Route::middleware('permission:appointments.view')->get('/appointments/{id}',  [AppointmentController::class, 'show']);
 
         Route::post('/appointments/{id}/approve', [AppointmentController::class, 'approve']);
@@ -363,6 +380,7 @@ Route::middleware('permission:patients.update')->post('/patients/{id}/documents/
         Route::middleware('permission:orders.manage')->prefix('cart')->group(function () {
             Route::get('/', [CartController::class, 'show']);
             Route::post('/items', [CartController::class, 'storeItem']);
+            Route::post('/items/{id}', [CartController::class, 'updateItem']);
             Route::delete('/items/{id}', [CartController::class, 'destroyItem']);
             Route::post('/checkout', [CartController::class, 'checkout']);
         });
@@ -391,6 +409,10 @@ Route::middleware('permission:patients.update')->post('/patients/{id}/documents/
         Route::middleware('permission:dental_labs.view')->get('/dental-labs/{id}',       [DentalLabController::class, 'show']);
         Route::middleware('permission:dental_labs.manage')->post('/dental-labs/{id}',   [DentalLabController::class, 'update']);
         Route::middleware('permission:dental_labs.manage')->delete('/dental-labs/{id}',  [DentalLabController::class, 'destroy']);
+        Route::middleware('permission:dental_labs.manage')->post('/dental-labs/{id}/order', [DentalLabController::class, 'storeOrderForLab']);
+        Route::middleware('permission:dental_labs.manage')->post('/dental-labs/{id}/rate',  [DentalLabController::class, 'rate']);
+        Route::middleware('permission:dental_labs.manage')->post('/labs/{id}/order',        [DentalLabController::class, 'storeOrderForLab']);
+        Route::middleware('permission:dental_labs.manage')->post('/labs/{id}/rate',         [DentalLabController::class, 'rate']);
         Route::middleware('permission:dental_labs.manage')->post('/dental-labs/{id}/services', [DentalLabController::class, 'storeService']);
         Route::middleware('permission:dental_labs.manage')->post('/dental-labs/{id}/gallery',  [DentalLabController::class, 'storeGallery']);
         Route::middleware('permission:dental_labs.manage')->delete('/dental-lab-services/{id}',[DentalLabController::class, 'destroyService']);

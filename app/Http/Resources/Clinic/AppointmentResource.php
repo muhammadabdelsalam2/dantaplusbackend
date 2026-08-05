@@ -15,6 +15,7 @@ class AppointmentResource extends JsonResource
     $paid = (float) $this->invoices->sum('paid');
     $total = (float) $this->invoices->sum('total');
     $paymentStatus = $total > 0 && $paid >= $total ? 'Paid' : 'Unpaid';
+    $approvedId = $this->approvedId();
 
     return [
         'id' => $this->id,
@@ -22,10 +23,12 @@ class AppointmentResource extends JsonResource
         'patient_id' => $this->patient_id,
         'patient_name' => $this->patient_name,
         'patient_phone' => $this->patient_phone,
+        'approved_id' => $approvedId,
         'patient' => $this->patient ? [
             'id' => $this->patient->id,
             'name' => $this->patient->user?->name ?? $this->patient_name,
             'phone' => $this->patient->phone ?? $this->patient?->user?->phone ?? $this->patient_phone,
+            'approved_id' => $approvedId,
             'profile_url' => url('/api/clinic/patients/' . $this->patient->id),
         ] : null,
         'doctor' => $this->doctor ? [
@@ -85,6 +88,28 @@ private function calendarColor(): string
         'cancelled' => '#ef4444',
         default => '#6366f1',
     };
+}
+
+private function approvedId(): ?string
+{
+    if (! $this->patient_id) {
+        return null;
+    }
+
+    $approval = \App\Models\InsuranceApproval::query()
+        ->where('clinic_id', $this->clinic_id)
+        ->where('patient_id', $this->patient_id)
+        ->where('status', 'Approved')
+        ->where(function ($query) {
+            $query->whereNull('expiry_date')->orWhereDate('expiry_date', '>=', now()->toDateString());
+        })
+        ->latest('date')
+        ->latest('id')
+        ->first(['id', 'ref_id', 'approval_number', 'code']);
+
+    return $approval
+        ? (string) ($approval->ref_id ?: $approval->approval_number ?: $approval->code ?: $approval->id)
+        : null;
 }
 
 private function actionMenu(): array

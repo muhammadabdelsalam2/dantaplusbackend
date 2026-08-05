@@ -75,6 +75,16 @@ class AppointmentController extends Controller
 
         return ApiResponse::success($result['data'], $result['message'], $result['code']);
     }
+
+    public function updateStatus(Request $request, int $id)
+    {
+        $validated = $request->validate([
+            'status' => ['required', 'string', 'max:50'],
+            'reason' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        return $this->respondResult($this->service->updateStatus($id, $validated['status'], $validated['reason'] ?? null));
+    }
     public function approve(UpdateAppointmentRequest $request, int $id)
     {
         $result = $this->service->confirm($id);

@@ -80,6 +80,54 @@ class SyndicatePriceService
         return ServiceResult::success((new SyndicatePriceResource($row))->resolve(), 'Syndicate service added successfully', 201);
     }
 
+    public function update(int $id, array $data): array
+    {
+        $clinicId = $this->currentClinicId();
+        if (! $clinicId) {
+            return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
+        }
+
+        $row = SyndicatePrice::query()->where('clinic_id', $clinicId)->find($id);
+        if (! $row) {
+            return ServiceResult::error('Syndicate price not found.', null, null, 404);
+        }
+
+        DB::transaction(function () use ($clinicId, $row, $data) {
+            $year = (int) ($data['year'] ?? $row->year);
+            if ($data['is_active_year'] ?? false) {
+                $this->activateYear($clinicId, $year);
+            }
+
+            $row->update([
+                'year' => $year,
+                'code' => array_key_exists('code', $data) ? $data['code'] : $row->code,
+                'service_name' => $data['service_name'] ?? $row->service_name,
+                'category' => array_key_exists('category', $data) ? $data['category'] : $row->category,
+                'price' => $data['price'] ?? $row->price,
+                'is_active_year' => array_key_exists('is_active_year', $data) ? (bool) $data['is_active_year'] : $row->is_active_year,
+            ]);
+        });
+
+        return ServiceResult::success((new SyndicatePriceResource($row->fresh()))->resolve(), 'Syndicate price updated successfully');
+    }
+
+    public function destroy(int $id): array
+    {
+        $clinicId = $this->currentClinicId();
+        if (! $clinicId) {
+            return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
+        }
+
+        $row = SyndicatePrice::query()->where('clinic_id', $clinicId)->find($id);
+        if (! $row) {
+            return ServiceResult::error('Syndicate price not found.', null, null, 404);
+        }
+
+        $row->delete();
+
+        return ServiceResult::success(null, 'Syndicate price deleted successfully');
+    }
+
     public function preview(UploadedFile $file, int $year): array
     {
         $parsed = $this->parseUploadedFile($file);

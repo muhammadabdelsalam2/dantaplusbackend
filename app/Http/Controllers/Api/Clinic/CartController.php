@@ -65,7 +65,44 @@ class CartController extends Controller
 
         return ApiResponse::success($this->formatCart($cart->fresh(['items.material.company'])), 'Cart item saved successfully', $item->wasRecentlyCreated ? 201 : 200);
     }
+public function updateItem(Request $request, int $id)
+{
+    $validated = $request->validate([
+        'action' => ['required', 'in:increment,decrement'],
+    ]);
 
+    $cart = $this->activeCart();
+
+    $item = $cart->items()->find($id);
+
+    if (! $item) {
+        return ApiResponse::error('Cart item not found.', 404);
+    }
+
+    if ($validated['action'] === 'increment') {
+        $item->quantity++;
+    } else {
+        $item->quantity--;
+
+        if ($item->quantity <= 0) {
+            $item->delete();
+
+            return ApiResponse::success(
+                $this->formatCart($cart->fresh(['items.material.company'])),
+                'Cart item removed successfully'
+            );
+        }
+    }
+
+    $item->line_total = round($item->quantity * $item->unit_price, 2);
+
+    $item->save();
+
+    return ApiResponse::success(
+        $this->formatCart($cart->fresh(['items.material.company'])),
+        'Cart updated successfully'
+    );
+}
     public function destroyItem(int $id)
     {
         $cart = $this->activeCart();

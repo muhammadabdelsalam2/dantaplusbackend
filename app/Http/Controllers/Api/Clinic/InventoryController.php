@@ -144,23 +144,14 @@ public function store(Request $request)
         : null;
 
     if (! empty($validated['material_product_id']) && ! $material) {
-        return ApiResponse::error('Material not found.', 422, ['material_product_id' => ['Material not found.']]);
+        return ApiResponse::error(
+            'Material not found.',
+            422,
+            ['material_product_id' => ['Material not found.']]
+        );
     }
 
     $supplierCompany = $material?->company;
-    if (! $supplierCompany && ! empty($validated['supplier'])) {
-        $supplierCompany = MaterialCompany::query()->firstOrCreate(
-            ['name' => $validated['supplier']],
-            ['status' => MaterialCompany::STATUS_ACTIVE]
-        );
-    }
-
-    if (! $supplierCompany) {
-        $supplierCompany = MaterialCompany::query()->firstOrCreate(
-            ['name' => 'Custom Supplier'],
-            ['status' => MaterialCompany::STATUS_ACTIVE]
-        );
-    }
 
     $category = ! empty($validated['category'])
         ? MaterialCategory::query()->find($validated['category'])
@@ -169,10 +160,10 @@ public function store(Request $request)
     $quantity = (int) ($validated['initial_qty'] ?? $validated['quantity'] ?? 0);
     $minimumStockLevel = (int) ($validated['min_threshold'] ?? $validated['minimum_stock_level'] ?? 0);
     $reorderQuantity = (int) ($validated['reorder_qty'] ?? $validated['reorder_quantity'] ?? 0);
-    $unit = $validated['unit_type'] ?? $validated['unit'] ?? 'piece';
+    $unit = $validated['unit_type'] ?? $validated['unit'] ?? 'Piece';
 
     $attributes = [
-        'company_id' => $supplierCompany->id,
+        'company_id' => $supplierCompany?->id,
         'barcode' => $material?->barcode,
         'product_name' => $material?->name ?? $validated['material_name'],
         'category_id' => $category?->id,
@@ -184,18 +175,22 @@ public function store(Request $request)
         'unit' => $unit,
         'consumption_per_case' => $validated['consumption_per_case'] ?? null,
         'auto_purchase' => (bool) ($validated['auto_purchase'] ?? false),
-        'supplier' => $validated['supplier'] ?? $supplierCompany->name,
-        'unit_price' => $validated['unit_price'] ?? ($material?->price),
+        'supplier' => $validated['supplier'] ?? $supplierCompany?->name,
+        'unit_price' => $validated['unit_price'] ?? $material?->price,
         'status' => $validated['status'] ?? $this->resolveStatus($quantity, $minimumStockLevel),
         'last_updated_at' => now(),
     ];
 
     $item = DB::transaction(function () use ($clinicId, $material, $attributes, $quantity) {
+
         $item = $material
             ? InventoryItem::query()
                 ->withoutGlobalScopes()
                 ->updateOrCreate(
-                    ['clinic_id' => $clinicId, 'product_id' => $material->id],
+                    [
+                        'clinic_id' => $clinicId,
+                        'product_id' => $material->id,
+                    ],
                     $attributes
                 )
             : InventoryItem::query()
@@ -205,12 +200,22 @@ public function store(Request $request)
                     'product_id' => null,
                 ]));
 
-        $this->storeInventoryLog($item, 'seed_stock', $quantity, 'Initial clinic inventory stock');
+        $this->storeInventoryLog(
+            $item,
+            'seed_stock',
+            $quantity,
+            'Initial clinic inventory stock'
+        );
 
         return $item;
     });
 
-    return ApiResponse::success($this->formatInventoryItem($item->fresh(['product.company', 'category'])), 'Inventory item created successfully');
+    return ApiResponse::success(
+        $this->formatInventoryItem(
+            $item->fresh(['product.company', 'category'])
+        ),
+        'Inventory item created successfully'
+    );
 }
 
     public function update(Request $request, int $inventory)

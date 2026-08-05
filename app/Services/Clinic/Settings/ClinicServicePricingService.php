@@ -13,7 +13,7 @@ use Illuminate\Support\Str;
 
 class ClinicServicePricingService
 {
-    public function index(): array
+    public function index(array $filters = []): array
     {
         $clinicId = $this->currentClinicId();
 
@@ -21,7 +21,7 @@ class ClinicServicePricingService
             return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
         }
 
-        $services = $this->serviceQuery($clinicId)->get();
+        $services = $this->serviceQuery($clinicId, $filters)->get();
 
         return ServiceResult::success([
             'categories' => Category::query()
@@ -207,7 +207,7 @@ class ClinicServicePricingService
         return auth()->user()?->clinic_id;
     }
 
-    private function serviceQuery(int $clinicId)
+    private function serviceQuery(int $clinicId, array $filters = [])
     {
         return Service::query()
             ->with([
@@ -221,6 +221,15 @@ class ClinicServicePricingService
                     ->orWhere('created_by_clinic_id', $clinicId);
             })
             ->where('is_active', true)
+            ->when($filters['search'] ?? null, function ($query, string $search) {
+                $query->where(function ($nested) use ($search) {
+                    $nested
+                        ->where('name', 'like', "%{$search}%")
+                        ->orWhereHas('category', fn ($category) => $category->where('name', 'like', "%{$search}%"));
+                });
+            })
+            ->when($filters['category_id'] ?? null, fn ($query, int $categoryId) => $query->where('category_id', $categoryId))
+            ->when($filters['category'] ?? null, fn ($query, string $category) => $query->whereHas('category', fn ($categoryQuery) => $categoryQuery->where('name', $category)))
             ->orderBy('category_id')
             ->orderBy('name');
     }

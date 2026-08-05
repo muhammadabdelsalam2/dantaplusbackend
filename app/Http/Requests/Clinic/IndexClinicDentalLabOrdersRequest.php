@@ -16,6 +16,7 @@ class IndexClinicDentalLabOrdersRequest extends FormRequest
     {
         return [
             'status' => ['nullable', Rule::in(['pending', 'accepted', 'delivered', 'overdue'])],
+            'search' => ['nullable', 'string', 'max:255'],
             'dental_lab_id' => ['nullable', 'integer'],
             'patient_id' => ['nullable', 'integer'],
             'date_from' => ['nullable', 'date'],

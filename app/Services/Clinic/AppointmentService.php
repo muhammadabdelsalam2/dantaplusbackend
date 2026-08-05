@@ -177,6 +177,27 @@ class AppointmentService
         return $this->transition($id, ['pending', 'scheduled'], 'confirmed', 'Appointment confirmed successfully');
     }
 
+    public function updateStatus(int $id, string $status, ?string $reason = null): array
+    {
+        $appointment = $this->findClinicAppointment($id);
+        if (! $appointment) {
+            return ServiceResult::error('Appointment not found.', null, null, 404);
+        }
+
+        $normalizedStatus = Str::of($status)->trim()->lower()->replace(' ', '_')->toString();
+
+        $appointment->update([
+            'status' => $normalizedStatus,
+            'notes' => $reason
+                ? trim((string) $appointment->notes . "\nStatus change reason: {$reason}")
+                : $appointment->notes,
+            'cancelled_at' => $normalizedStatus === 'cancelled' ? now() : $appointment->cancelled_at,
+            'completed_at' => $normalizedStatus === 'completed' ? now() : $appointment->completed_at,
+        ]);
+
+        return $this->show($appointment->id);
+    }
+
     public function attend(int $id): array
     {
         return $this->transition($id, ['confirmed'], 'attended', 'Appointment marked as attended successfully');
@@ -501,17 +522,31 @@ class AppointmentService
             return ServiceResult::success(['available' => true]);
         }
 
+        $doctorId = $payload['doctor']?->id;
+        $roomId = $payload['room']?->id;
+
         $conflict = ClinicAppointment::query()
             ->where('clinic_id', $clinicId)
             ->whereNotIn('status', ['cancelled'])
             ->when($excludeId, fn (Builder $query) => $query->whereKeyNot($excludeId))
             ->whereDate('appointment_at', $start->toDateString())
-            ->where(function ($query) use ($payload) {
-                if (! empty($payload['doctor']?->id)) {
-                    $query->orWhere('doctor_user_id', $payload['doctor']->id);
+            ->where(function ($query) use ($doctorId, $roomId) {
+                if ($doctorId) {
+                    $query->orWhere('doctor_user_id', $doctorId);
                 }
-                if (! empty($payload['room']?->id)) {
-                    $query->orWhere('room_id', $payload['room']->id);
+
+                if ($roomId) {
+                    $query->orWhere(function ($roomQuery) use ($roomId, $doctorId) {
+                        $roomQuery->where('room_id', $roomId)
+                            ->where(function ($doctorQuery) use ($doctorId) {
+                                if ($doctorId) {
+                                    $doctorQuery->whereNull('doctor_user_id')->orWhere('doctor_user_id', $doctorId);
+                                    return;
+                                }
+
+                                $doctorQuery->whereNull('doctor_user_id');
+                            });
+                    });
                 }
             })
             ->get()
@@ -544,7 +579,6 @@ class AppointmentService
             'room_id' => $payload['room']?->id,
             'room' => $payload['room']?->name ?? $payload['room_name'],
             'payment_type' => $payload['payment_type'],
-            'status' => $payload['status'],
             'notes' => $payload['notes'],
         ];
     }
@@ -556,7 +590,7 @@ class AppointmentService
             return ServiceResult::error('Appointment not found.', null, null, 404);
         }
 
-        if (! in_array($appointment->status, $allowedFrom, true)) {
+        if ($allowedFrom !== [] && ! in_array($appointment->status, $allowedFrom, true)) {
             return ServiceResult::error('Appointment status flow is not valid for this action.', null, ['status' => ['Previous status step is required.']], 422);
         }
 

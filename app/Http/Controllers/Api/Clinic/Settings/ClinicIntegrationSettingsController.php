@@ -47,4 +47,22 @@ class ClinicIntegrationSettingsController extends Controller
 
         return ApiResponse::success($result['data'], $result['message'], $result['code']);
     }
+
+    public function disconnectGoogle()
+    {
+        $result = $this->service->disconnect('google');
+
+        return $result['success']
+            ? ApiResponse::success($result['data'], $result['message'], $result['code'])
+            : ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+    }
+
+    public function disconnectOutlook()
+    {
+        $result = $this->service->disconnect('outlook');
+
+        return $result['success']
+            ? ApiResponse::success($result['data'], $result['message'], $result['code'])
+            : ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+    }
 }

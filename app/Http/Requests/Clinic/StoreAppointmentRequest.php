@@ -72,15 +72,26 @@ class StoreAppointmentRequest extends FormRequest
 
         $start = Carbon::parse($appointmentAt);
         $end = $start->copy()->addMinutes((int) $duration);
+        $doctorId = $this->input('doctor_id');
 
         $query = ClinicAppointment::query()
             ->where('room_id', $roomId)
             ->whereNotIn('status', ['cancelled'])
+            ->when($this->input('branch_id'), fn ($query, $branchId) => $query->where('branch_id', $branchId))
+            ->when($this->input('branch'), fn ($query, $branch) => $query->where('branch', $branch))
             ->where('appointment_at', '<', $end)
             ->whereRaw(
                 'DATE_ADD(appointment_at, INTERVAL COALESCE(duration_minutes, duration, 30) MINUTE) > ?',
                 [$start]
-            );
+            )
+            ->where(function ($query) use ($doctorId) {
+                if ($doctorId) {
+                    $query->whereNull('doctor_user_id')->orWhere('doctor_user_id', $doctorId);
+                    return;
+                }
+
+                $query->whereNull('doctor_user_id');
+            });
 
         if ($excludeId) {
             $query->where('id', '!=', $excludeId);

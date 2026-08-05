@@ -36,7 +36,7 @@ class UpdateAppointmentRequest extends FormRequest
             'room' => ['sometimes', 'nullable', 'string', 'max:255'],
             'room_id' => ['sometimes', 'nullable', 'integer', 'exists:rooms,id'],
             'payment_type' => ['sometimes', 'nullable', Rule::in(['cash', 'insurance', 'none'])],
-            'status' => ['sometimes', 'in:pending,scheduled,confirmed,arrived,attended,completed,cancelled'],
+            'status' => ['prohibited'],
             'notes' => ['sometimes', 'nullable', 'string'],
         ];
     }
@@ -87,6 +87,8 @@ class UpdateAppointmentRequest extends FormRequest
         $start = Carbon::parse($appointmentAt);
         $end = $start->copy()->addMinutes((int) $duration);
 
+        $doctorId = $this->input('doctor_id', $appointment->doctor_user_id);
+
         $conflict = ClinicAppointment::query()
             ->where('room_id', $roomId)
             ->where('id', '!=', $appointment->id)
@@ -96,6 +98,11 @@ class UpdateAppointmentRequest extends FormRequest
                 'DATE_ADD(appointment_at, INTERVAL COALESCE(duration_minutes, duration, 30) MINUTE) > ?',
                 [$start]
             )
+            ->where(function ($query) use ($doctorId) {
+                $query
+                    ->whereNull('doctor_user_id')
+                    ->orWhere('doctor_user_id', $doctorId);
+            })
             ->exists();
 
         if ($conflict) {

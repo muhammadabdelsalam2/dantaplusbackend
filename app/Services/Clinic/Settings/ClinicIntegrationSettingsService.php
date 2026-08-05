@@ -51,6 +51,27 @@ class ClinicIntegrationSettingsService
         );
     }
 
+    public function disconnect(string $provider): array
+    {
+        $clinicId = auth()->user()?->clinic_id;
+
+        if (! $clinicId) {
+            return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
+        }
+
+        $setting = $this->settingForProvider($clinicId, $provider);
+        $setting->update([
+            'access_token' => null,
+            'refresh_token' => null,
+            'connected' => false,
+        ]);
+
+        return ServiceResult::success(
+            (new IntegrationSettingsResource($setting->fresh()))->resolve(),
+            ucfirst($provider) . ' Calendar disconnected successfully'
+        );
+    }
+
     private function settingForProvider(int $clinicId, string $provider): IntegrationSetting
     {
         return IntegrationSetting::query()->firstOrCreate(

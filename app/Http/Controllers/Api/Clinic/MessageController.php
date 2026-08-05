@@ -7,6 +7,7 @@ use App\Models\Clinic\Message;
 use App\Models\Clinic\MessageLog;
 use App\Models\Clinic\MessageTemplate;
 use App\Jobs\Clinic\SendPatientWhatsAppMessageJob;
+use App\Selects\Clinic\MessagingSelects;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -14,6 +15,87 @@ use Illuminate\Support\Str;
 
 class MessageController extends Controller
 {
+    public function patients(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'date' => ['required', 'date_format:Y-m-d'],
+            'doctor_id' => ['nullable', 'integer', 'exists:users,id'],
+            'patient_id' => ['nullable', 'integer', 'exists:patients,id'],
+            'patient_ids' => ['nullable', 'array'],
+            'patient_ids.*' => ['integer', 'exists:patients,id'],
+        ]);
+
+        $clinicId = auth()->user()?->clinic_id;
+        if (! $clinicId) {
+            return response()->json(['success' => false, 'message' => 'Clinic account is not linked to a clinic.'], 403);
+        }
+
+        $filters = [
+            'clinic_id' => $clinicId,
+            'appointment_date' => $data['date'],
+            'doctor_user_id' => $data['doctor_id'] ?? null,
+            'patient_ids' => $data['patient_ids'] ?? (! empty($data['patient_id']) ? [$data['patient_id']] : null),
+        ];
+
+        $items = $this->patientRows($filters);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Messaging patients fetched successfully.',
+            'data' => [
+                'date' => $data['date'],
+                'doctor_id' => $data['doctor_id'] ?? null,
+                'count' => $items->count(),
+                'items' => $items,
+            ],
+        ]);
+    }
+
+    public function sendDirect(Request $request): JsonResponse
+    {
+        $clinicId = auth()->user()?->clinic_id;
+        if (! $clinicId) {
+            return response()->json(['success' => false, 'message' => 'Clinic account is not linked to a clinic.'], 403);
+        }
+
+        $request->merge([
+            'clinic_id' => $clinicId,
+            'appointment_date' => $request->input('date', $request->input('appointment_date')),
+            'doctor_user_id' => $request->input('doctor_id', $request->input('doctor_user_id')),
+            'patient_ids' => $request->input('patient_ids', $request->filled('patient_id') ? [$request->input('patient_id')] : null),
+            'sent_by' => auth()->id(),
+            'message_type' => $request->input('message_type', 'custom'),
+            'message_body' => $request->input('message', $request->input('message_body')),
+        ]);
+
+        return $this->send($request);
+    }
+
+    public function historyDirect(Request $request): JsonResponse
+    {
+        $clinicId = auth()->user()?->clinic_id;
+        if (! $clinicId) {
+            return response()->json(['success' => false, 'message' => 'Clinic account is not linked to a clinic.'], 403);
+        }
+
+        $request->merge([
+            'clinic_id' => $clinicId,
+            'appointment_date' => $request->input('date', $request->input('appointment_date')),
+            'doctor_user_id' => $request->input('doctor_id', $request->input('doctor_user_id')),
+        ]);
+
+        return $this->history($request);
+    }
+
+    public function selects(MessagingSelects $selects): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'message' => 'Messaging selects fetched successfully.',
+            'data' => $selects->toArray(auth()->user()?->clinic_id),
+        ]);
+    }
+
     public function filterPatients(Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -25,7 +107,21 @@ class MessageController extends Controller
             'status'           => ['nullable', 'string', 'in:pending,confirmed,cancelled,completed,no_show'],
         ]);
 
-        $appointments = $this->appointmentQuery($data)
+        $appointments = $this->patientRows($data);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Patients fetched successfully.',
+            'data'    => [
+                'count' => $appointments->count(),
+                'items' => $appointments,
+            ],
+        ]);
+    }
+
+    private function patientRows(array $data)
+    {
+        return $this->appointmentQuery($data)
             ->select([
                 'clinic_appointments.id as appointment_id',
                 'clinic_appointments.patient_id',
@@ -56,15 +152,6 @@ class MessageController extends Controller
                     'status'         => $row->status,
                 ];
             });
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Patients fetched successfully.',
-            'data'    => [
-                'count' => $appointments->count(),
-                'items' => $appointments,
-            ],
-        ]);
     }
 
     public function send(Request $request): JsonResponse

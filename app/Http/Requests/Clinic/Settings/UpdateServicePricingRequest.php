@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Clinic\Settings;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateServicePricingRequest extends FormRequest
 {
@@ -15,6 +16,10 @@ class UpdateServicePricingRequest extends FormRequest
     {
         if ($this->has('category') && ! $this->has('category_name')) {
             $this->merge(['category_name' => $this->input('category')]);
+        }
+
+        if ($this->has('service_name') && ! $this->has('name')) {
+            $this->merge(['name' => $this->input('service_name')]);
         }
 
         if ($this->has('is_active')) {
@@ -37,7 +42,7 @@ class UpdateServicePricingRequest extends FormRequest
         return [
             'name' => ['sometimes', 'string', 'max:255'],
             'category_id' => ['sometimes', 'nullable', 'integer', 'exists:categories,id'],
-            'category_name' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'category_name' => ['sometimes', 'nullable', 'string', 'max:255', Rule::in(['General', 'Orthodontics', 'Surgery', 'Restorative', 'Pediatric', 'Hygiene'])],
             'description' => ['sometimes', 'nullable', 'string'],
             'price' => ['sometimes', 'numeric', 'min:0'],
             'cost' => ['sometimes', 'nullable', 'numeric', 'min:0'],

@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Api\Clinic;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Clinic\IndexClinicDentalLabsRequest;
 use App\Http\Requests\Clinic\IndexClinicDentalLabOrdersRequest;
+use App\Http\Requests\Clinic\RateDentalLabRequest;
 use App\Http\Requests\Clinic\StoreClinicDentalLabGalleryRequest;
 use App\Http\Requests\Clinic\StoreClinicDentalLabOrderRequest;
 use App\Http\Requests\Clinic\StoreClinicDentalLabServiceRequest;
 use App\Http\Requests\Clinic\StoreClinicDentalLabRequest;
+use App\Http\Requests\Clinic\StoreLabOrderForLabRequest;
 use App\Http\Requests\Clinic\UpdateClinicDentalLabRequest;
 use App\Http\Requests\Clinic\UpdateClinicDentalLabOrderStatusRequest;
 use App\Http\Resources\Clinic\ClinicDentalLabOrderDetailResource;
@@ -98,6 +100,24 @@ class DentalLabController extends Controller
     public function storeOrder(StoreClinicDentalLabOrderRequest $request)
     {
         $result = $this->service->storeOrder($request->validated());
+
+        return $result['success']
+            ? ApiResponse::success($result['data'], $result['message'], $result['code'])
+            : ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+    }
+
+    public function storeOrderForLab(StoreLabOrderForLabRequest $request, int $id)
+    {
+        $result = $this->service->storeOrderForLab($id, $request->validated());
+
+        return $result['success']
+            ? ApiResponse::success($result['data'], $result['message'], $result['code'])
+            : ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+    }
+
+    public function rate(RateDentalLabRequest $request, int $id)
+    {
+        $result = $this->service->rate($id, $request->validated());
 
         return $result['success']
             ? ApiResponse::success($result['data'], $result['message'], $result['code'])

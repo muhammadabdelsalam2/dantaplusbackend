@@ -1,0 +1,139 @@
+{
+  "info": {
+    "name": "DentaPlus Clinic Prototype API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{token}}", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000/api/clinic" },
+    { "key": "token", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Appointments",
+      "item": [
+        {
+          "name": "List Appointments",
+          "request": { "method": "GET", "url": "{{base_url}}/appointments?view=day&date=2026-08-05&search=Ali" },
+          "response": [{ "name": "200", "body": "{\"success\":true,\"message\":\"Appointments fetched successfully\",\"data\":{\"appointments\":[]}}" }]
+        },
+        {
+          "name": "Create Appointment",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/appointments",
+            "body": { "mode": "raw", "raw": "{\"patient_id\":1,\"doctor_id\":2,\"service_id\":3,\"date\":\"2026-08-05\",\"time\":\"10:00\",\"branch_id\":1,\"room_id\":1,\"duration_minutes\":30,\"payment_type\":\"insurance\",\"notes\":\"Initial visit\"}" }
+          },
+          "response": [{ "name": "201", "body": "{\"success\":true,\"message\":\"Appointment fetched successfully\",\"data\":{\"id\":1,\"approved_id\":\"APR-1001\",\"patient\":{\"id\":1,\"approved_id\":\"APR-1001\"}}}" }]
+        },
+        {
+          "name": "Update Appointment",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/appointments/1",
+            "body": { "mode": "raw", "raw": "{\"patient_id\":1,\"doctor_id\":4,\"date\":\"2026-08-05\",\"time\":\"11:00\",\"branch_id\":1,\"room_id\":1}" }
+          },
+          "response": [{ "name": "200", "body": "{\"success\":true,\"message\":\"Appointment fetched successfully\",\"data\":{\"id\":1,\"status\":\"pending\"}}" }]
+        },
+        {
+          "name": "Update Appointment Status",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/appointments/1/status",
+            "body": { "mode": "raw", "raw": "{\"status\":\"confirmed\",\"reason\":\"Patient confirmed by phone\"}" }
+          },
+          "response": [{ "name": "200", "body": "{\"success\":true,\"message\":\"Appointment fetched successfully\",\"data\":{\"id\":1,\"status\":\"confirmed\"}}" }]
+        }
+      ]
+    },
+    {
+      "name": "Patients",
+      "item": [
+        {
+          "name": "Patient Detail",
+          "request": { "method": "GET", "url": "{{base_url}}/patients/1" },
+          "response": [{ "name": "200", "body": "{\"success\":true,\"data\":{\"id\":1,\"approved_id\":\"APR-1001\",\"insurance\":{\"approved_id\":\"APR-1001\"}}}" }]
+        },
+        {
+          "name": "Create New Approval",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/patients/1/approvals",
+            "body": { "mode": "raw", "raw": "{\"insurance_company_id\":1,\"approval_number\":\"APR-1001\",\"ref_id\":\"APR-1001\",\"status\":\"Approved\",\"date\":\"2026-08-05\",\"expiry_date\":\"2026-12-31\",\"coverage_percent\":80,\"approved_amount\":500,\"services\":[{\"service_code\":\"SRV-1\",\"service_name\":\"Crown\",\"amount\":500}]}" }
+          },
+          "response": [{ "name": "201", "body": "{\"success\":true,\"message\":\"Insurance approval created successfully\",\"data\":{\"id\":1,\"ref_id\":\"APR-1001\",\"status\":\"Approved\"}}" }]
+        }
+      ]
+    },
+    {
+      "name": "Messaging",
+      "item": [
+        { "name": "Patients By Date", "request": { "method": "GET", "url": "{{base_url}}/messaging/patients?date=2026-08-05" }, "response": [{ "name": "200", "body": "{\"success\":true,\"data\":{\"date\":\"2026-08-05\",\"count\":1,\"items\":[]}}" }] },
+        { "name": "Patients By Doctor", "request": { "method": "GET", "url": "{{base_url}}/messaging/patients?date=2026-08-05&doctor_id=2" }, "response": [{ "name": "200", "body": "{\"success\":true,\"data\":{\"doctor_id\":2,\"items\":[]}}" }] },
+        {
+          "name": "Send Message",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{base_url}}/messaging/send", "body": { "mode": "raw", "raw": "{\"date\":\"2026-08-05\",\"doctor_id\":2,\"patient_ids\":[1],\"channel\":\"whatsapp\",\"message\":\"Hello [Patient Name], your appointment is at [Time].\"}" } },
+          "response": [{ "name": "200", "body": "{\"success\":true,\"message\":\"Messages queued successfully.\",\"data\":{\"queued_count\":1}}" }]
+        },
+        { "name": "History", "request": { "method": "GET", "url": "{{base_url}}/messaging/history?date=2026-08-05&channel=whatsapp" }, "response": [{ "name": "200", "body": "{\"success\":true,\"message\":\"Message history fetched successfully.\",\"data\":[]}" }] }
+      ]
+    },
+    {
+      "name": "Send Case to Lab",
+      "item": [
+        { "name": "List Lab Orders", "request": { "method": "GET", "url": "{{base_url}}/dental-lab-orders?search=crown&status=pending" }, "response": [{ "name": "200", "body": "{\"success\":true,\"data\":{\"items\":[]}}" }] },
+        {
+          "name": "Send Case to Lab",
+          "request": { "method": "POST", "header": [{ "key": "Accept", "value": "application/json" }], "url": "{{base_url}}/labs/1/order", "body": { "mode": "formdata", "formdata": [{ "key": "patient_id", "value": "1", "type": "text" }, { "key": "service", "value": "Crown", "type": "text" }, { "key": "material", "value": "Zirconia", "type": "text" }, { "key": "shade", "value": "A2", "type": "text" }, { "key": "delivery_date", "value": "2026-08-12", "type": "text" }, { "key": "file_upload", "type": "file", "src": "" }, { "key": "notes", "value": "Upper molar", "type": "text" }] } },
+          "response": [{ "name": "201", "body": "{\"success\":true,\"message\":\"Dental lab order sent successfully\",\"data\":{\"prototype_fields\":{\"Lab\":\"Bright Lab\",\"Service\":\"Crown\",\"Material\":\"Zirconia\",\"Shade\":\"A2\",\"Delivery Date\":\"2026-08-12\"}}}" }]
+        }
+      ]
+    },
+    {
+      "name": "Dental Labs",
+      "item": [
+        { "name": "List Labs", "request": { "method": "GET", "url": "{{base_url}}/dental-labs?search=Bright" }, "response": [{ "name": "200", "body": "{\"success\":true,\"data\":{\"items\":[]}}" }] },
+        { "name": "Lab Detail", "request": { "method": "GET", "url": "{{base_url}}/dental-labs/1" }, "response": [{ "name": "200", "body": "{\"success\":true,\"data\":{\"id\":1,\"name\":\"Bright Lab\",\"services\":[],\"orders\":[]}}" }] },
+        { "name": "Send Order to This Lab", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{base_url}}/dental-labs/1/order", "body": { "mode": "raw", "raw": "{\"patient_id\":1,\"service\":\"Crown\",\"material\":\"Zirconia\",\"shade\":\"A2\",\"delivery_date\":\"2026-08-12\",\"notes\":\"Fast delivery\"}" } }, "response": [{ "name": "201", "body": "{\"success\":true,\"message\":\"Dental lab order sent successfully\"}" }] },
+        { "name": "Rate Lab", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{base_url}}/dental-labs/1/rate", "body": { "mode": "raw", "raw": "{\"rating\":5,\"comment\":\"Excellent turnaround\"}" } }, "response": [{ "name": "201", "body": "{\"success\":true,\"message\":\"Dental lab rating submitted successfully\",\"data\":{\"rating\":5,\"average_rating\":4.8}}" }] }
+      ]
+    },
+    {
+      "name": "Settings",
+      "item": [
+        {
+          "name": "Service Pricing",
+          "item": [
+            { "name": "List Services", "request": { "method": "GET", "url": "{{base_url}}/settings/services?search=crown&category=Restorative" }, "response": [{ "name": "200", "body": "{\"success\":true,\"data\":{\"services\":[]}}" }] },
+            { "name": "Create Service", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{base_url}}/settings/services", "body": { "mode": "raw", "raw": "{\"name\":\"Crown\",\"category\":\"Restorative\",\"price\":250,\"cost\":90}" } }, "response": [{ "name": "201", "body": "{\"success\":true,\"message\":\"Service pricing created successfully\"}" }] },
+            { "name": "Update Service", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{base_url}}/settings/services/1", "body": { "mode": "raw", "raw": "{\"name\":\"Premium Crown\",\"category\":\"Restorative\",\"price\":300,\"cost\":110}" } }, "response": [{ "name": "200", "body": "{\"success\":true,\"message\":\"Service pricing updated successfully\"}" }] },
+            { "name": "Delete Service", "request": { "method": "DELETE", "url": "{{base_url}}/settings/services/1" }, "response": [{ "name": "200", "body": "{\"success\":true,\"message\":\"Service pricing deleted successfully\"}" }] }
+          ]
+        },
+        {
+          "name": "Syndicate Prices",
+          "item": [
+            { "name": "Update Price", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{base_url}}/settings/syndicate-prices/1", "body": { "mode": "raw", "raw": "{\"service_name\":\"Crown\",\"category\":\"Restorative\",\"price\":180}" } }, "response": [{ "name": "200", "body": "{\"success\":true,\"message\":\"Syndicate price updated successfully\"}" }] },
+            { "name": "Delete Price", "request": { "method": "DELETE", "url": "{{base_url}}/settings/syndicate-prices/1" }, "response": [{ "name": "200", "body": "{\"success\":true,\"message\":\"Syndicate price deleted successfully\"}" }] }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Integrations",
+      "item": [
+        { "name": "Disconnect Google Calendar", "request": { "method": "POST", "url": "{{base_url}}/settings/integrations/google/disconnect" }, "response": [{ "name": "200", "body": "{\"success\":true,\"message\":\"Google Calendar disconnected successfully\"}" }] },
+        { "name": "Disconnect Outlook Calendar", "request": { "method": "POST", "url": "{{base_url}}/settings/integrations/outlook/disconnect" }, "response": [{ "name": "200", "body": "{\"success\":true,\"message\":\"Outlook Calendar disconnected successfully\"}" }] }
+      ]
+    }
+  ]
+}

@@ -29,6 +29,25 @@ class SyndicatePriceController extends Controller
         return $this->respond($this->service->store($request->validated()));
     }
 
+    public function update(Request $request, int $id)
+    {
+        $data = $request->validate([
+            'year' => ['sometimes', 'integer', 'min:2017', 'max:2100'],
+            'code' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'service_name' => ['sometimes', 'string', 'max:255'],
+            'category' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'price' => ['sometimes', 'numeric', 'min:0'],
+            'is_active_year' => ['sometimes', 'boolean'],
+        ]);
+
+        return $this->respond($this->service->update($id, $data));
+    }
+
+    public function destroy(int $id)
+    {
+        return $this->respond($this->service->destroy($id));
+    }
+
     public function preview(ImportSyndicatePricesRequest $request)
     {
         return $this->respond($this->service->preview($request->file('file'), (int) $request->validated()['year']));

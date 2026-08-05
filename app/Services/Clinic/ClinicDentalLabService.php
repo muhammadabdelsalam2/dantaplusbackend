@@ -8,9 +8,11 @@ use App\Http\Resources\Clinic\ClinicDentalLabOrderDetailResource;
 use App\Http\Resources\Clinic\ClinicDentalLabOrderResource;
 use App\Http\Resources\Clinic\ClinicDentalLabResource;
 use App\Http\Resources\Clinic\ClinicDentalLabServiceResource;
+use App\Models\CaseAttachment;
 use App\Models\CaseModel;
 use App\Models\ClinicLabPartnership;
 use App\Models\DentalLab;
+use App\Models\DentalLabReview;
 use App\Models\Doctor;
 use App\Models\Patient;
 use App\Repositories\Clinic\DentalLab\ClinicDentalLabRepositoryInterface;
@@ -249,6 +251,115 @@ class ClinicDentalLabService
             'Dental lab order created successfully',
             201
         );
+    }
+
+    public function storeOrderForLab(int $labId, array $data): array
+    {
+        $clinicId = $this->currentClinicId();
+        if (! $clinicId) {
+            return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
+        }
+
+        $lab = $this->repository->findDentalLab($clinicId, $labId);
+        if (! $lab) {
+            return ServiceResult::error('Dental lab not found.', null, null, 404);
+        }
+
+        $patient = Patient::query()->where('clinic_id', $clinicId)->find($data['patient_id']);
+        if (! $patient) {
+            return ServiceResult::error('Patient not found.', null, ['patient_id' => ['Patient not found.']], 422);
+        }
+
+        $doctorId = $this->resolveDoctorId($clinicId);
+        if (! $doctorId) {
+            return ServiceResult::error('No doctor profile is linked to this clinic yet.', null, null, 422);
+        }
+
+        $order = DB::transaction(function () use ($clinicId, $lab, $patient, $doctorId, $data) {
+            $description = collect([
+                'Service: ' . $data['service'],
+                'Material: ' . $data['material'],
+                'Shade: ' . $data['shade'],
+                filled($data['notes'] ?? null) ? 'Notes: ' . $data['notes'] : null,
+            ])->filter()->implode("\n");
+
+            $order = $this->repository->createOrder([
+                'case_number' => $this->generateCaseNumber(),
+                'clinic_id' => $clinicId,
+                'lab_id' => $lab->id,
+                'patient_id' => $patient->id,
+                'dentist_id' => $doctorId,
+                'status' => CaseModel::STATUS_PENDING,
+                'priority' => CaseModel::PRIORITY_NORMAL,
+                'due_date' => $data['delivery_date'],
+                'case_type' => $data['service'],
+                'description' => $description,
+                'created_by' => auth()->id(),
+            ]);
+
+            if (! empty($data['file_upload']) && $data['file_upload'] instanceof UploadedFile) {
+                $path = Storage::disk('public')->putFile('clinic/lab-orders/'.$order->id, $data['file_upload']);
+                CaseAttachment::query()->create([
+                    'case_id' => $order->id,
+                    'uploaded_by' => auth()->id(),
+                    'file_name' => $data['file_upload']->getClientOriginalName(),
+                    'file_path' => $path,
+                    'mime_type' => $data['file_upload']->getMimeType(),
+                    'file_size' => $data['file_upload']->getSize(),
+                    'attachment_type' => 'lab_order_file',
+                ]);
+            }
+
+            return $order;
+        });
+
+        $this->refreshPartnershipMetrics($clinicId, $lab->id);
+
+        return ServiceResult::success([
+            'order' => (new ClinicDentalLabOrderResource($this->repository->findOrder($clinicId, $order->id)))->resolve(),
+            'prototype_fields' => [
+                'Lab' => $lab->name,
+                'Service' => $data['service'],
+                'Material' => $data['material'],
+                'Shade' => $data['shade'],
+                'Delivery Date' => $data['delivery_date'],
+                'File Upload' => ! empty($data['file_upload']),
+                'Notes' => $data['notes'] ?? null,
+            ],
+        ], 'Dental lab order sent successfully', 201);
+    }
+
+    public function rate(int $labId, array $data): array
+    {
+        $clinicId = $this->currentClinicId();
+        if (! $clinicId) {
+            return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
+        }
+
+        $lab = $this->repository->findDentalLab($clinicId, $labId);
+        if (! $lab) {
+            return ServiceResult::error('Dental lab not found.', null, null, 404);
+        }
+
+        $review = DentalLabReview::query()->create([
+            'lab_id' => $lab->id,
+            'user_id' => auth()->id(),
+            'user_name' => auth()->user()?->name,
+            'rating' => (int) $data['rating'],
+            'comment' => $data['comment'] ?? null,
+            'reviewed_at' => now()->toDateString(),
+        ]);
+
+        $lab->update(['rating' => round((float) $lab->reviews()->avg('rating'), 1)]);
+
+        return ServiceResult::success([
+            'id' => $review->id,
+            'lab_id' => $lab->id,
+            'rating' => $review->rating,
+            'comment' => $review->comment,
+            'average_rating' => (float) $lab->fresh()->rating,
+            'reviewed_at' => optional($review->reviewed_at)->toDateString(),
+        ], 'Dental lab rating submitted successfully', 201);
     }
 
     public function updateOrderStatus(int $orderId, array $data): array

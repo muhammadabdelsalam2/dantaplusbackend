@@ -139,6 +139,16 @@ class ClinicDentalLabRepository implements ClinicDentalLabRepositoryInterface
         return CaseModel::query()
             ->with(['lab:id,name', 'patient.user:id,name'])
             ->where('clinic_id', $clinicId)
+            ->when($filters['search'] ?? null, function (Builder $query, string $search) {
+                $query->where(function (Builder $nested) use ($search) {
+                    $nested
+                        ->where('case_number', 'like', "%{$search}%")
+                        ->orWhere('case_type', 'like', "%{$search}%")
+                        ->orWhere('description', 'like', "%{$search}%")
+                        ->orWhereHas('lab', fn (Builder $lab) => $lab->where('name', 'like', "%{$search}%"))
+                        ->orWhereHas('patient.user', fn (Builder $patient) => $patient->where('name', 'like', "%{$search}%"));
+                });
+            })
             ->when($filters['status'] ?? null, function (Builder $query, string $status) {
                 if ($status === 'overdue') {
                     $query
