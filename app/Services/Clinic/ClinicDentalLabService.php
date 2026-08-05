@@ -14,6 +14,7 @@ use App\Models\ClinicLabPartnership;
 use App\Models\DentalLab;
 use App\Models\DentalLabReview;
 use App\Models\Doctor;
+use App\Models\LabService;
 use App\Models\Patient;
 use App\Repositories\Clinic\DentalLab\ClinicDentalLabRepositoryInterface;
 use App\Support\ServiceResult;
