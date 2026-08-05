@@ -428,10 +428,8 @@ Route::middleware('permission:patients.update')->post('/patients/{id}/documents/
         // ─── Dental Labs ─────────────────────────────────────────────────────
         Route::middleware('permission:dental_labs.view')->get('/dental-labs/analytics',  [DentalLabController::class, 'analytics']);
         Route::middleware('permission:dental_labs.view')->get('/dental-labs',            [DentalLabController::class, 'index']);
-        Route::middleware('permission:dental_labs.view')->get('/labs',                   [DentalLabController::class, 'index']);
         Route::middleware('permission:dental_labs.manage')->post('/dental-labs',         [DentalLabController::class, 'store']);
         Route::middleware('permission:dental_labs.view')->get('/dental-labs/{id}',       [DentalLabController::class, 'show']);
-        Route::middleware('permission:dental_labs.view')->get('/labs/{id}',              [DentalLabController::class, 'show']);
         Route::middleware('permission:dental_labs.manage')->post('/dental-labs/{id}',   [DentalLabController::class, 'update']);
         Route::middleware('permission:dental_labs.manage')->delete('/dental-labs/{id}',  [DentalLabController::class, 'destroy']);
         Route::middleware('permission:dental_labs.manage')->post('/dental-labs/{id}/order', [DentalLabController::class, 'storeOrderForLab']);

@@ -189,9 +189,9 @@ class DentalLabController extends Controller
             'tooth_numbers' => ['required', 'array', 'min:1'],
             'tooth_numbers.*' => ['integer', 'min:1', 'max:32'],
             'description' => ['nullable', 'string'],
-            'material_id' => ['nullable', 'integer', 'min:1'],
-            'shade_id' => ['nullable', 'integer', 'min:1'],
-            'delivery_date' => ['nullable', 'date'],
+            'material_id' => ['required', 'integer', 'min:1'],
+            'shade_id' => ['required', 'integer', 'min:1'],
+            'delivery_date' => ['required', 'date'],
             'files' => ['nullable', 'array'],
             'files.*' => ['file', 'max:10240'],
         ]);
