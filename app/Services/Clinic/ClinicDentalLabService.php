@@ -541,7 +541,18 @@ class ClinicDentalLabService
         $material = $materialId > 0 ? $this->materialName($materialId) : null;
         $shade = $shadeId > 0 ? $this->shadeName($shadeId) : null;
 
-        $order = DB::transaction(function () use ($clinicId, $lab, $patient, $dentist, $data, $caseType, $material, $shade) {
+       $order = DB::transaction(function () use (
+    $clinicId,
+    $lab,
+    $patient,
+    $dentist,
+    $data,
+    $caseType,
+    $materialId,
+    $shadeId,
+    $material,
+    $shade
+) {
             $order = $this->repository->createOrder([
                 'case_number' => $this->generateCaseNumber(),
                 'clinic_id' => $clinicId,
