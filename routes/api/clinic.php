@@ -173,7 +173,7 @@ Route::prefix('clinic')
                 Route::delete('/service-pricing/{id}',   [ClinicServicePricingController::class, 'destroy']);
                 Route::get('/services',                  [ClinicServicePricingController::class, 'index']);
                 Route::post('/services',                 [ClinicServicePricingController::class, 'store']);
-                Route::put('/services/{serviceId}',      [ClinicServicePricingController::class, 'update']);
+                Route::post('/services/{serviceId}',      [ClinicServicePricingController::class, 'update']);
                 Route::delete('/services/{id}',          [ClinicServicePricingController::class, 'destroy']);
 
                 Route::get('/clinic-info',  [ClinicInfoController::class, 'show']);
@@ -192,7 +192,7 @@ Route::prefix('clinic')
 
                 Route::get('/syndicate-prices', [SyndicatePriceController::class, 'index']);
                 Route::post('/syndicate-prices', [SyndicatePriceController::class, 'store']);
-                Route::put('/syndicate-prices/{id}', [SyndicatePriceController::class, 'update']);
+                Route::post('/syndicate-prices/{id}', [SyndicatePriceController::class, 'update']);
                 Route::delete('/syndicate-prices/{id}', [SyndicatePriceController::class, 'destroy']);
                 Route::post('/syndicate-prices/import/preview', [SyndicatePriceController::class, 'preview']);
                 Route::post('/syndicate-prices/import/confirm', [SyndicatePriceController::class, 'confirm']);
@@ -302,8 +302,8 @@ Route::middleware('permission:patients.update')->post('/patients/{id}/documents/
         Route::middleware('permission:appointments.create')->post('/appointments',    [AppointmentController::class, 'store']);
         Route::middleware('permission:appointments.create')->post('/appointments/quick-book', [AppointmentController::class, 'quickBook']);
         Route::middleware('permission:appointments.update')->post('/appointments/{id}', [AppointmentController::class, 'update']);
-        Route::middleware('permission:appointments.update')->put('/appointments/{id}', [AppointmentController::class, 'update']);
-        Route::middleware('permission:appointments.update')->put('/appointments/{id}/status', [AppointmentController::class, 'updateStatus']);
+        Route::middleware('permission:appointments.update')->post('/appointments/{id}', [AppointmentController::class, 'update']);
+        Route::middleware('permission:appointments.update')->post('/appointments/{id}/status', [AppointmentController::class, 'updateStatus']);
         Route::middleware('permission:appointments.view')->get('/appointments/{id}',  [AppointmentController::class, 'show']);
 
         Route::post('/appointments/{id}/approve', [AppointmentController::class, 'approve']);

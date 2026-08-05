@@ -90,7 +90,7 @@ private function calendarColor(): string
     };
 }
 
-private function approvedId(): ?string
+private function approvedId(): ?int
 {
     if (! $this->patient_id) {
         return null;
@@ -101,17 +101,15 @@ private function approvedId(): ?string
         ->where('patient_id', $this->patient_id)
         ->where('status', 'Approved')
         ->where(function ($query) {
-            $query->whereNull('expiry_date')->orWhereDate('expiry_date', '>=', now()->toDateString());
+            $query->whereNull('expiry_date')
+                  ->orWhereDate('expiry_date', '>=', now()->toDateString());
         })
         ->latest('date')
         ->latest('id')
-        ->first(['id', 'ref_id', 'approval_number', 'code']);
+        ->first(['id']);
 
-    return $approval
-        ? (string) ($approval->ref_id ?: $approval->approval_number ?: $approval->code ?: $approval->id)
-        : null;
+    return $approval?->id;
 }
-
 private function actionMenu(): array
 {
     $status = (string) $this->status;
