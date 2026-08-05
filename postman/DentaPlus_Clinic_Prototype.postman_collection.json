@@ -506,7 +506,7 @@
                                       "response":  [
                                                        {
                                                            "name":  "200",
-                                                           "body":  "PDF binary response: Content-Type application/pdf"
+                                                           "body":  "{\"success\":true,\"message\":\"Radiology PDF link generated successfully\",\"data\":{\"radiology_id\":1,\"filename\":\"radiology-2026-07-24.pdf\",\"pdf_url\":\"http://localhost:8000/api/clinic/radiology/1/pdf-file\"}}"
                                                        }
                                                    ]
                                   }

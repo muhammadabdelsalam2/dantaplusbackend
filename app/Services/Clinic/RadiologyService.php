@@ -80,6 +80,24 @@ class RadiologyService
         ], 'Radiology PDF generated successfully');
     }
 
+    public function downloadPdfLink(int $radiologyId): array
+    {
+        $record = PatientRadiology::query()->find($radiologyId);
+
+        if (! $record) {
+            return ServiceResult::error('Radiology record not found.', null, null, 404);
+        }
+
+        $data = $this->mapRecord($record);
+        $date = $data['date'] ?: now()->toDateString();
+
+        return ServiceResult::success([
+            'radiology_id' => $record->id,
+            'filename' => 'radiology-' . $date . '.pdf',
+            'pdf_url' => url('/api/clinic/radiology/' . $record->id . '/pdf-file'),
+        ], 'Radiology PDF link generated successfully');
+    }
+
     private function mapRecord(PatientRadiology $record): array
     {
         return [

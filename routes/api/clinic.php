@@ -75,6 +75,10 @@ Route::get('clinic/radiology/{radiologyId}/download-pdf', [RadiologyController::
     ->middleware(['api.error'])
     ->name('clinic.radiology.download-pdf');
 
+Route::get('clinic/radiology/{radiologyId}/pdf-file', [RadiologyController::class, 'pdfFile'])
+    ->middleware(['api.error'])
+    ->name('clinic.radiology.pdf-file');
+
 Route::prefix('clinic')
     ->middleware(['api.error', 'auth:sanctum', 'role:clinic_admin|doctor|nurse|accountant|receptionist|staff'])
     ->group(function () {

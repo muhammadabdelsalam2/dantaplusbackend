@@ -30,6 +30,11 @@ class RadiologyController extends Controller
 
     public function downloadPdf(int $radiologyId)
     {
+        return $this->respond($this->service->downloadPdfLink($radiologyId));
+    }
+
+    public function pdfFile(int $radiologyId)
+    {
         $result = $this->service->downloadPdf($radiologyId);
 
         if (! $result['success']) {
