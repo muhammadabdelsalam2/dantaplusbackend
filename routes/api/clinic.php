@@ -325,8 +325,8 @@ Route::middleware('permission:patients.update')->post('/patients/{id}/documents/
         Route::middleware('permission:appointments.create')->post('/appointments',    [AppointmentController::class, 'store']);
         Route::middleware('permission:appointments.create')->post('/appointments/quick-book', [AppointmentController::class, 'quickBook']);
         Route::middleware('permission:appointments.update')->post('/appointments/{id}', [AppointmentController::class, 'update']);
-  
-Route::middleware('permission:appointments.delete')
+
+Route::middleware('permission:appointments.view')
     ->delete('/appointments/{id}', [AppointmentController::class, 'destroy']);
         Route::middleware('permission:appointments.update')->post('/appointments/{id}/status', [AppointmentController::class, 'updateStatus']);
         Route::middleware('permission:appointments.view')->get('/appointments/{id}',  [AppointmentController::class, 'show']);
