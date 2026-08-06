@@ -27,6 +27,7 @@ use App\Models\PatientRadiology;
 use App\Models\PatientTooth;
 use App\Models\Service;
 use App\Models\User;
+use App\Support\Clinic\BranchFilter;
 use App\Support\ServiceResult;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
@@ -37,6 +38,8 @@ use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Storage;
 class PatientService
 {
+    use BranchFilter;
+
     private const RADIOLOGY_DOWNLOAD_ROUTE = 'clinic.patients.radiology.download.signed';
 private const RADIOLOGY_DOWNLOAD_TTL_MINUTES = 60;
 private const APPROVAL_DOWNLOAD_ROUTE = 'clinic.patients.approvals.download.signed';
@@ -53,6 +56,7 @@ private const APPROVAL_DOWNLOAD_TTL_MINUTES = 60;
         $query = Patient::query()
             ->with('user:id,name,email,phone')
             ->with('insuranceCompany:id,name')
+            ->with('latestActiveInsuranceApproval')
             ->where('clinic_id', $clinicId)
             // ← search على name, phone, email (من جدول users)
             ->when($filters['search'] ?? null, function ($q, $search) {
@@ -64,6 +68,9 @@ private const APPROVAL_DOWNLOAD_TTL_MINUTES = 60;
                                ->orWhere('phone', 'like', "%{$search}%");
                         });
                 });
+            })
+            ->when($this->selectedBranchId($filters), function ($q, int $branchId) {
+                $q->whereHas('appointments', fn ($appointment) => $appointment->where('branch_id', $branchId));
             })
             // ← فلتر الجنس: male أو female
             ->when($filters['gender'] ?? null, fn ($q, $gender) => $q->where('gender', $gender))
@@ -253,6 +260,7 @@ private const APPROVAL_DOWNLOAD_TTL_MINUTES = 60;
         return Patient::query()
             ->with('user:id,name,email,phone')
             ->with('insuranceCompany:id,name')
+            ->with('latestActiveInsuranceApproval')
             ->where('clinic_id', $this->currentClinicId())
             ->find($patientId);
     }
@@ -1433,31 +1441,41 @@ public function createApproval(int $patientId, array $data): array
         return ServiceResult::error('Patient not found.', null, null, 404);
     }
 
+    $approval = $this->createApprovalForPatient($patient, $data);
+
+    return ServiceResult::success($this->mapApproval($approval), 'Insurance approval created successfully', 201);
+}
+
+public function createApprovalForPatient(Patient $patient, array $data, ?int $appointmentId = null): InsuranceApproval
+{
     $clinicId = $this->currentClinicId();
-    $company = InsuranceCompany::query()
-        ->where('clinic_id', $clinicId)
-        ->find($data['insurance_company_id']);
+    $companyId = $data['insurance_company_id'] ?? $patient->insurance_company_id;
+    $company = $companyId
+        ? InsuranceCompany::query()->where('clinic_id', $clinicId)->find($companyId)
+        : null;
 
-    if (! $company) {
-        return ServiceResult::error('Insurance company not found.', null, ['insurance_company_id' => ['Insurance company not found.']], 422);
-    }
-
-    $approval = DB::transaction(function () use ($clinicId, $company, $data, $patient) {
+    return DB::transaction(function () use ($clinicId, $company, $data, $patient, $appointmentId) {
         $services = collect($data['services'] ?? []);
+        $authorizationCode = $data['authorization_code']
+            ?? $data['approval_number']
+            ?? $data['ref_id']
+            ?? $data['code']
+            ?? null;
         $approval = InsuranceApproval::query()->create([
             'clinic_id' => $clinicId,
             'patient_id' => $patient->id,
-            'insurance_company_id' => $company->id,
-            'code' => $data['code'] ?? $data['approval_number'] ?? $data['ref_id'] ?? ('APR-' . now()->format('YmdHis')),
-            'approval_number' => $data['approval_number'] ?? $data['ref_id'] ?? null,
-            'ref_id' => $data['ref_id'] ?? $data['approval_number'] ?? null,
+            'appointment_id' => $appointmentId,
+            'insurance_company_id' => $company?->id,
+            'code' => $data['code'] ?? $authorizationCode ?? ('APR-' . now()->format('YmdHis')),
+            'approval_number' => $authorizationCode,
+            'ref_id' => $authorizationCode,
             'status' => $this->approvalStatus($data['status'] ?? 'Approved'),
-            'date' => $data['date'],
+            'date' => $data['approval_date'] ?? $data['date'] ?? now()->toDateString(),
             'expiry_date' => $data['expiry_date'] ?? null,
             'coverage_percent' => $data['coverage_percent'] ?? $data['coverage'] ?? 0,
             'approved_amount' => $data['approved_amount'] ?? $services->sum(fn ($item) => (float) ($item['amount'] ?? 0)),
             'used_amount' => $data['used_amount'] ?? 0,
-            'documents' => $this->normalizeApprovalDocuments($data['documents'] ?? []),
+            'documents' => $this->normalizeApprovalDocuments($data['documents'] ?? [], $data['attachment'] ?? null),
             'notes' => $data['notes'] ?? null,
         ]);
 
@@ -1471,8 +1489,6 @@ public function createApproval(int $patientId, array $data): array
 
         return $approval->load(['company:id,name,code', 'services']);
     });
-
-    return ServiceResult::success($this->mapApproval($approval), 'Insurance approval created successfully', 201);
 }
 
 public function approvalPdfPayloadForClinic(int $clinicId, int $approvalId): array
@@ -1575,12 +1591,23 @@ private function approvalDownloadUrl(InsuranceApproval $approval): string
     ]);
 }
 
-private function normalizeApprovalDocuments(array $documents): array
+private function normalizeApprovalDocuments(array $documents, $attachment = null): array
 {
-    return collect($documents)->map(fn ($document) => is_array($document) ? $document : [
+    $normalized = collect($documents)->map(fn ($document) => is_array($document) ? $document : [
         'type' => 'Document',
         'url' => (string) $document,
-    ])->values()->all();
+    ]);
+
+    if ($attachment) {
+        $path = $attachment->store('clinic/insurance-approvals', 'public');
+        $normalized->push([
+            'type' => 'Attachment',
+            'name' => method_exists($attachment, 'getClientOriginalName') ? $attachment->getClientOriginalName() : basename($path),
+            'path' => $path,
+        ]);
+    }
+
+    return $normalized->values()->all();
 }
 
 private function documentUrl(?string $path): ?string

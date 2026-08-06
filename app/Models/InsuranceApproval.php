@@ -11,6 +11,7 @@ class InsuranceApproval extends Model
     protected $fillable = [
         'clinic_id',
         'patient_id',
+        'appointment_id',
         'insurance_company_id',
         'code',
         'approval_number',
@@ -45,6 +46,11 @@ class InsuranceApproval extends Model
     public function patient(): BelongsTo
     {
         return $this->belongsTo(Patient::class);
+    }
+
+    public function appointment(): BelongsTo
+    {
+        return $this->belongsTo(ClinicAppointment::class, 'appointment_id');
     }
 
     public function company(): BelongsTo

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Patient extends Model
 {
@@ -88,6 +89,17 @@ class Patient extends Model
     public function insuranceApprovals(): HasMany
     {
         return $this->hasMany(InsuranceApproval::class);
+    }
+
+    public function latestActiveInsuranceApproval(): HasOne
+    {
+        return $this->hasOne(InsuranceApproval::class)
+            ->where('status', 'Approved')
+            ->where(function ($query) {
+                $query->whereNull('expiry_date')
+                    ->orWhereDate('expiry_date', '>=', now()->toDateString());
+            })
+            ->latestOfMany('date');
     }
 
     public function insuranceCompany(): BelongsTo

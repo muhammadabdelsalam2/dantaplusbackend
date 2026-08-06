@@ -18,6 +18,7 @@ class IndexClinicPatientsRequest extends FormRequest
             'search'   => ['nullable', 'string', 'max:255'],
 
             'gender'   => ['nullable', 'string', 'in:male,female'],
+            'branch_id' => ['nullable'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ];
     }

@@ -15,7 +15,8 @@ class AppointmentResource extends JsonResource
     $paid = (float) $this->invoices->sum('paid');
     $total = (float) $this->invoices->sum('total');
     $paymentStatus = $total > 0 && $paid >= $total ? 'Paid' : 'Unpaid';
-    $approvedId = $this->approvedId();
+    $approval = $this->activeInsuranceApproval();
+    $isInsurance = $this->payment_type === 'insurance';
 
     return [
         'id' => $this->id,
@@ -23,12 +24,14 @@ class AppointmentResource extends JsonResource
         'patient_id' => $this->patient_id,
         'patient_name' => $this->patient_name,
         'patient_phone' => $this->patient_phone,
-        'approved_id' => $approvedId,
+        'approved_id' => $isInsurance ? $approval?->id : null,
+        'insurance_approval' => $isInsurance && $approval ? $this->approvalSummary($approval) : null,
+        'insurance_approval_required' => $isInsurance && ! $approval,
         'patient' => $this->patient ? [
             'id' => $this->patient->id,
             'name' => $this->patient->user?->name ?? $this->patient_name,
             'phone' => $this->patient->phone ?? $this->patient?->user?->phone ?? $this->patient_phone,
-            'approved_id' => $approvedId,
+            'approved_id' => $isInsurance ? $approval?->id : null,
             'profile_url' => url('/api/clinic/patients/' . $this->patient->id),
         ] : null,
         'doctor' => $this->doctor ? [
@@ -90,25 +93,45 @@ private function calendarColor(): string
     };
 }
 
-private function approvedId(): ?int
+private function activeInsuranceApproval(): ?\App\Models\InsuranceApproval
 {
-    if (! $this->patient_id) {
+    if ($this->payment_type !== 'insurance' || ! $this->patient_id) {
         return null;
     }
 
-    $approval = \App\Models\InsuranceApproval::query()
+    $query = \App\Models\InsuranceApproval::query()
         ->where('clinic_id', $this->clinic_id)
         ->where('patient_id', $this->patient_id)
         ->where('status', 'Approved')
         ->where(function ($query) {
             $query->whereNull('expiry_date')
                   ->orWhereDate('expiry_date', '>=', now()->toDateString());
-        })
-        ->latest('date')
-        ->latest('id')
-        ->first(['id']);
+        });
 
-    return $approval?->id;
+    if (\Illuminate\Support\Facades\Schema::hasColumn('insurance_approvals', 'appointment_id')) {
+        $directApproval = (clone $query)
+            ->where('appointment_id', $this->id)
+            ->latest('date')
+            ->latest('id')
+            ->first();
+
+        if ($directApproval) {
+            return $directApproval;
+        }
+    }
+
+    return $query->latest('date')->latest('id')->first();
+}
+
+private function approvalSummary(\App\Models\InsuranceApproval $approval): array
+{
+    return [
+        'id' => $approval->id,
+        'status' => $approval->status,
+        'approved_amount' => (float) $approval->approved_amount,
+        'coverage_percent' => (float) $approval->coverage_percent,
+        'expiry_date' => optional($approval->expiry_date)?->toDateString(),
+    ];
 }
 private function actionMenu(): array
 {

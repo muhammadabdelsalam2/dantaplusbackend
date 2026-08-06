@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Clinic;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Clinic\Concerns\ValidatesInsuranceApprovalData;
 use App\Http\Requests\Clinic\IndexClinicPatientsRequest;
 use App\Http\Requests\Clinic\StoreDentalChartEntryRequest;
 use App\Http\Requests\Clinic\StorePatientLabCaseRequest;
@@ -19,6 +20,7 @@ use Illuminate\Http\Request;
 class PatientController extends Controller
 {
     use ApiResponse;
+    use ValidatesInsuranceApprovalData;
 
     public function __construct(private PatientService $service)
     {
@@ -362,6 +364,30 @@ public function downloadApprovalSigned(Request $request, int $approval)
     }
 
     return ApiResponse::success($result['data'], $result['message'], $result['code']);
+}
+
+public function approvals(Request $request, int $id)
+{
+    return $this->respond($this->service->approvals($id, $request->validate([
+        'status' => ['nullable', 'string', 'max:50'],
+        'search' => ['nullable', 'string', 'max:255'],
+    ])));
+}
+
+public function storeApproval(Request $request, int $id)
+{
+    return $this->respond($this->service->createApproval($id, $request->validate($this->insuranceApprovalRules())));
+}
+
+public function storeApprovalService(Request $request, int $id, int $approvalId)
+{
+    return $this->respond($this->service->addApprovalService($id, $approvalId, $request->validate([
+        'service_name' => ['required', 'string', 'max:255'],
+        'service_code' => ['nullable', 'string', 'max:255'],
+        'amount' => ['required', 'numeric', 'min:0'],
+        'co_pay' => ['nullable', 'numeric', 'min:0'],
+        'tooth_number' => ['nullable', 'string', 'max:50'],
+    ])));
 }
 
 public function uploadDocument(UploadPatientDocumentRequest $request, int $id)

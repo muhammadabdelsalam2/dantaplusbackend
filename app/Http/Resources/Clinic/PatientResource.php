@@ -9,7 +9,8 @@ class PatientResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        $approvedId = $this->approvedId();
+        $approval = $this->activeInsuranceApproval();
+        $isInsurance = $this->payment_type === 'insurance';
 
         return array_filter([
             'id' => $this->id,
@@ -19,7 +20,9 @@ class PatientResource extends JsonResource
             'full_name' => $this->user?->name,
             'email' => $this->user?->email,
             'phone' => $this->phone ?: $this->user?->phone,
-            'approved_id' => $approvedId,
+            'approved_id' => $isInsurance ? $approval?->id : null,
+            'insurance_approval' => $isInsurance && $approval ? $this->approvalSummary($approval) : null,
+            'insurance_approval_required' => $isInsurance && ! $approval,
             'date_of_birth' => optional($this->date_of_birth)?->toDateString(),
             'age' => $this->age,
             'gender' => $this->gender,
@@ -31,7 +34,7 @@ class PatientResource extends JsonResource
                 'provider' => $this->insurance_provider,
                 'number' => $this->insurance_number,
                 'policy_number' => $this->insurance_number,
-                'approved_id' => $approvedId,
+                'approved_id' => $isInsurance ? $approval?->id : null,
             ], static fn ($value) => $value !== null),
             'insurance_company' => $this->insuranceCompany ? [
                 'id' => $this->insuranceCompany->id,
@@ -42,9 +45,17 @@ class PatientResource extends JsonResource
         ], static fn ($value) => $value !== null && $value !== []);
     }
 
-    private function approvedId(): ?string
+    private function activeInsuranceApproval(): ?\App\Models\InsuranceApproval
     {
-        $approval = \App\Models\InsuranceApproval::query()
+        if ($this->payment_type !== 'insurance') {
+            return null;
+        }
+
+        if ($this->relationLoaded('latestActiveInsuranceApproval')) {
+            return $this->latestActiveInsuranceApproval;
+        }
+
+        return \App\Models\InsuranceApproval::query()
             ->where('clinic_id', $this->clinic_id)
             ->where('patient_id', $this->id)
             ->where('status', 'Approved')
@@ -53,10 +64,17 @@ class PatientResource extends JsonResource
             })
             ->latest('date')
             ->latest('id')
-            ->first(['id', 'ref_id', 'approval_number', 'code']);
+            ->first();
+    }
 
-        return $approval
-            ? (string) ($approval->ref_id ?: $approval->approval_number ?: $approval->code ?: $approval->id)
-            : null;
+    private function approvalSummary(\App\Models\InsuranceApproval $approval): array
+    {
+        return [
+            'id' => $approval->id,
+            'status' => $approval->status,
+            'approved_amount' => (float) $approval->approved_amount,
+            'coverage_percent' => (float) $approval->coverage_percent,
+            'expiry_date' => optional($approval->expiry_date)?->toDateString(),
+        ];
     }
 }

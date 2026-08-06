@@ -1,0 +1,403 @@
+{
+  "info": {
+    "name": "Denta - Patient & Appointment Insurance Updates",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000/api"
+    },
+    {
+      "key": "token",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Patient",
+      "item": [
+        {
+          "name": "Patients - Index by Branch",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/clinic/patients?search=ahmed&branch_id={{branch_id}}&per_page=15",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "clinic",
+                "patients"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "ahmed"
+                },
+                {
+                  "key": "branch_id",
+                  "value": "{{branch_id}}",
+                  "description": "Use all or omit to include all branches."
+                },
+                {
+                  "key": "per_page",
+                  "value": "15"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Patients - Show",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/clinic/patients/{{patient_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "clinic",
+                "patients",
+                "{{patient_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Patients - Create Insurance Approval",
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "insurance_company_id",
+                  "value": "{{insurance_company_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "policy_number",
+                  "value": "POL-2026-0001",
+                  "type": "text"
+                },
+                {
+                  "key": "authorization_code",
+                  "value": "AUTH-2026-0001",
+                  "type": "text"
+                },
+                {
+                  "key": "approval_date",
+                  "value": "2026-08-06",
+                  "type": "text"
+                },
+                {
+                  "key": "expiry_date",
+                  "value": "2026-12-31",
+                  "type": "text"
+                },
+                {
+                  "key": "coverage",
+                  "value": "80",
+                  "type": "text"
+                },
+                {
+                  "key": "approved_amount",
+                  "value": "1500",
+                  "type": "text"
+                },
+                {
+                  "key": "attachment",
+                  "type": "file",
+                  "src": "/path/to/insurance-approval.pdf"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/clinic/patients/{{patient_id}}/approvals",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "clinic",
+                "patients",
+                "{{patient_id}}",
+                "approvals"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Appointment",
+      "item": [
+        {
+          "name": "Appointments - Index Search Patient",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/clinic/appointments?view=week&date=2026-08-06&patient_name=ahmed&branch_id={{branch_id}}&room_id={{room_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "clinic",
+                "appointments"
+              ],
+              "query": [
+                {
+                  "key": "view",
+                  "value": "week"
+                },
+                {
+                  "key": "date",
+                  "value": "2026-08-06"
+                },
+                {
+                  "key": "patient_name",
+                  "value": "ahmed"
+                },
+                {
+                  "key": "branch_id",
+                  "value": "{{branch_id}}",
+                  "description": "Use all or omit to include all branches."
+                },
+                {
+                  "key": "room_id",
+                  "value": "{{room_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Appointments - Store Existing Patient with Insurance Approval",
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "patient_id",
+                  "value": "{{patient_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "doctor_id",
+                  "value": "{{doctor_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "service_id",
+                  "value": "{{service_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "date",
+                  "value": "2026-08-06",
+                  "type": "text"
+                },
+                {
+                  "key": "time",
+                  "value": "10:30",
+                  "type": "text"
+                },
+                {
+                  "key": "branch_id",
+                  "value": "{{branch_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "room_id",
+                  "value": "{{room_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "payment_type",
+                  "value": "insurance",
+                  "type": "text"
+                },
+                {
+                  "key": "insurance_approval[insurance_company_id]",
+                  "value": "{{insurance_company_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "insurance_approval[policy_number]",
+                  "value": "POL-2026-0001",
+                  "type": "text"
+                },
+                {
+                  "key": "insurance_approval[authorization_code]",
+                  "value": "AUTH-APT-0001",
+                  "type": "text"
+                },
+                {
+                  "key": "insurance_approval[approval_date]",
+                  "value": "2026-08-06",
+                  "type": "text"
+                },
+                {
+                  "key": "insurance_approval[coverage]",
+                  "value": "80",
+                  "type": "text"
+                },
+                {
+                  "key": "insurance_approval[approved_amount]",
+                  "value": "1500",
+                  "type": "text"
+                },
+                {
+                  "key": "insurance_approval[attachment]",
+                  "type": "file",
+                  "src": "/path/to/insurance-approval.pdf"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/clinic/appointments",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "clinic",
+                "appointments"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Appointments - Quick Book with Insurance Approval",
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "patient_name",
+                  "value": "Ahmed Hassan",
+                  "type": "text"
+                },
+                {
+                  "key": "phone_number",
+                  "value": "+201001112223",
+                  "type": "text"
+                },
+                {
+                  "key": "doctor_id",
+                  "value": "{{doctor_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "service_id",
+                  "value": "{{service_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "date",
+                  "value": "2026-08-06",
+                  "type": "text"
+                },
+                {
+                  "key": "time",
+                  "value": "11:00",
+                  "type": "text"
+                },
+                {
+                  "key": "branch_id",
+                  "value": "{{branch_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "room_id",
+                  "value": "{{room_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "payment_type",
+                  "value": "insurance",
+                  "type": "text"
+                },
+                {
+                  "key": "insurance_approval[insurance_company_id]",
+                  "value": "{{insurance_company_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "insurance_approval[policy_number]",
+                  "value": "POL-2026-0002",
+                  "type": "text"
+                },
+                {
+                  "key": "insurance_approval[authorization_code]",
+                  "value": "AUTH-QB-0001",
+                  "type": "text"
+                },
+                {
+                  "key": "insurance_approval[approval_date]",
+                  "value": "2026-08-06",
+                  "type": "text"
+                },
+                {
+                  "key": "insurance_approval[coverage]",
+                  "value": "75",
+                  "type": "text"
+                },
+                {
+                  "key": "insurance_approval[approved_amount]",
+                  "value": "1200",
+                  "type": "text"
+                },
+                {
+                  "key": "insurance_approval[attachment]",
+                  "type": "file",
+                  "src": "/path/to/insurance-approval.pdf"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/clinic/appointments/quick-book",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "clinic",
+                "appointments",
+                "quick-book"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Appointments - Show",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/clinic/appointments/{{appointment_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "clinic",
+                "appointments",
+                "{{appointment_id}}"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

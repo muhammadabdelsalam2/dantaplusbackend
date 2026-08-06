@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Clinic;
 
+use App\Http\Requests\Clinic\Concerns\ValidatesInsuranceApprovalData;
 use App\Models\ClinicAppointment;
 use Carbon\Carbon;
 use Illuminate\Foundation\Http\FormRequest;
@@ -10,6 +11,8 @@ use Illuminate\Validation\Rule;
 
 class StoreAppointmentRequest extends FormRequest
 {
+    use ValidatesInsuranceApprovalData;
+
     public function authorize(): bool
     {
         return true;
@@ -19,7 +22,7 @@ class StoreAppointmentRequest extends FormRequest
     {
         $clinicId = auth()->user()?->clinic_id;
 
-        return [
+        return array_merge([
             'patient_id' => ['nullable', 'integer', 'exists:patients,id'],
             'patient_name' => ['required_without:patient_id', 'nullable', 'string', 'max:255'],
             'patient_phone' => ['nullable', 'string', 'max:50'],
@@ -36,9 +39,10 @@ class StoreAppointmentRequest extends FormRequest
             'room' => ['nullable', 'string', 'max:255'],
             'room_id' => ['nullable', 'integer', 'exists:rooms,id'],
             'payment_type' => ['nullable', Rule::in(['cash', 'insurance', 'none'])],
+            'insurance_approval' => ['nullable', 'array'],
             'status' => ['nullable', 'in:pending,scheduled,confirmed,arrived,attended,completed,cancelled'],
             'notes' => ['nullable', 'string'],
-        ];
+        ], $this->insuranceApprovalRules('insurance_approval.'));
     }
 
     protected function prepareForValidation(): void

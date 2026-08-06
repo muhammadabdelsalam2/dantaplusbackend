@@ -77,4 +77,9 @@ class ClinicAppointment extends Model
     {
         return $this->hasMany(ClinicInvoice::class, 'appointment_id');
     }
+
+    public function insuranceApproval()
+    {
+        return $this->hasOne(InsuranceApproval::class, 'appointment_id');
+    }
 }

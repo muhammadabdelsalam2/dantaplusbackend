@@ -22,6 +22,7 @@ use App\Models\Service;
 use App\Models\User;
 use App\Models\WhatsappMessage;
 use App\Models\Clinic\Insurance\InsuranceClaim;
+use App\Support\Clinic\BranchFilter;
 use App\Support\ServiceResult;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -32,6 +33,8 @@ use Illuminate\Support\Str;
 
 class AppointmentService
 {
+    use BranchFilter;
+
     private const DEFAULT_WORKING_HOURS_FROM = '09:00';
     private const DEFAULT_WORKING_HOURS_TO = '17:00';
     private const PAYMENT_METHODS = ['Cash', 'Card', 'Bank Transfer', 'Insurance', 'Mixed (Split)'];
@@ -67,7 +70,7 @@ class AppointmentService
                 'next_date' => $this->navigationDate($view, $date, 1),
             ],
             'filters' => [
-                'branch_id' => $filters['branch_id'] ?? null,
+                'branch_id' => $this->selectedBranchId($filters),
                 'branch' => $filters['branch'] ?? null,
                 'room_id' => $filters['room_id'] ?? null,
                 'room' => $filters['room'] ?? null,
@@ -110,7 +113,9 @@ class AppointmentService
             return $availability;
         }
 
-        $appointment = DB::transaction(function () use ($clinicId, $payload) {
+        $insuranceApprovalData = $data['insurance_approval'] ?? null;
+
+        $appointment = DB::transaction(function () use ($clinicId, $payload, $insuranceApprovalData) {
             $appointment = ClinicAppointment::query()->create([
                 'clinic_id' => $clinicId,
                 'patient_id' => $payload['patient']?->id,
@@ -130,6 +135,10 @@ class AppointmentService
                 'status' => $payload['status'] ?? 'pending',
                 'notes' => $payload['notes'],
             ]);
+
+            if ($payload['payment_type'] === 'insurance' && is_array($insuranceApprovalData) && $payload['patient']) {
+                app(PatientService::class)->createApprovalForPatient($payload['patient'], $insuranceApprovalData, $appointment->id);
+            }
 
             $this->sendInitialBookingMessage($appointment);
 
@@ -928,9 +937,9 @@ private function flexibleTransition(int $id, string $nextStatus, string $message
     private function baseCalendarQuery(int $clinicId, array $filters): Builder
     {
         return ClinicAppointment::query()
-            ->with(['doctor:id,name', 'patient.user:id,name', 'service', 'invoices.payments'])
+            ->with(['doctor:id,name', 'patient.user:id,name', 'service', 'invoices.payments', 'insuranceApproval'])
             ->where('clinic_id', $clinicId)
-            ->when($filters['branch_id'] ?? null, fn ($query, $branchId) => $query->where('branch_id', $branchId))
+            ->when($this->selectedBranchId($filters), fn ($query, $branchId) => $query->where('branch_id', $branchId))
             ->when($filters['branch'] ?? null, fn ($query, $branch) => $query->where('branch', $branch))
             ->when($filters['room_id'] ?? null, fn ($query, $roomId) => $query->where('room_id', $roomId))
             ->when($filters['room'] ?? null, fn ($query, $room) => $query->where('room', $room))
@@ -940,6 +949,9 @@ private function flexibleTransition(int $id, string $nextStatus, string $message
                         ->orWhere('service_name', 'like', "%{$search}%")
                         ->orWhereHas('doctor', fn ($doctor) => $doctor->where('name', 'like', "%{$search}%"));
                 });
+            })
+            ->when($filters['patient_name'] ?? null, function ($query, string $patientName) {
+                $query->where('patient_name', 'like', "%{$patientName}%");
             });
     }
 
@@ -1022,7 +1034,8 @@ private function flexibleTransition(int $id, string $nextStatus, string $message
 
     private function workingHoursForFilters(int $clinicId, array $filters): array
     {
-        $branch = ! empty($filters['branch_id']) ? Branch::query()->where('clinic_id', $clinicId)->find($filters['branch_id']) : null;
+        $branchId = $this->selectedBranchId($filters);
+        $branch = $branchId ? Branch::query()->where('clinic_id', $clinicId)->find($branchId) : null;
         [$from, $to] = $branch ? $this->branchWorkingHours($branch) : [self::DEFAULT_WORKING_HOURS_FROM, self::DEFAULT_WORKING_HOURS_TO];
 
         return ['from' => $from, 'to' => $to];

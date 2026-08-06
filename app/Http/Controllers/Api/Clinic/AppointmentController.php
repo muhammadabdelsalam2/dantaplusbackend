@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Clinic;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Clinic\Concerns\ValidatesInsuranceApprovalData;
 use App\Http\Requests\Clinic\StoreAppointmentRequest;
 use App\Http\Requests\Clinic\UpdateAppointmentRequest;
 use App\Services\Clinic\AppointmentService;
@@ -12,6 +13,7 @@ use Illuminate\Http\Request;
 class AppointmentController extends Controller
 {
     use ApiResponse;
+    use ValidatesInsuranceApprovalData;
 
     public function __construct(private AppointmentService $service)
     {
@@ -21,6 +23,7 @@ class AppointmentController extends Controller
     {
         $validated = $request->validate([
             'search' => ['nullable', 'string', 'max:255'],
+            'patient_name' => ['nullable', 'string', 'max:255'],
             'view' => ['nullable', 'in:day,week,month'],
             'date' => ['nullable', 'date'],
             'start_date' => ['nullable', 'date'],
@@ -28,7 +31,7 @@ class AppointmentController extends Controller
             'year' => ['nullable', 'integer', 'min:1900', 'max:2100'],
             'month' => ['nullable', 'integer', 'min:1', 'max:12'],
             'day' => ['nullable', 'integer', 'min:1', 'max:31'],
-            'branch_id' => ['nullable', 'integer'],
+            'branch_id' => ['nullable'],
             'branch' => ['nullable', 'string', 'max:255'],
             'room' => ['nullable', 'string', 'max:255'],
             'room_id' => ['nullable', 'integer'],
@@ -98,7 +101,7 @@ class AppointmentController extends Controller
 
     public function quickBook(Request $request)
     {
-        $validated = $request->validate([
+        $validated = $request->validate(array_merge([
             'patient_name' => ['required', 'string', 'max:255'],
             'phone_number' => ['nullable', 'string', 'max:50'],
             'patient_phone' => ['nullable', 'string', 'max:50'],
@@ -110,8 +113,9 @@ class AppointmentController extends Controller
             'branch_id' => ['required', 'integer', 'exists:branches,id'],
             'room_id' => ['nullable', 'integer', 'exists:rooms,id'],
             'payment_type' => ['nullable', 'in:cash,insurance,none,no_payment_type'],
+            'insurance_approval' => ['nullable', 'array'],
             'duration_minutes' => ['nullable', 'integer', 'min:5', 'max:480'],
-        ]);
+        ], $this->insuranceApprovalRules('insurance_approval.')));
 
         $validated['appointment_at'] = $validated['date'] . ' ' . $validated['time'];
         if (($validated['payment_type'] ?? null) === 'no_payment_type') {
