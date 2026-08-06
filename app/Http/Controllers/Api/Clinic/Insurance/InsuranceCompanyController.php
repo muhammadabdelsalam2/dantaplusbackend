@@ -96,8 +96,8 @@ class InsuranceCompanyController extends Controller
 
         $coverage = $this->coveragePercent($company->coverage);
 
-        $items = $priceList->items()
-            ->paginate(per_page: request()->integer('per_page', 50));
+       $items = $priceList->items()
+    ->paginate(request()->integer('per_page', 50));
 
         return ApiResponse::success([
             'price_list' => [
