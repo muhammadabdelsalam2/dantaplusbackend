@@ -178,10 +178,11 @@ class AppointmentService
         return $this->show($appointment->id);
     }
 
-    public function confirm(int $id): array
-    {
-        return $this->transition($id, ['pending', 'scheduled'], 'confirmed', 'Appointment confirmed successfully');
-    }
+   public function confirm(int $id): array
+{
+    return $this->flexibleTransition($id, 'confirmed', 'Appointment confirmed successfully');
+}
+
 
     public function updateStatus(int $id, string $status, ?string $reason = null): array
     {
@@ -205,15 +206,14 @@ class AppointmentService
     }
 
     public function attend(int $id): array
-    {
-        return $this->transition($id, ['confirmed'], 'attended', 'Appointment marked as attended successfully');
-    }
+{
+    return $this->flexibleTransition($id, 'attended', 'Appointment marked as attended successfully');
+}
 
-    public function complete(int $id): array
-    {
-        return $this->transition($id, ['attended', 'arrived'], 'completed', 'Appointment completed successfully', ['completed_at' => now()]);
-    }
-
+public function complete(int $id): array
+{
+    return $this->flexibleTransition($id, 'completed', 'Appointment completed successfully');
+}
     public function reject(int $id, ?string $reason = null): array
     {
         return $this->cancel($id, $reason ?: 'Rejected by clinic');
@@ -703,7 +703,32 @@ class AppointmentService
 
         return ServiceResult::success((new AppointmentResource($appointment->fresh(['doctor:id,name', 'patient.user:id,name', 'invoices.payments'])))->resolve(), $message);
     }
+private function flexibleTransition(int $id, string $nextStatus, string $message, array $extra = []): array
+{
+    $appointment = $this->findClinicAppointment($id);
+    if (! $appointment) {
+        return ServiceResult::error('Appointment not found.', null, null, 404);
+    }
 
+    $updateData = ['status' => $nextStatus];
+
+    if ($nextStatus === 'cancelled') {
+        $updateData['cancelled_at'] = now();
+    } elseif ($nextStatus === 'completed') {
+        $updateData['completed_at'] = now();
+    } else {
+
+        $updateData['cancelled_at'] = null;
+        $updateData['completed_at'] = null;
+    }
+
+    $appointment->update(array_merge($updateData, $extra));
+
+    return ServiceResult::success(
+        (new AppointmentResource($appointment->fresh(['doctor:id,name', 'patient.user:id,name', 'invoices.payments'])))->resolve(),
+        $message
+    );
+}
     private function paymentSummary(ClinicAppointment $appointment, array $data): array
     {
         $serviceCost = (float) ($data['total_cost'] ?? $data['service_cost'] ?? $this->serviceCost($appointment));
