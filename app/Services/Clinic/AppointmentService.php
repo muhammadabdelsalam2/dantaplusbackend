@@ -1072,4 +1072,19 @@ class AppointmentService
 
         return $number;
     }
+    public function delete(int $id): array
+{
+    $appointment = $this->findClinicAppointment($id);
+    if (!$appointment) {
+        return ServiceResult::error('Appointment not found.', null, null, 404);
+    }
+
+    if (in_array($appointment->status, ['completed', 'cancelled'], true)) {
+        return ServiceResult::error('Cannot delete completed or cancelled appointments.', null, null, 422);
+    }
+
+    $appointment->delete();
+
+    return ServiceResult::success(null, 'Appointment deleted successfully');
+}
 }

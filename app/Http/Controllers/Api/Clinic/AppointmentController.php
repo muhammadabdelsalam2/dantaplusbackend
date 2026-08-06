@@ -31,7 +31,7 @@ class AppointmentController extends Controller
             'branch_id' => ['nullable', 'integer'],
             'branch' => ['nullable', 'string', 'max:255'],
             'room' => ['nullable', 'string', 'max:255'],
-            'room_id' => ['nullable', 'integer'], 
+            'room_id' => ['nullable', 'integer'],
         ]);
 
         $result = $this->service->index($validated);
@@ -288,4 +288,11 @@ class AppointmentController extends Controller
             ? ApiResponse::success($result['data'], $result['message'], $result['code'])
             : ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
     }
+    public function destroy(int $id)
+{
+    $result = $this->service->delete($id);
+    return $result['success']
+        ? ApiResponse::success(null, $result['message'], $result['code'])
+        : ApiResponse::error($result['message'], $result['code']);
+}
 }
