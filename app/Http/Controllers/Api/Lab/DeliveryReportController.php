@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Lab;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Lab\DeliveryReport\IndexDeliveryReportRequest;
+use App\Models\LabDeliveryRep;
 use App\Services\Lab\DeliveryReportService;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
@@ -30,13 +31,14 @@ class DeliveryReportController extends Controller
 
     public function showRep(IndexDeliveryReportRequest $request, int $id)
     {
+        // Normal authenticated flow — lab_id resolved inside the service via auth()->user().
         $result = $this->service->showRepReport($id, $request->validated());
 
         if (! $result['success']) {
             return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
         }
 
-        // Build a temporary signed URL for direct Excel download (valid 60 minutes).
+        // Build a temporary signed URL for direct Excel/CSV download (valid 60 minutes).
         // The route is accessible without an Authorization header — protected by signature only.
         $exportParams = array_filter([
             'start_date' => $request->query('start_date'),
@@ -58,36 +60,44 @@ class DeliveryReportController extends Controller
     /**
      * Export the delivery rep report as an Excel/CSV file.
      *
-     * This route is protected by a temporary signed URL (no Authorization header needed).
-     * Expiry: 60 minutes — consistent with other signed exports in this codebase.
+     * This route is protected by a temporary signed URL only (no auth:sanctum middleware),
+     * so there is NO authenticated session here — auth()->user() will always be null.
+     * We resolve the lab_id directly from the LabDeliveryRep record and pass it
+     * explicitly into the service, bypassing the auth()-based lookup entirely.
      */
     public function exportRep(Request $request, int $id)
     {
+        $rep = LabDeliveryRep::find($id);
+
+        if (! $rep) {
+            abort(404, 'Delivery representative not found.');
+        }
+
         $filters = array_filter([
             'start_date' => $request->query('start_date'),
             'end_date'   => $request->query('end_date'),
         ], fn ($v) => $v !== null && $v !== '');
 
-        $result = $this->service->showRepReport($id, $filters);
+        $result = $this->service->showRepReport($id, $filters, labId: $rep->lab_id);
 
         if (! $result['success']) {
             abort($result['code'] ?? 404, $result['message'] ?? 'Report not found.');
         }
 
-        $rows     = $result['data']['deliveries'] ?? [];
-        $rep      = $result['data']['rep'] ?? [];
-        $summary  = $result['data']['summary'] ?? [];
-        $filters  = $result['data']['filters'] ?? [];
+        $rows        = $result['data']['deliveries'] ?? [];
+        $repData     = $result['data']['rep'] ?? [];
+        $summary     = $result['data']['summary'] ?? [];
+        $filtersData = $result['data']['filters'] ?? [];
 
         $handle = fopen('php://temp', 'r+');
 
         // ── Header rows ──────────────────────────────────────────────────────
         fputcsv($handle, ['Delivery Representative Report']);
-        fputcsv($handle, ['Rep Name', $rep['name'] ?? 'N/A']);
-        fputcsv($handle, ['Area', $rep['area'] ?? 'N/A']);
-        fputcsv($handle, ['Phone', $rep['phone'] ?? 'N/A']);
+        fputcsv($handle, ['Rep Name', $repData['name'] ?? 'N/A']);
+        fputcsv($handle, ['Area', $repData['area'] ?? 'N/A']);
+        fputcsv($handle, ['Phone', $repData['phone'] ?? 'N/A']);
         fputcsv($handle, []);
-        fputcsv($handle, ['Period', ($filters['start_date'] ?? '') . ' → ' . ($filters['end_date'] ?? '')]);
+        fputcsv($handle, ['Period', ($filtersData['start_date'] ?? '') . ' → ' . ($filtersData['end_date'] ?? '')]);
         fputcsv($handle, ['Total Deliveries', $summary['total_deliveries'] ?? 0]);
         fputcsv($handle, ['Total Expenses', $summary['total_expenses'] ?? 0]);
         fputcsv($handle, ['On-Time Rate (%)', $summary['on_time_rate'] ?? 0]);

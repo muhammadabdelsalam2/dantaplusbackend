@@ -75,7 +75,7 @@ class ClinicExternalService
                         'clinic_id'  => $clinic->id,
                         'is_active'  => true,
                         'is_verified'=> false,
-                        'status'     => 'active',
+                        'status'     => 'Active',
                         'role'       => 'doctor',
                     ]);
 
