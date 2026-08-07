@@ -16,7 +16,9 @@ class MaterialProductRepository
             ->when($filters['brand'] ?? null, fn ($q, $brand) =>
                 $q->where('brand', 'like', "%{$brand}%")
             )
-
+            ->when($filters['rating'] ?? null, fn ($q, $rating) =>
+    $q->where('rating', '>=', $rating)
+)
             ->when($filters['search'] ?? null, function ($q, $search) {
                 $q->where(function ($qq) use ($search) {
                     $qq->where('name', 'like', "%{$search}%")

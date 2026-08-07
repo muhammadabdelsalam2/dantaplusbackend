@@ -120,17 +120,17 @@ Route::prefix('clinic')
             Route::get('/selects', [MessageController::class, 'selects']);
         });
 
-        Route::prefix('selects')->group(function () {
-            Route::get('/labs', [SelectsController::class, 'labs']);
-            Route::get('/labs/{labId}/services', [SelectsController::class, 'labServices']);
-            Route::get('/case-types', [SelectsController::class, 'caseTypes']);
-            Route::get('/materials', [SelectsController::class, 'materials']);
-            Route::get('/shades', [SelectsController::class, 'shades']);
-            Route::get('/service-categories', [SelectsController::class, 'serviceCategories']);
-            Route::get('/patients', [SelectsController::class, 'patients']);
-            Route::get('/dentists', [SelectsController::class, 'dentists']);
-            Route::get('/doctors', [SelectsController::class, 'doctors']);
-        });
+        // Route::prefix('selects')->group(function () {
+        //     Route::get('/labs', [SelectsController::class, 'labs']);
+        //     Route::get('/labs/{labId}/services', [SelectsController::class, 'labServices']);
+        //     Route::get('/case-types', [SelectsController::class, 'caseTypes']);
+        //     Route::get('/materials', [SelectsController::class, 'materials']);
+        //     Route::get('/shades', [SelectsController::class, 'shades']);
+        //     Route::get('/service-categories', [SelectsController::class, 'serviceCategories']);
+        //     Route::get('/patients', [SelectsController::class, 'patients']);
+        //     Route::get('/dentists', [SelectsController::class, 'dentists']);
+        //     Route::get('/doctors', [SelectsController::class, 'doctors']);
+        // });
 
         Route::middleware('permission:communication.send')
             ->prefix('communication/conversations')
@@ -366,8 +366,7 @@ Route::middleware('permission:appointments.view')
             [TreatmentController::class, 'completeTreatment']
         );
 
-        Route::get('/select/{resource}', [SelectController::class, 'show']);
-        Route::get('/selects/dentists', [SelectController::class, 'getDentists']);
+
         Route::post('/radiology/compare', [RadiologyController::class, 'compare']);
 
         // ─── Materials ───────────────────────────────────────────────────────
@@ -508,6 +507,24 @@ Route::middleware('permission:support.manage')->prefix('support')->group(functio
     Route::post('/tickets/{id}/reply', [SupportCenterController::class, 'storeReply']);
 });
     });
+// ─── Selects (no role restriction — any authenticated user, including lab users) ───
+Route::prefix('clinic')
+    ->middleware(['api.error', 'auth:sanctum'])
+    ->group(function () {
+        Route::prefix('selects')->group(function () {
+            Route::get('/labs', [SelectsController::class, 'labs']);
+            Route::get('/labs/{labId}/services', [SelectsController::class, 'labServices']);
+            Route::get('/case-types', [SelectsController::class, 'caseTypes']);
+            Route::get('/materials', [SelectsController::class, 'materials']);
+            Route::get('/shades', [SelectsController::class, 'shades']);
+            Route::get('/service-categories', [SelectsController::class, 'serviceCategories']);
+            Route::get('/patients', [SelectsController::class, 'patients']);
+            Route::get('/dentists', [SelectsController::class, 'dentists']);
+            Route::get('/doctors', [SelectsController::class, 'doctors']);
+        });
 
+        Route::get('/select/{resource}', [SelectController::class, 'show']);
+        Route::get('/selects/dentists', [SelectController::class, 'getDentists']);
+    });
 Route::post('webhook/whatsapp', [WhatsappBotController::class, 'webhook'])
     ->name('clinic.whatsapp-bot.webhook');
