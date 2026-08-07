@@ -73,7 +73,7 @@ class ClinicExternalService
                         'phone'      => null,
                         'password'   => null,
                         'clinic_id'  => $clinic->id,
-                        'is_active'  => true,
+                        'is_active'  => false,
                         'is_verified'=> false,
                         'status'     => 'Active',
                         'role'       => 'doctor',
