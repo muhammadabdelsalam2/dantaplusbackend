@@ -28,6 +28,14 @@ class StoreDentalLabRequest extends FormRequest
         if (!empty($merged)) {
             $this->merge($merged);
         }
+
+        if ($this->has('rating')) {
+            $rating = $this->input('rating');
+
+            if ($rating === '' || $rating === null || (is_numeric($rating) && (float) $rating <= 0)) {
+                $this->merge(['rating' => null]);
+            }
+        }
     }
 
     public function rules(): array

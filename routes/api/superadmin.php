@@ -176,7 +176,7 @@ Route::post('/products/{product}/reject', [MaterialProductController::class, 're
             Route::get('/', [SupportCenterController::class, 'index']);
             Route::get('/analytics', [SupportCenterController::class, 'analytics']);
             Route::get('/{id}', [SupportCenterController::class, 'show']);
-            Route::patch('/{id}', [SupportCenterController::class, 'update']);
+            Route::post('/{id}', [SupportCenterController::class, 'update']);
             Route::post('/{id}/replies', [SupportCenterController::class, 'storeReply']);
         });
 

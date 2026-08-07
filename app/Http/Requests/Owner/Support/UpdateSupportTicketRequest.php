@@ -24,4 +24,5 @@ class UpdateSupportTicketRequest extends FormRequest
             'category' => ['nullable', 'string', 'max:255'],
         ];
     }
+ 
 }

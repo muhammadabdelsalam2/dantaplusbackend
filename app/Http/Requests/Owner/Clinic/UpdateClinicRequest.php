@@ -43,7 +43,7 @@ class UpdateClinicRequest extends FormRequest
             'max_users' => ['sometimes', 'integer', 'min:0'],
             'max_branches' => ['sometimes', 'integer', 'min:0'],
             'modules' => ['sometimes', 'array', 'min:1'],
-            'modules.*' => ['required', 'string', Rule::in(config('clinic_modules.keys'))],
+            'modules.*' => ['sometimes', 'string', Rule::in(config('clinic_modules.keys'))],
             'status' => ['sometimes', 'in:Active,Trial,Expired,Suspended'],
             'start_date' => ['sometimes', 'date'],
             'expiry_date' => ['sometimes', 'date', 'after_or_equal:start_date'],

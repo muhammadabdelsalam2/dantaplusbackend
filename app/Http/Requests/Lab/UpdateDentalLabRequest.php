@@ -44,4 +44,15 @@ class UpdateDentalLabRequest extends FormRequest
             'rejection_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
         ];
     }
+       protected function prepareForValidation(): void
+{
+    if ($this->has('rating')) {
+        $rating = $this->input('rating');
+
+
+        if ($rating === '' || $rating === null || (is_numeric($rating) && (float) $rating <= 0)) {
+            $this->merge(['rating' => null]);
+        }
+    }
+}
 }
