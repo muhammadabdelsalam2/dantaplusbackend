@@ -12,51 +12,36 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-
+use App\Http\Resources\SuperAdmin\DentalLabListResource;
 class DentalLabManagementService
 {
     public function __construct(private DentalLabRepository $dentalLabRepository)
     {
     }
 
-    public function index(array $filters): array
-    {
-        $perPage = (int) ($filters['per_page'] ?? 15);
-        $labs = $this->dentalLabRepository->paginate($filters, $perPage);
+   public function index(array $filters): array
+{
+    $perPage = (int) ($filters['per_page'] ?? 15);
+    $labs = $this->dentalLabRepository->paginate($filters, $perPage);
 
-        $items = collect($labs->items())->map(function ($lab) {
-            return [
-                'id' => $lab->id,
-                'status' => $lab->status,
-                'delivery_speed' => 'days ' . rtrim(rtrim((string) $lab->avg_delivery_days, '0'), '.'),
-                'active_clinics' => (int) $lab->active_clinics,
-                'rating' => $lab->rating !== null ? (float) $lab->rating : 0,
-                'city' => $lab->city,
-                'contact_person' => $lab->contact_person,
-                'lab_name' => $lab->name,
-                'logo_url' => $lab->logo_url,
-            ];
-        })->values();
-
-        $data = [
-            'stats' => $this->dentalLabRepository->stats(),
-            'filters' => [
-                'statuses' => ['All Statuses', DentalLab::STATUS_ACTIVE, DentalLab::STATUS_INACTIVE],
+    $data = [
+        'stats' => $this->dentalLabRepository->stats(),
+        'filters' => [
+            'statuses' => ['All Statuses', DentalLab::STATUS_ACTIVE, DentalLab::STATUS_INACTIVE],
+        ],
+        'data' => [
+            'items' => DentalLabListResource::collection($labs->getCollection())->resolve(),
+            'pagination' => [
+                'current_page' => $labs->currentPage(),
+                'last_page' => $labs->lastPage(),
+                'per_page' => $labs->perPage(),
+                'total' => $labs->total(),
             ],
-            'data' => [
-                'items' => $items,
-                'pagination' => [
-                    'current_page' => $labs->currentPage(),
-                    'last_page' => $labs->lastPage(),
-                    'per_page' => $labs->perPage(),
-                    'total' => $labs->total(),
-                ],
-            ],
-        ];
+        ],
+    ];
 
-        return ServiceResult::success($data, 'Dental labs fetched successfully');
-    }
-
+    return ServiceResult::success($data, 'Dental labs fetched successfully');
+}
     public function store(array $data): array
     {
         return DB::transaction(function () use ($data) {

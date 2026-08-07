@@ -9,31 +9,32 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class DentalLabRepository
 {
-    public function paginate(array $filters, int $perPage = 15): LengthAwarePaginator
-    {
-        $sortBy = $filters['sort_by'] ?? 'id';
-        $sortDir = strtolower($filters['sort_dir'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
+   public function paginate(array $filters, int $perPage = 15): LengthAwarePaginator
+{
+    $sortBy = $filters['sort_by'] ?? 'id';
+    $sortDir = strtolower($filters['sort_dir'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
 
-        return DentalLab::query()
-            ->with([
-                'services' => fn($q) => $q
-                    ->select(['id', 'lab_id', 'name', 'price', 'turnaround_days'])
-                    ->orderBy('name')
-            ])
-            ->withCount([
-                'partnerships as active_clinics' => fn($q) => $q->where('status', ClinicLabPartnership::STATUS_ACTIVE),
-            ])
-            ->when($filters['search'] ?? null, function ($query, $search) {
-                $query->where(function ($q) use ($search) {
-                    $q->where('name', 'like', "%{$search}%")
-                        ->orWhere('city', 'like', "%{$search}%");
-                });
-            })
-            ->when($filters['status'] ?? null, fn($query, $status) => $query->where('status', $status))
-            ->orderBy($sortBy, $sortDir)
-            ->paginate($perPage);
-    }
-
+    return DentalLab::query()
+        ->with([
+            'services' => fn($q) => $q
+                ->select(['id', 'lab_id', 'name', 'price', 'turnaround_days'])
+                ->orderBy('name'),
+            'users:id,name,email,avatar_url,last_login_at,lab_id,is_active',
+            'users.roles:id,name',
+        ])
+        ->withCount([
+            'partnerships as active_clinics' => fn($q) => $q->where('status', ClinicLabPartnership::STATUS_ACTIVE),
+        ])
+        ->when($filters['search'] ?? null, function ($query, $search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('city', 'like', "%{$search}%");
+            });
+        })
+        ->when($filters['status'] ?? null, fn($query, $status) => $query->where('status', $status))
+        ->orderBy($sortBy, $sortDir)
+        ->paginate($perPage);
+}
     public function stats(): array
     {
         $averageRating = DentalLab::query()->whereNotNull('rating')->avg('rating');
