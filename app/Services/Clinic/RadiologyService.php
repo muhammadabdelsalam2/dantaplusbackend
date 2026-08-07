@@ -191,20 +191,34 @@ class RadiologyService
     }
 
     private function imageAsBase64(?string $path): ?string
-    {
-        if (! $path || Str::startsWith($path, ['http://', 'https://'])) {
-            return null;
-        }
-
-        $path = ltrim(Str::after(str_replace('\\', '/', $path), 'public/'), '/');
-        if (! Storage::disk('public')->exists($path)) {
-            return null;
-        }
-
-        $mime = Storage::disk('public')->mimeType($path) ?: 'image/jpeg';
-
-        return 'data:' . $mime . ';base64,' . base64_encode(Storage::disk('public')->get($path));
+{
+    if (!$path) {
+        return null;
     }
+
+    if (Str::startsWith($path, ['http://', 'https://'])) {
+
+        $content = @file_get_contents($path);
+
+        if (!$content) {
+            return null;
+        }
+
+        $mime = getimagesizefromstring($content)['mime'] ?? 'image/jpeg';
+
+        return 'data:' . $mime . ';base64,' . base64_encode($content);
+    }
+
+    $path = ltrim(Str::after(str_replace('\\', '/', $path), 'public/'), '/');
+
+    if (!Storage::disk('public')->exists($path)) {
+        return null;
+    }
+
+    $mime = Storage::disk('public')->mimeType($path);
+
+    return 'data:' . $mime . ';base64,' . base64_encode(Storage::disk('public')->get($path));
+}
 
     private function renderPdfHtml(PatientRadiology $record, array $data): string
     {
@@ -238,7 +252,7 @@ class RadiologyService
     $before = $this->imageAsBase64($case1->before_image_path ?: $case1->file_path);
     $after = $this->imageAsBase64($case2->before_image_path ?: $case2->file_path);
 
-    
+
     $html = '
     <html>
     <head>
