@@ -46,7 +46,7 @@ class StoreAppointmentRequest extends FormRequest
         'authorization_code' => ['required_if:payment_type,insurance', 'nullable', 'string', 'max:255'],
         'approval_date' => ['required_if:payment_type,insurance', 'nullable', 'date_format:Y-m-d'],
         'coverage' => ['required_if:payment_type,insurance', 'nullable', 'numeric', 'min:0', 'max:100'],
-        'approved_amount' => ['required_if:payment_type,insurance', 'nullable', 'numeric', 'min:0'],
+        'approved_amount' => ['nullable', 'numeric', 'min:0'],
         'attachment' => ['nullable', 'file', 'max:5120', 'mimes:pdf,jpg,jpeg,png'],
 
         // ← الإضافة المطلوبة: تعريف المفتاح المتداخل عشان مايتشالش من validated()
