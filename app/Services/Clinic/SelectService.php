@@ -5,12 +5,9 @@ namespace App\Services\Clinic;
 use App\Http\Resources\Common\SelectOptionResource;
 use App\Repositories\Clinic\Select\ClinicSelectRepositoryInterface;
 use App\Support\ServiceResult;
-use App\Traits\HasSuperAdminScope;
 
 class SelectService
 {
-    use HasSuperAdminScope;
-
     private const RESOURCE_MAP = [
         'providers'              => 'dentalLabs',
         'dental-labs'            => 'dentalLabs',
@@ -50,18 +47,15 @@ class SelectService
     {
     }
 
+    /**
+     * No auth/clinic restriction — every select returns data for everyone.
+     * If the caller passes an explicit clinic_id filter (e.g. for the
+     * dentists resource), it's forwarded to the repository as-is; otherwise
+     * null is passed so the repository returns unscoped data.
+     */
     public function options(string $resource, array $filters = []): array
     {
-        // Super admin bypasses clinic_id scoping entirely.
-        // Use null as clinic_id so the repository returns unscoped data.
-        if ($this->isSuperAdmin()) {
-            $clinicId = null;
-        } else {
-            $clinicId = auth()->user()?->clinic_id;
-            if (! $clinicId) {
-                return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
-            }
-        }
+        $clinicId = $filters['clinic_id'] ?? null;
 
         $method = self::RESOURCE_MAP[$resource] ?? null;
         if (! $method) {

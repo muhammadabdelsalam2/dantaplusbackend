@@ -18,13 +18,17 @@ class SelectsController extends Controller
 {
     use HasSuperAdminScope;
 
+    /**
+     * Labs stay scoped by token as before:
+     * super admin sees all labs, everyone else sees only labs partnered
+     * with their own clinic (resolved from the authenticated user).
+     */
     public function labs(): JsonResponse
     {
         $clinicId = $this->clinicId();
 
         $query = DentalLab::query()->orderBy('name');
 
-        // Super admin sees all labs; regular users see only partnered labs.
         if (! $this->isSuperAdmin()) {
             $query->whereHas('partnerships', fn ($q) => $q->where('clinic_id', $clinicId));
         }
@@ -37,6 +41,9 @@ class SelectsController extends Controller
         ]);
     }
 
+    /**
+     * Lab services stay scoped by token as well, same reasoning as labs().
+     */
     public function labServices(Request $request, int $labId): JsonResponse
     {
         $clinicId = $this->clinicId();
@@ -47,7 +54,6 @@ class SelectsController extends Controller
             ->when($search, fn ($q, string $term) => $q->where('service_name', 'like', "%{$term}%"))
             ->orderBy('service_name');
 
-        // Super admin is not restricted to partnered-lab services.
         if (! $this->isSuperAdmin()) {
             $query->whereHas('lab.partnerships', fn ($q) => $q->where('clinic_id', $clinicId));
         }
@@ -65,27 +71,44 @@ class SelectsController extends Controller
         ]);
     }
 
+    /**
+     * Case types:
+     * - Lab users (users with a lab_id, e.g. lab_admin/lab_technician/lab_receptionist)
+     *   only see the case types coming from their own lab's services.
+     * - Everyone else sees all case types, unrestricted.
+     */
     public function caseTypes(): JsonResponse
     {
-        $clinicId = $this->clinicId();
+        $labId = auth()->user()?->lab_id;
 
-        $labServiceNames = LabService::query()
-            ->select('service_name')
-            ->distinct()
-            ->orderBy('service_name')
-            ->pluck('service_name');
+        if ($labId) {
+            $names = LabService::query()
+                ->where('lab_id', $labId)
+                ->select('service_name')
+                ->distinct()
+                ->orderBy('service_name')
+                ->pluck('service_name')
+                ->filter()
+                ->unique()
+                ->values();
+        } else {
+            $labServiceNames = LabService::query()
+                ->select('service_name')
+                ->distinct()
+                ->orderBy('service_name')
+                ->pluck('service_name');
 
-        $caseTypeNames = CaseModel::query()
-            ->select('case_type')
-            ->distinct()
-            ->when(! $this->isSuperAdmin() && $clinicId, fn ($q) => $q->where('clinic_id', $clinicId))
-            ->pluck('case_type');
+            $caseTypeNames = CaseModel::query()
+                ->select('case_type')
+                ->distinct()
+                ->pluck('case_type');
 
-        $names = $labServiceNames
-            ->merge($caseTypeNames)
-            ->filter()
-            ->unique()
-            ->values();
+            $names = $labServiceNames
+                ->merge($caseTypeNames)
+                ->filter()
+                ->unique()
+                ->values();
+        }
 
         if ($names->isEmpty()) {
             $names = collect(['Crown', 'Bridge', 'Veneer', 'Denture']);
@@ -137,18 +160,15 @@ class SelectsController extends Controller
 
     /**
      * Patients select with optional name search.
-     *
-     * Accepts ?search=<name> query param.
-     * Super admin returns patients across all clinics.
+     * No clinic restriction — returns patients for everyone, filtered
+     * only by the optional ?search=<name> query param.
      */
     public function patients(Request $request): JsonResponse
     {
-        $clinicId = $this->clinicId();
-        $search   = $request->query('search');
+        $search = $request->query('search');
 
         $query = Patient::query()
             ->with('user:id,name')
-            ->when(! $this->isSuperAdmin() && $clinicId, fn ($q) => $q->where('clinic_id', $clinicId))
             ->when($search, fn ($q, $s) =>
                 $q->whereHas('user', fn ($u) => $u->where('name', 'like', "%{$s}%"))
             )
@@ -166,24 +186,29 @@ class SelectsController extends Controller
         ]);
     }
 
-    public function dentists(): JsonResponse
+    /**
+     * Dentists select — no restriction based on the logged-in user.
+     * Optionally filtered by ?clinic_id=<id> passed explicitly in the request,
+     * so any user can pick a clinic and get the dentists/doctors that belong to it.
+     */
+    public function dentists(Request $request): JsonResponse
     {
-        return $this->usersByRole('doctor');
+        return $this->usersByRole('doctor', $request);
     }
 
-    public function doctors(): JsonResponse
+    public function doctors(Request $request): JsonResponse
     {
-        return $this->usersByRole('doctor');
+        return $this->usersByRole('doctor', $request);
     }
 
     // ─── Private helpers ──────────────────────────────────────────────────────
 
-    private function usersByRole(string $role): JsonResponse
+    private function usersByRole(string $role, Request $request): JsonResponse
     {
-        $clinicId = $this->clinicId();
+        $clinicId = $request->query('clinic_id');
 
         $query = User::query()
-            ->when(! $this->isSuperAdmin() && $clinicId, fn ($q) => $q->where('clinic_id', $clinicId))
+            ->when($clinicId, fn ($q) => $q->where('clinic_id', $clinicId))
             ->role($role)
             ->orderBy('name');
 
