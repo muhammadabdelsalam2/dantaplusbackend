@@ -25,10 +25,11 @@ class AppointmentResource extends JsonResource
         'patient_name' => $this->patient_name,
         'patient_phone' => $this->patient_phone,
         'approved_id' => $isInsurance ? $approval?->id : null,
-       
+
             'insurance_approval' => $this->when($this->relationLoaded('insuranceApproval') && $this->insuranceApproval, function () {
                 $approval = $this->insuranceApproval;
-                
+                $attachmentDoc = collect($approval->documents ?? [])->firstWhere('type', 'Attachment');
+
                 return [
                     'id' => $approval->id,
                     'code' => $approval->code,
@@ -44,8 +45,8 @@ class AppointmentResource extends JsonResource
                     'coverage_percent' => (float) $approval->coverage_percent,
                     'approved_amount' => (float) $approval->approved_amount,
                     'used_amount' => (float) $approval->used_amount,
-                    'policy_number' => $approval->approval_number,            
-                   
+                    'policy_number' => $approval->approval_number,
+
                     'services' => $approval->services->map(fn ($service) => [
                         'service_name' => $service->service_name,
                         'service_code' => $service->service_code,
@@ -53,12 +54,12 @@ class AppointmentResource extends JsonResource
                         'co_pay' => (float) $service->co_pay,
                         'tooth_number' => $service->tooth_number,
                     ])->values()->all(),
-                    
-                    
-                    'has_attachment' => !empty(collect($approval->documents ?? [])->firstWhere('type', 'Attachment')),
-                    'attachment' => collect($approval->documents ?? [])->firstWhere('type', 'Attachment') ? [
-                        'name' => collect($approval->documents ?? [])->firstWhere('type', 'Attachment')['name'] ?? 'Attachment',
-                        'url' => collect($approval->documents ?? [])->firstWhere('type', 'Attachment')['url'],
+
+                    'has_attachment' => (bool) $attachmentDoc,
+                    'attachment' => $attachmentDoc ? [
+                        'name' => $attachmentDoc['name'] ?? 'Attachment',
+                        'url' => $attachmentDoc['url']
+                            ?? (isset($attachmentDoc['path']) ? asset(\Illuminate\Support\Facades\Storage::url($attachmentDoc['path'])) : null),
                     ] : null,
                 ];
             }),

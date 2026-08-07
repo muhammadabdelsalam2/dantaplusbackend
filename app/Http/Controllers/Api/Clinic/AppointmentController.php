@@ -146,7 +146,7 @@ class AppointmentController extends Controller
    public function approve(Request $request, int $id)
     {
         $validated = $request->validate([
-            // Insurance Approval fields - ✅ إضافة دعم fields متعددة
+            
             'insurance_company_id' => ['nullable', 'integer', 'exists:insurance_companies,id'],
             'authorization_code' => ['nullable', 'string', 'max:255'],
             'ref_id' => ['nullable', 'string', 'max:255'],
