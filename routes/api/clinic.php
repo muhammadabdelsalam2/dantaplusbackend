@@ -74,9 +74,11 @@ Route::get('clinic/patients/{patient}/radiology/{record}/download-file', [Patien
 Route::get('clinic/radiology/{radiologyId}/download-pdf', [RadiologyController::class, 'downloadPdf'])
     ->middleware(['api.error'])
     ->name('clinic.radiology.download-pdf');
-        Route::get('clinic/radiology/compare/pdf-file', [RadiologyController::class, 'comparePdfFile']);
+      //  Route::get('clinic/radiology/compare/pdf-file', [RadiologyController::class, 'comparePdfFile']);
 
-
+Route::get('clinic/radiology/compare/pdf-file', [RadiologyController::class, 'comparePdfFile'])
+    ->middleware(['api.error', 'signed'])
+    ->name('clinic.radiology.compare.pdf-file');
 Route::get('clinic/radiology/{radiologyId}/pdf-file', [RadiologyController::class, 'pdfFile'])
     ->middleware(['api.error'])
     ->name('clinic.radiology.pdf-file');
