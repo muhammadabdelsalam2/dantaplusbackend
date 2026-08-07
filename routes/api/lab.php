@@ -39,6 +39,10 @@ Route::get('lab/accounting/technician-earnings/download/{format}', [LabAccountin
     ->middleware('signed')
     ->name('lab.accounting.technician-earnings.download');
 
+Route::get('lab/delivery-reps/{id}/report/export', [DeliveryReportController::class, 'exportRep'])
+    ->middleware('signed')
+    ->name('lab.delivery-reps.report.export');
+
 Route::prefix('lab')
     ->middleware(['auth:sanctum'])
     ->group(function () {

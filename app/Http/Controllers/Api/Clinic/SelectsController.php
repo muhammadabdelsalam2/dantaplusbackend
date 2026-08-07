@@ -9,20 +9,28 @@ use App\Models\DentalLab;
 use App\Models\LabService;
 use App\Models\Patient;
 use App\Models\User;
+use App\Traits\HasSuperAdminScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class SelectsController extends Controller
 {
+    use HasSuperAdminScope;
+
     public function labs(): JsonResponse
     {
         $clinicId = $this->clinicId();
 
+        $query = DentalLab::query()->orderBy('name');
+
+        // Super admin sees all labs; regular users see only partnered labs.
+        if (! $this->isSuperAdmin()) {
+            $query->whereHas('partnerships', fn ($q) => $q->where('clinic_id', $clinicId));
+        }
+
         return response()->json([
-            'data' => DentalLab::query()
-                ->whereHas('partnerships', fn ($query) => $query->where('clinic_id', $clinicId))
-                ->orderBy('name')
+            'data' => $query
                 ->get(['id', 'name'])
                 ->map(fn (DentalLab $lab) => ['id' => $lab->id, 'name' => $lab->name])
                 ->values(),
@@ -32,20 +40,26 @@ class SelectsController extends Controller
     public function labServices(Request $request, int $labId): JsonResponse
     {
         $clinicId = $this->clinicId();
-        $search = $request->query('search');
+        $search   = $request->query('search');
+
+        $query = LabService::query()
+            ->where('lab_id', $labId)
+            ->when($search, fn ($q, string $term) => $q->where('service_name', 'like', "%{$term}%"))
+            ->orderBy('service_name');
+
+        // Super admin is not restricted to partnered-lab services.
+        if (! $this->isSuperAdmin()) {
+            $query->whereHas('lab.partnerships', fn ($q) => $q->where('clinic_id', $clinicId));
+        }
 
         return response()->json([
-            'data' => LabService::query()
-                ->where('lab_id', $labId)
-                ->whereHas('lab.partnerships', fn ($query) => $query->where('clinic_id', $clinicId))
-                ->when($search, fn ($query, string $term) => $query->where('service_name', 'like', "%{$term}%"))
-                ->orderBy('service_name')
+            'data' => $query
                 ->get()
                 ->map(fn (LabService $service) => [
-                    'id' => $service->id,
-                    'name' => $service->service_name,
-                    'price' => (float) $service->price,
-                    'turnaround' => $service->turnaround_time_days . ' days',
+                    'id'          => $service->id,
+                    'name'        => $service->service_name,
+                    'price'       => (float) $service->price,
+                    'turnaround'  => $service->turnaround_time_days . ' days',
                 ])
                 ->values(),
         ]);
@@ -53,12 +67,22 @@ class SelectsController extends Controller
 
     public function caseTypes(): JsonResponse
     {
-        $names = LabService::query()
+        $clinicId = $this->clinicId();
+
+        $labServiceNames = LabService::query()
             ->select('service_name')
             ->distinct()
             ->orderBy('service_name')
-            ->pluck('service_name')
-            ->merge(CaseModel::query()->select('case_type')->distinct()->pluck('case_type'))
+            ->pluck('service_name');
+
+        $caseTypeNames = CaseModel::query()
+            ->select('case_type')
+            ->distinct()
+            ->when(! $this->isSuperAdmin() && $clinicId, fn ($q) => $q->where('clinic_id', $clinicId))
+            ->pluck('case_type');
+
+        $names = $labServiceNames
+            ->merge($caseTypeNames)
             ->filter()
             ->unique()
             ->values();
@@ -69,7 +93,7 @@ class SelectsController extends Controller
 
         return response()->json([
             'data' => $names->map(fn (string $name, int $index) => [
-                'id' => $index + 1,
+                'id'   => $index + 1,
                 'name' => $name,
                 'code' => Str::upper(Str::slug($name, '_')),
             ])->values(),
@@ -111,18 +135,31 @@ class SelectsController extends Controller
         ]);
     }
 
-    public function patients(): JsonResponse
+    /**
+     * Patients select with optional name search.
+     *
+     * Accepts ?search=<name> query param.
+     * Super admin returns patients across all clinics.
+     */
+    public function patients(Request $request): JsonResponse
     {
         $clinicId = $this->clinicId();
+        $search   = $request->query('search');
+
+        $query = Patient::query()
+            ->with('user:id,name')
+            ->when(! $this->isSuperAdmin() && $clinicId, fn ($q) => $q->where('clinic_id', $clinicId))
+            ->when($search, fn ($q, $s) =>
+                $q->whereHas('user', fn ($u) => $u->where('name', 'like', "%{$s}%"))
+            )
+            ->orderBy('id')
+            ->limit(50);
 
         return response()->json([
-            'data' => Patient::query()
-                ->with('user:id,name')
-                ->where('clinic_id', $clinicId)
-                ->orderBy('id')
+            'data' => $query
                 ->get()
                 ->map(fn (Patient $patient) => [
-                    'id' => $patient->id,
+                    'id'   => $patient->id,
                     'name' => $patient->user?->name ?? $patient->patient_number,
                 ])
                 ->values(),
@@ -139,15 +176,19 @@ class SelectsController extends Controller
         return $this->usersByRole('doctor');
     }
 
+    // ─── Private helpers ──────────────────────────────────────────────────────
+
     private function usersByRole(string $role): JsonResponse
     {
         $clinicId = $this->clinicId();
 
+        $query = User::query()
+            ->when(! $this->isSuperAdmin() && $clinicId, fn ($q) => $q->where('clinic_id', $clinicId))
+            ->role($role)
+            ->orderBy('name');
+
         return response()->json([
-            'data' => User::query()
-                ->where('clinic_id', $clinicId)
-                ->role($role)
-                ->orderBy('name')
+            'data' => $query
                 ->get(['id', 'name'])
                 ->map(fn (User $user) => ['id' => $user->id, 'name' => $user->name])
                 ->values(),

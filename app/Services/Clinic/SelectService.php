@@ -5,42 +5,45 @@ namespace App\Services\Clinic;
 use App\Http\Resources\Common\SelectOptionResource;
 use App\Repositories\Clinic\Select\ClinicSelectRepositoryInterface;
 use App\Support\ServiceResult;
+use App\Traits\HasSuperAdminScope;
 
 class SelectService
 {
+    use HasSuperAdminScope;
+
     private const RESOURCE_MAP = [
-        'providers' => 'dentalLabs',
-        'dental-labs' => 'dentalLabs',
-        'dental_labs' => 'dentalLabs',
-        'doctors' => 'doctors',
-        'patients' => 'patients',
-        'staff' => 'staff',
-        'services' => 'services',
-        'clinic-services' => 'services',
-        'clinic_services' => 'services',
-        'dentists' => 'dentists',
-        'labs' => 'dentalLabs',
-        'expense-categories' => 'expenseCategories',
-        'insurance-companies' => 'insuranceCompanies',
-        'insurance_companies' => 'insuranceCompanies',
-        'syndicate-price-lists' => 'syndicatePriceLists',
-        'syndicate_price_lists' => 'syndicatePriceLists',
-        'insurance-price-lists' => 'syndicatePriceLists',
-        'claim-statuses' => 'claimStatuses',
-        'claim_statuses' => 'claimStatuses',
+        'providers'              => 'dentalLabs',
+        'dental-labs'            => 'dentalLabs',
+        'dental_labs'            => 'dentalLabs',
+        'doctors'                => 'doctors',
+        'patients'               => 'patients',
+        'staff'                  => 'staff',
+        'services'               => 'services',
+        'clinic-services'        => 'services',
+        'clinic_services'        => 'services',
+        'dentists'               => 'dentists',
+        'labs'                   => 'dentalLabs',
+        'expense-categories'     => 'expenseCategories',
+        'insurance-companies'    => 'insuranceCompanies',
+        'insurance_companies'    => 'insuranceCompanies',
+        'syndicate-price-lists'  => 'syndicatePriceLists',
+        'syndicate_price_lists'  => 'syndicatePriceLists',
+        'insurance-price-lists'  => 'syndicatePriceLists',
+        'claim-statuses'         => 'claimStatuses',
+        'claim_statuses'         => 'claimStatuses',
         'insurance-claim-statuses' => 'claimStatuses',
-        'response-speeds' => 'responseSpeeds',
-            'suppliers' => 'materialCompanies',
-    'material-companies' => 'materialCompanies',
-    'material_companies' => 'materialCompanies',
-    'material-categories' => 'materialCategories',
-    'material_categories' => 'materialCategories',
-    'inventory-categories' => 'materialCategories',
-    'inventory-units' => 'inventoryUnits',
-    'inventory_units' => 'inventoryUnits',
-        'rooms' => 'rooms',
-            'invoices' => 'invoices',
-            'branches' => 'branches',
+        'response-speeds'        => 'responseSpeeds',
+        'suppliers'              => 'materialCompanies',
+        'material-companies'     => 'materialCompanies',
+        'material_companies'     => 'materialCompanies',
+        'material-categories'    => 'materialCategories',
+        'material_categories'    => 'materialCategories',
+        'inventory-categories'   => 'materialCategories',
+        'inventory-units'        => 'inventoryUnits',
+        'inventory_units'        => 'inventoryUnits',
+        'rooms'                  => 'rooms',
+        'invoices'               => 'invoices',
+        'branches'               => 'branches',
     ];
 
     public function __construct(private ClinicSelectRepositoryInterface $repository)
@@ -49,9 +52,15 @@ class SelectService
 
     public function options(string $resource, array $filters = []): array
     {
-        $clinicId = auth()->user()?->clinic_id;
-        if (! $clinicId) {
-            return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
+        // Super admin bypasses clinic_id scoping entirely.
+        // Use null as clinic_id so the repository returns unscoped data.
+        if ($this->isSuperAdmin()) {
+            $clinicId = null;
+        } else {
+            $clinicId = auth()->user()?->clinic_id;
+            if (! $clinicId) {
+                return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
+            }
         }
 
         $method = self::RESOURCE_MAP[$resource] ?? null;
@@ -64,5 +73,4 @@ class SelectService
             'Select options fetched successfully'
         );
     }
-
 }
