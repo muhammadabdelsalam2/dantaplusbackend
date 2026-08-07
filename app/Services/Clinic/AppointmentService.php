@@ -412,105 +412,172 @@ public function complete(int $id): array
         return ServiceResult::success(['sent' => true], 'WhatsApp reminder queued successfully');
     }
 
-     public function sendToLab(int $id, array $data): array
-    {
-        $appointment = $this->findClinicAppointment($id);
-        if (! $appointment) {
-            return ServiceResult::error('Appointment not found.', null, null, 404);
-        }
-
-        if (! $appointment->patient_id) {
-            return ServiceResult::error('Appointment is not linked to a patient.', null, ['patient_id' => ['Appointment is not linked to a patient.']], 422);
-        }
-
-        $clinicId = (int) $appointment->clinic_id;
-        $lab = DentalLab::query()
-            ->whereHas('partnerships', fn ($query) => $query->where('clinic_id', $clinicId))
-            ->find($data['lab_id']);
-
-        if (! $lab) {
-            return ServiceResult::error('Dental lab not found.', null, ['lab_id' => ['Dental lab not found for this clinic.']], 422);
-        }
-
-        $service = LabService::query()
-            ->where('lab_id', $lab->id)
-            ->find($data['service_id']);
-
-        if (! $service) {
-            return ServiceResult::error('Lab service not found.', null, ['service_id' => ['Lab service not found for this lab.']], 422);
-        }
-
-        $dentistId = $this->doctorModelIdForUser((int) $appointment->doctor_user_id, $clinicId);
-        if (! $dentistId) {
-            return ServiceResult::error('No dentist profile is linked to this appointment.', null, ['doctor_id' => ['No dentist profile is linked to this appointment.']], 422);
-        }
-
-        $material = $this->materialName((int) $data['material_id']);
-        $shade = $this->shadeName((int) $data['shade_id']);
-
-        $order = DB::transaction(function () use ($appointment, $clinicId, $lab, $service, $dentistId, $data, $material, $shade) {
-            $order = CaseModel::query()->create([
-                'case_number' => $this->generateLabCaseNumber(),
-                'clinic_id' => $clinicId,
-                'lab_id' => $lab->id,
-                'patient_id' => $appointment->patient_id,
-                'dentist_id' => $dentistId,
-                'status' => CaseModel::STATUS_PENDING,
-                'priority' => CaseModel::PRIORITY_NORMAL,
-                'due_date' => $data['delivery_date'],
-                'case_type' => $service->service_name,
-                'lab_service_id' => $service->id,
-                'tooth_numbers' => $data['tooth_numbers'],
-                'tooth_chart_3d' => [
-                    'is_3d' => (bool) ($data['is_3d'] ?? false),
-                    'material_id' => (int) $data['material_id'],
-                    'material' => $material,
-                    'shade_id' => (int) $data['shade_id'],
-                    'shade' => $shade,
-                    'appointment_id' => $appointment->id,
-                ],
-                'description' => trim(collect([
-                    'Appointment ID: ' . $appointment->id,
-                    'Material: ' . $material,
-                    'Shade: ' . $shade,
-                    '3D: ' . ((bool) ($data['is_3d'] ?? false) ? 'Yes' : 'No'),
-                    filled($data['notes'] ?? null) ? 'Notes: ' . $data['notes'] : null,
-                ])->filter()->implode("\n")),
-                'created_by' => auth()->id(),
-            ]);
-
-            foreach (($data['files'] ?? []) as $file) {
-                $path = Storage::disk('public')->putFile('clinic/lab-orders/' . $order->id, $file);
-                CaseAttachment::query()->create([
-                    'case_id' => $order->id,
-                    'uploaded_by' => auth()->id(),
-                    'file_name' => $file->getClientOriginalName(),
-                    'file_path' => $path,
-                    'mime_type' => $file->getMimeType(),
-                    'file_size' => $file->getSize(),
-                    'attachment_type' => 'appointment_lab_file',
-                ]);
-            }
-
-            return $order;
-        });
-
-        return ServiceResult::success([
-            'order_id' => $order->id,
-            'appointment_id' => $appointment->id,
-            'lab' => ['id' => $lab->id, 'name' => $lab->name],
-            'service' => ['id' => $service->id, 'name' => $service->service_name],
-            'patient' => [
-                'id' => $appointment->patient_id,
-                'name' => $appointment->patient?->user?->name ?? $appointment->patient_name,
-            ],
-            'teeth' => $data['tooth_numbers'],
-            'material' => $material,
-            'shade' => $shade,
-            'delivery_date' => $order->due_date->toDateString(),
-            'created_at' => $order->created_at->toISOString(),
-        ], 'Case sent to lab successfully', 201);
+   public function sendToLab(int $id, array $data): array
+{
+    $appointment = $this->findClinicAppointment($id);
+    if (! $appointment) {
+        return ServiceResult::error('Appointment not found.', null, null, 404);
     }
+
+    if (! $appointment->patient_id) {
+        return ServiceResult::error('Appointment is not linked to a patient.', null, ['patient_id' => ['Appointment is not linked to a patient.']], 422);
+    }
+
+    $clinicId = (int) $appointment->clinic_id;
+
+
+    $serviceId = $data['service_id'] ?? $appointment->service_id;
+    if (!$serviceId) {
+        return ServiceResult::error('Service is required to send case to lab.', null, ['service_id' => ['Service is required.']], 422);
+    }
+
+    $lab = DentalLab::query()
+        ->whereHas('partnerships', fn ($query) => $query->where('clinic_id', $clinicId))
+        ->find($data['lab_id']);
+
+    if (! $lab) {
+        return ServiceResult::error('Dental lab not found.', null, ['lab_id' => ['Dental lab not found for this clinic.']], 422);
+    }
+
+   
+    $service = LabService::query()
+        ->where('lab_id', $lab->id)
+        ->find($serviceId);
+
+    if (! $service) {
+        return ServiceResult::error('Lab service not found.', null, ['service_id' => ['Lab service not found for this lab.']], 422);
+    }
+
+    $dentistId = $this->doctorModelIdForUser((int) $appointment->doctor_user_id, $clinicId);
+    if (! $dentistId) {
+        return ServiceResult::error('No dentist profile is linked to this appointment.', null, ['doctor_id' => ['No dentist profile is linked to this appointment.']], 422);
+    }
+
+    $material = $this->materialName((int) $data['material_id']);
+    $shade = $this->shadeName((int) $data['shade_id']);
+
+    $order = DB::transaction(function () use ($appointment, $clinicId, $lab, $service, $dentistId, $serviceId, $data, $material, $shade) {
+        $order = CaseModel::query()->create([
+            'case_number' => $this->generateLabCaseNumber(),
+            'clinic_id' => $clinicId,
+            'lab_id' => $lab->id,
+            'patient_id' => $appointment->patient_id,
+            'dentist_id' => $dentistId,
+            'status' => CaseModel::STATUS_PENDING,
+            'priority' => CaseModel::PRIORITY_NORMAL,
+            'due_date' => $data['delivery_date'],
+            'case_type' => $service->service_name,
+            'lab_service_id' => $serviceId,  // ✅ تأكد من تسجيل service_id
+            'tooth_numbers' => $data['tooth_numbers'],
+            'tooth_chart_3d' => [
+                'is_3d' => (bool) ($data['is_3d'] ?? false),
+                'material_id' => (int) $data['material_id'],
+                'material' => $material,
+                'shade_id' => (int) $data['shade_id'],
+                'shade' => $shade,
+                'appointment_id' => $appointment->id,
+            ],
+            'description' => trim(collect([
+                'Appointment ID: ' . $appointment->id,
+                'Material: ' . $material,
+                'Shade: ' . $shade,
+                '3D: ' . ((bool) ($data['is_3d'] ?? false) ? 'Yes' : 'No'),
+                filled($data['notes'] ?? null) ? 'Notes: ' . $data['notes'] : null,
+            ])->filter()->implode("\n")),
+            'created_by' => auth()->id(),
+        ]);
+
+        foreach (($data['files'] ?? []) as $file) {
+            $path = Storage::disk('public')->putFile('clinic/lab-orders/' . $order->id, $file);
+            CaseAttachment::query()->create([
+                'case_id' => $order->id,
+                'uploaded_by' => auth()->id(),
+                'file_name' => $file->getClientOriginalName(),
+                'file_path' => $path,
+                'mime_type' => $file->getMimeType(),
+                'file_size' => $file->getSize(),
+                'attachment_type' => 'appointment_lab_file',
+            ]);
+        }
+
+        return $order;
+    });
+
+    return ServiceResult::success([
+        'order_id' => $order->id,
+        'appointment_id' => $appointment->id,
+        'lab' => ['id' => $lab->id, 'name' => $lab->name],
+        'service' => ['id' => $service->id, 'name' => $service->service_name],
+        'patient' => [
+            'id' => $appointment->patient_id,
+            'name' => $appointment->patient?->user?->name ?? $appointment->patient_name,
+        ],
+        'teeth' => $data['tooth_numbers'],
+        'material' => $material,
+        'shade' => $shade,
+        'delivery_date' => $order->due_date->toDateString(),
+        'created_at' => $order->created_at->toISOString(),
+    ], 'Case sent to lab successfully', 201);
+}
+
+
+public function createInsuranceApprovalFromAppointment(int $id, array $data): array
+{
+    $appointment = $this->findClinicAppointment($id);
+    if (! $appointment) {
+        return ServiceResult::error('Appointment not found.', null, null, 404);
+    }
+
+    if (! $appointment->patient_id) {
+        return ServiceResult::error('Appointment is not linked to a patient.', null, null, 422);
+    }
+
+
+    $data['insurance_company_id'] = $data['insurance_company_id'] ?? null;
+    $data['authorization_code'] = $data['authorization_code'] ?? $data['ref_id'] ?? null;
+    $data['coverage_percent'] = $data['coverage_percent'] ?? $data['coverage'] ?? 0;
+
+
+    if (!isset($data['attachment']) && isset($data['insurance_approval']['attachment'])) {
+        $data['attachment'] = $data['insurance_approval']['attachment'];
+    }
+
+    $approval = app(PatientService::class)->createApprovalForPatient(
+        $appointment->patient,
+        $data,
+        $appointment->id
+    );
+
+    return ServiceResult::success($this->formatAppointmentWithApproval($appointment->fresh(['doctor:id,name', 'patient.user:id,name', 'invoices.payments', 'insuranceApproval.services'])), 'Insurance approval created successfully', 201);
+}
+
+
+private function formatAppointmentWithApproval(ClinicAppointment $appointment): array
+{
+    $resource = (new AppointmentResource($appointment))->resolve();
+
+    if ($appointment->insuranceApproval) {
+        $resource['insurance_approval'] = [
+            'id' => $appointment->insuranceApproval->id,
+            'code' => $appointment->insuranceApproval->code,
+            'approval_number' => $appointment->insuranceApproval->approval_number,
+            'ref_id' => $appointment->insuranceApproval->ref_id,
+            'insurance_company_id' => $appointment->insuranceApproval->insurance_company_id,
+            'status' => $appointment->insuranceApproval->status,
+            'coverage_percent' => (float) $appointment->insuranceApproval->coverage_percent,
+            'approved_amount' => (float) $appointment->insuranceApproval->approved_amount,
+            'has_attachment' => !empty(collect($appointment->insuranceApproval->documents ?? [])->first(fn ($doc) => isset($doc['path']))),
+            'attachment' => collect($appointment->insuranceApproval->documents ?? [])->firstWhere('type', 'Attachment'),
+            'services' => $appointment->insuranceApproval->services->map(fn ($service) => [
+                'service_name' => $service->service_name,
+                'amount' => (float) $service->amount,
+                'co_pay' => (float) $service->co_pay,
+            ])->values()->all(),
+        ];
+    }
+
+    return $resource;
+}
 
     public function availableSlots(array $filters): array
     {

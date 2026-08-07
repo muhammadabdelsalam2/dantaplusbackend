@@ -15,41 +15,51 @@ class StoreAppointmentRequest extends FormRequest
         return true;
     }
 
-    public function rules(): array
-    {
-        $clinicId = auth()->user()?->clinic_id;
+   public function rules(): array
+{
+    $clinicId = auth()->user()?->clinic_id;
 
-        return [
-            // Appointment Fields
-            'patient_id' => ['nullable', 'integer', 'exists:patients,id'],
-            'patient_name' => ['required_without:patient_id', 'nullable', 'string', 'max:255'],
-            'patient_phone' => ['nullable', 'string', 'max:50'],
-            'doctor_id' => ['nullable', 'integer', 'exists:users,id'],
-            'service_id' => ['nullable', 'integer', 'exists:services,id'],
-            'service_name' => ['required_without:service_id', 'nullable', 'string', 'max:255'],
-            'date' => ['required_without:appointment_at', 'nullable', 'date_format:Y-m-d'],
-            'time' => ['required_without:appointment_at', 'nullable', 'date_format:H:i'],
-            'appointment_at' => ['nullable', 'date'],
-            'duration' => ['nullable', 'integer', 'min:5', 'max:480'],
-            'duration_minutes' => ['nullable', 'integer', 'min:5', 'max:480'],
-            'branch_id' => ['nullable', 'integer', Rule::exists('branches', 'id')->where(fn ($query) => $query->where('clinic_id', $clinicId))],
-            'room_id' => ['nullable', 'integer', 'exists:rooms,id'],
-            'branch' => ['nullable', 'string', 'max:255'],
-            'room' => ['nullable', 'string', 'max:255'],
-            'status' => ['nullable', 'in:pending,scheduled,confirmed,arrived,attended,completed,cancelled'],
-            'notes' => ['nullable', 'string'],
+    return [
+        // Appointment Fields
+        'patient_id' => ['nullable', 'integer', 'exists:patients,id'],
+        'patient_name' => ['required_without:patient_id', 'nullable', 'string', 'max:255'],
+        'patient_phone' => ['nullable', 'string', 'max:50'],
+        'doctor_id' => ['nullable', 'integer', 'exists:users,id'],
+        'service_id' => ['nullable', 'integer', 'exists:services,id'],
+        'service_name' => ['required_without:service_id', 'nullable', 'string', 'max:255'],
+        'date' => ['required_without:appointment_at', 'nullable', 'date_format:Y-m-d'],
+        'time' => ['required_without:appointment_at', 'nullable', 'date_format:H:i'],
+        'appointment_at' => ['nullable', 'date'],
+        'duration' => ['nullable', 'integer', 'min:5', 'max:480'],
+        'duration_minutes' => ['nullable', 'integer', 'min:5', 'max:480'],
+        'branch_id' => ['nullable', 'integer', Rule::exists('branches', 'id')->where(fn ($query) => $query->where('clinic_id', $clinicId))],
+        'room_id' => ['nullable', 'integer', 'exists:rooms,id'],
+        'branch' => ['nullable', 'string', 'max:255'],
+        'room' => ['nullable', 'string', 'max:255'],
+        'status' => ['nullable', 'in:pending,scheduled,confirmed,arrived,attended,completed,cancelled'],
+        'notes' => ['nullable', 'string'],
 
-            // Payment & Insurance Fields
-            'payment_type' => ['nullable', Rule::in(['cash', 'insurance', 'none'])],
-            'insurance_company_id' => ['required_if:payment_type,insurance', 'nullable', 'integer', 'exists:insurance_companies,id'],
-            'policy_number' => ['required_if:payment_type,insurance', 'nullable', 'string', 'max:255'],
-            'authorization_code' => ['required_if:payment_type,insurance', 'nullable', 'string', 'max:255'],
-            'approval_date' => ['required_if:payment_type,insurance', 'nullable', 'date_format:Y-m-d'],
-            'coverage' => ['required_if:payment_type,insurance', 'nullable', 'numeric', 'min:0', 'max:100'],
-            'approved_amount' => ['required_if:payment_type,insurance', 'nullable', 'numeric', 'min:0'],
-            'attachment' => ['nullable', 'file', 'max:5120', 'mimes:pdf,jpg,jpeg,png'],
-        ];
-    }
+        // Payment & Insurance Fields
+        'payment_type' => ['nullable', Rule::in(['cash', 'insurance', 'none'])],
+        'insurance_company_id' => ['required_if:payment_type,insurance', 'nullable', 'integer', 'exists:insurance_companies,id'],
+        'policy_number' => ['required_if:payment_type,insurance', 'nullable', 'string', 'max:255'],
+        'authorization_code' => ['required_if:payment_type,insurance', 'nullable', 'string', 'max:255'],
+        'approval_date' => ['required_if:payment_type,insurance', 'nullable', 'date_format:Y-m-d'],
+        'coverage' => ['required_if:payment_type,insurance', 'nullable', 'numeric', 'min:0', 'max:100'],
+        'approved_amount' => ['required_if:payment_type,insurance', 'nullable', 'numeric', 'min:0'],
+        'attachment' => ['nullable', 'file', 'max:5120', 'mimes:pdf,jpg,jpeg,png'],
+
+        // ← الإضافة المطلوبة: تعريف المفتاح المتداخل عشان مايتشالش من validated()
+        'insurance_approval' => ['nullable', 'array'],
+        'insurance_approval.insurance_company_id' => ['nullable', 'integer'],
+        'insurance_approval.policy_number' => ['nullable', 'string', 'max:255'],
+        'insurance_approval.authorization_code' => ['nullable', 'string', 'max:255'],
+        'insurance_approval.approval_date' => ['nullable', 'date_format:Y-m-d'],
+        'insurance_approval.coverage' => ['nullable', 'numeric', 'min:0', 'max:100'],
+        'insurance_approval.approved_amount' => ['nullable', 'numeric', 'min:0'],
+        'insurance_approval.attachment' => ['nullable', 'file', 'max:5120', 'mimes:pdf,jpg,jpeg,png'],
+    ];
+}
 
     protected function prepareForValidation(): void
     {

@@ -1406,7 +1406,7 @@ public function approvals(int $patientId, array $filters = []): array
     if (! $patient) {
         return ServiceResult::error('Patient not found.', null, null, 404);
     }
-
+ 
     $rows = InsuranceApproval::query()
         ->with(['company:id,name,code', 'services'])
         ->where('clinic_id', $this->currentClinicId())
@@ -1426,14 +1426,14 @@ public function approvals(int $patientId, array $filters = []): array
         })
         ->latest('date')
         ->get();
-
+ 
     return ServiceResult::success([
         'patient_id' => $patient->id,
         'is_insurance_case' => (bool) ($patient->insurance_company_id || $patient->insurance_provider || $rows->isNotEmpty()),
-        'items' => $rows->map(fn (InsuranceApproval $approval) => $this->mapApproval($approval))->values()->all(),
+        'items' => $rows->map(fn (InsuranceApproval $approval) => $this->mapApprovalWithAttachments($approval))->values()->all(),
     ], 'Insurance approvals fetched successfully');
 }
-
+ 
 public function createApproval(int $patientId, array $data): array
 {
     $patient = $this->findClinicPatient($patientId);
@@ -1456,11 +1456,23 @@ public function createApprovalForPatient(Patient $patient, array $data, ?int $ap
 
     return DB::transaction(function () use ($clinicId, $company, $data, $patient, $appointmentId) {
         $services = collect($data['services'] ?? []);
+
+        // ← إضافة policy_number كبديل مقبول لنفس الحقل
         $authorizationCode = $data['authorization_code']
-            ?? $data['approval_number']
             ?? $data['ref_id']
+            ?? $data['approval_number']
+            ?? $data['policy_number']
             ?? $data['code']
             ?? null;
+
+        $coveragePercent = $data['coverage_percent']
+            ?? $data['coverage']
+            ?? 0;
+
+        $approvalDate = $data['approval_date']
+            ?? $data['date']
+            ?? now()->toDateString();
+
         $approval = InsuranceApproval::query()->create([
             'clinic_id' => $clinicId,
             'patient_id' => $patient->id,
@@ -1470,20 +1482,25 @@ public function createApprovalForPatient(Patient $patient, array $data, ?int $ap
             'approval_number' => $authorizationCode,
             'ref_id' => $authorizationCode,
             'status' => $this->approvalStatus($data['status'] ?? 'Approved'),
-            'date' => $data['approval_date'] ?? $data['date'] ?? now()->toDateString(),
+            'date' => $approvalDate,
             'expiry_date' => $data['expiry_date'] ?? null,
-            'coverage_percent' => $data['coverage_percent'] ?? $data['coverage'] ?? 0,
-            'approved_amount' => $data['approved_amount'] ?? $services->sum(fn ($item) => (float) ($item['amount'] ?? 0)),
+            'coverage_percent' => (float) $coveragePercent,
+            'approved_amount' => (float) ($data['approved_amount'] ?? $services->sum(fn ($item) => (float) ($item['amount'] ?? 0))),
             'used_amount' => $data['used_amount'] ?? 0,
-            'documents' => $this->normalizeApprovalDocuments($data['documents'] ?? [], $data['attachment'] ?? null),
+
+            'documents' => $this->normalizeApprovalDocuments(
+                $data['documents'] ?? [],
+                $data['attachment'] ?? $data['insurance_approval']['attachment'] ?? null
+            ),
             'notes' => $data['notes'] ?? null,
         ]);
 
+        // إضافة الخدمات
         $services->each(fn (array $item) => $approval->services()->create([
             'service_name' => $item['service_name'] ?? $item['name'] ?? 'Service',
             'service_code' => $item['service_code'] ?? $item['code'] ?? null,
-            'amount' => $item['amount'] ?? $item['value'] ?? 0,
-            'co_pay' => $item['co_pay'] ?? $item['copay'] ?? 0,
+            'amount' => (float) ($item['amount'] ?? $item['value'] ?? 0),
+            'co_pay' => (float) ($item['co_pay'] ?? $item['copay'] ?? 0),
             'tooth_number' => $item['tooth_number'] ?? $item['tooth'] ?? null,
         ]));
 
@@ -1544,7 +1561,22 @@ public function addApprovalService(int $patientId, int $approvalId, array $data)
 }
 
 
-
+private function mapApprovalWithAttachments(InsuranceApproval $approval): array
+{
+    $baseMap = $this->mapApproval($approval);
+    
+   
+    $attachment = collect($approval->documents ?? [])->firstWhere('type', 'Attachment');
+    
+    return array_merge($baseMap, [
+        'has_attachment' => (bool) $attachment,
+        'attachment' => $attachment ? [
+            'name' => $attachment['name'] ?? 'Attachment',
+            'url' => $attachment['url'] ?? $this->documentUrl($attachment['path'] ?? null),
+            'type' => 'Attachment',
+        ] : null,
+    ]);
+}
 private function mapApproval(InsuranceApproval $approval): array
 {
     return [

@@ -25,7 +25,43 @@ class AppointmentResource extends JsonResource
         'patient_name' => $this->patient_name,
         'patient_phone' => $this->patient_phone,
         'approved_id' => $isInsurance ? $approval?->id : null,
-        'insurance_approval' => $isInsurance && $approval ? $this->approvalSummary($approval) : null,
+       
+            'insurance_approval' => $this->when($this->relationLoaded('insuranceApproval') && $this->insuranceApproval, function () {
+                $approval = $this->insuranceApproval;
+                
+                return [
+                    'id' => $approval->id,
+                    'code' => $approval->code,
+                    'approval_number' => $approval->approval_number,
+                    'ref_id' => $approval->ref_id,
+                    'authorization_code' => $approval->approval_number ?? $approval->ref_id,
+                    'insurance_company_id' => $approval->insurance_company_id,
+                    'insurance_company' => $approval->company?->name,
+                    'status' => $approval->status,
+                    'date' => optional($approval->date)?->toDateString(),
+                    'expiry_date' => optional($approval->expiry_date)?->toDateString(),
+                    'coverage' => (float) $approval->coverage_percent,
+                    'coverage_percent' => (float) $approval->coverage_percent,
+                    'approved_amount' => (float) $approval->approved_amount,
+                    'used_amount' => (float) $approval->used_amount,
+                    'policy_number' => $approval->approval_number,            
+                   
+                    'services' => $approval->services->map(fn ($service) => [
+                        'service_name' => $service->service_name,
+                        'service_code' => $service->service_code,
+                        'amount' => (float) $service->amount,
+                        'co_pay' => (float) $service->co_pay,
+                        'tooth_number' => $service->tooth_number,
+                    ])->values()->all(),
+                    
+                    
+                    'has_attachment' => !empty(collect($approval->documents ?? [])->firstWhere('type', 'Attachment')),
+                    'attachment' => collect($approval->documents ?? [])->firstWhere('type', 'Attachment') ? [
+                        'name' => collect($approval->documents ?? [])->firstWhere('type', 'Attachment')['name'] ?? 'Attachment',
+                        'url' => collect($approval->documents ?? [])->firstWhere('type', 'Attachment')['url'],
+                    ] : null,
+                ];
+            }),
         'insurance_approval_required' => $isInsurance && ! $approval,
         'patient' => $this->patient ? [
             'id' => $this->patient->id,

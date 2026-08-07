@@ -143,16 +143,43 @@ class AppointmentController extends Controller
         return $this->respondResult($this->service->updateStatus($id, $validated['status'], $validated['reason'] ?? null));
     }
 
-    public function approve(UpdateAppointmentRequest $request, int $id)
+   public function approve(Request $request, int $id)
     {
+        $validated = $request->validate([
+            // Insurance Approval fields - ✅ إضافة دعم fields متعددة
+            'insurance_company_id' => ['nullable', 'integer', 'exists:insurance_companies,id'],
+            'authorization_code' => ['nullable', 'string', 'max:255'],
+            'ref_id' => ['nullable', 'string', 'max:255'],
+            'approval_number' => ['nullable', 'string', 'max:255'],
+            'policy_number' => ['nullable', 'string', 'max:255'],
+            'approval_date' => ['nullable', 'date_format:Y-m-d'],
+            'coverage' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'coverage_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'approved_amount' => ['nullable', 'numeric', 'min:0'],
+            'attachment' => ['nullable', 'file', 'max:5120', 'mimes:pdf,jpg,jpeg,png'],
+            'services' => ['nullable', 'array'],
+            'services.*.service_name' => ['required_with:services', 'string', 'max:255'],
+            'services.*.amount' => ['required_with:services', 'numeric', 'min:0'],
+            'services.*.co_pay' => ['nullable', 'numeric', 'min:0'],
+            'services.*.tooth_number' => ['nullable', 'string', 'max:50'],
+            'notes' => ['nullable', 'string'],
+        ]);
+ 
+        
+        if (!empty($validated['insurance_company_id']) || !empty($validated['authorization_code']) || !empty($validated['coverage'])) {
+            return $this->createInsuranceApproval($request, $id);
+        }
+ 
+        
         $result = $this->service->confirm($id);
-
+ 
         if (! $result['success']) {
             return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
         }
-
+ 
         return ApiResponse::success($result['data'], $result['message'], $result['code']);
     }
+ 
 
     public function confirm(int $id)
     {
@@ -184,6 +211,36 @@ class AppointmentController extends Controller
 
         return $this->respondResult($this->service->paymentPreview($id, $validated));
     }
+    public function createInsuranceApproval(Request $request, int $id)
+    {
+        $validated = $request->validate([
+            // Insurance Approval fields
+            'insurance_company_id' => ['required', 'integer', 'exists:insurance_companies,id'],
+            'authorization_code' => ['nullable', 'string', 'max:255'],
+            'ref_id' => ['nullable', 'string', 'max:255'],
+            'policy_number' => ['nullable', 'string', 'max:255'],
+            'approval_date' => ['nullable', 'date_format:Y-m-d'],
+            'coverage' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'coverage_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'approved_amount' => ['nullable', 'numeric', 'min:0'],
+            'attachment' => ['nullable', 'file', 'max:5120', 'mimes:pdf,jpg,jpeg,png'],
+            'services' => ['nullable', 'array'],
+            'services.*.service_name' => ['required_with:services', 'string', 'max:255'],
+            'services.*.amount' => ['required_with:services', 'numeric', 'min:0'],
+            'services.*.co_pay' => ['nullable', 'numeric', 'min:0'],
+            'services.*.tooth_number' => ['nullable', 'string', 'max:50'],
+            'notes' => ['nullable', 'string'],
+        ]);
+ 
+        $result = $this->service->createInsuranceApprovalFromAppointment($id, $validated);
+ 
+        if (! $result['success']) {
+            return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+        }
+ 
+        return ApiResponse::success($result['data'], $result['message'], $result['code']);
+    }
+ 
 
     public function payment(Request $request, int $id)
     {
