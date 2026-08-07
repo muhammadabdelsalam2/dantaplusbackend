@@ -6,32 +6,37 @@ use Illuminate\Support\Collection;
 
 interface ClinicSelectRepositoryInterface
 {
-    public function dentalLabs(int $clinicId, array $filters = []): Collection;
+    public function dentalLabs(?int $clinicId, array $filters = []): Collection;
 
-    public function doctors(int $clinicId, array $filters = []): Collection;
+    public function doctors(?int $clinicId, array $filters = []): Collection;
 
-    public function patients(int $clinicId, array $filters = []): Collection;
+    public function patients(?int $clinicId, array $filters = []): Collection;
 
-    public function staff(int $clinicId, array $filters = []): Collection;
+    public function staff(?int $clinicId, array $filters = []): Collection;
 
-    public function services(int $clinicId, array $filters = []): Collection;
+    public function services(?int $clinicId, array $filters = []): Collection;
 
-    public function dentists(int $clinicId, array $filters = []): Collection;
+    public function dentists(?int $clinicId, array $filters = []): Collection;
 
-    public function expenseCategories(int $clinicId, array $filters = []): Collection;
+    public function expenseCategories(?int $clinicId, array $filters = []): Collection;
 
-    public function insuranceCompanies(int $clinicId, array $filters = []): Collection;
+    public function insuranceCompanies(?int $clinicId, array $filters = []): Collection;
 
-    public function syndicatePriceLists(int $clinicId, array $filters = []): Collection;
+    public function syndicatePriceLists(?int $clinicId, array $filters = []): Collection;
 
-    public function responseSpeeds(int $clinicId, array $filters = []): Collection;
-    public function materialCompanies(int $clinicId, array $filters = []): Collection;
+    public function responseSpeeds(?int $clinicId, array $filters = []): Collection;
 
-public function materialCategories(int $clinicId, array $filters = []): Collection;
-public function inventoryUnits(int $clinicId, array $filters = []): Collection;
-public function claimStatuses(int $clinicId, array $filters = []): Collection;
-public function rooms(int $clinicId, array $filters = []): Collection;
-public function invoices(int $clinicId, array $filters = []): Collection;
-public function branches(int $clinicId, array $filters = []): Collection;
+    public function materialCompanies(?int $clinicId, array $filters = []): Collection;
 
+    public function materialCategories(?int $clinicId, array $filters = []): Collection;
+
+    public function inventoryUnits(?int $clinicId, array $filters = []): Collection;
+
+    public function claimStatuses(?int $clinicId, array $filters = []): Collection;
+
+    public function rooms(?int $clinicId, array $filters = []): Collection;
+
+    public function invoices(?int $clinicId, array $filters = []): Collection;
+
+    public function branches(?int $clinicId, array $filters = []): Collection;
 }
