@@ -50,4 +50,19 @@ class NotificationCenterController extends Controller
             ? ApiResponse::success($result['data'], $result['message'], $result['code'])
             : ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
     }
+    public function testLive(\Illuminate\Http\Request $request)
+{
+    $result = $this->service->sendNotification([
+        'title' => 'Real-Time Test',
+        'message' => 'This is a test notification to demonstrate real-time updates.',
+        'type' => 'system_test',
+        'priority' => 'medium',
+        'delivery_method' => ['in_app'],
+        'sender_name' => 'System Test',
+    ], $request->user(), true); // isTest = true
+
+    return $result['success']
+        ? ApiResponse::success($result['data'], $result['message'], $result['code'])
+        : ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+}
 }

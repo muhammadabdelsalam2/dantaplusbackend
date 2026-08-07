@@ -354,6 +354,7 @@ Route::middleware('permission:appointments.view')
         Route::get('/notifications/unread',              [NotificationCenterController::class, 'unread']);
         Route::post('/notifications/{id}/read',         [NotificationCenterController::class, 'markRead']);
         Route::post('/notifications/mark-all-read',      [NotificationCenterController::class, 'markAllRead']);
+        Route::post('/notifications/test-live',          [NotificationCenterController::class, 'testLive']); 
 
         // ─── Treatments ──────────────────────────────────────────────────────
         Route::middleware('permission:treatments.manage')->get('/treatments',       [TreatmentController::class, 'index']);
