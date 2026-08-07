@@ -5,16 +5,9 @@ namespace App\Http\Controllers\Api\Clinic;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Clinic\StoreAppointmentRequest;
 use App\Http\Requests\Clinic\UpdateAppointmentRequest;
-use App\Models\CaseAttachment;
-use App\Models\CaseModel;
-use App\Models\DentalLab;
-use App\Models\LabService;
 use App\Services\Clinic\AppointmentService;
 use App\Support\ApiResponse;
-use App\Support\ServiceResult;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 
 class AppointmentController extends Controller
 {
@@ -24,7 +17,7 @@ class AppointmentController extends Controller
     {
     }
 
-    // ✅ Store - تم تحديثه للحقول المسطحة
+    
     public function store(StoreAppointmentRequest $request)
     {
         $result = $this->service->create($request->validated());
@@ -36,7 +29,7 @@ class AppointmentController extends Controller
         return ApiResponse::success($result['data'], $result['message'], $result['code']);
     }
 
-    // ✅ Quick Book - تم تحديثه للحقول المسطحة
+    
     public function quickBook(Request $request)
     {
         $validated = $request->validate([
@@ -53,7 +46,7 @@ class AppointmentController extends Controller
             'duration_minutes' => ['nullable', 'integer', 'min:5', 'max:480'],
             'payment_type' => ['nullable', 'in:cash,insurance,none,no_payment_type'],
 
-            // ✨ Insurance fields - مسطحة
+            
             'insurance_company_id' => ['required_if:payment_type,insurance', 'nullable', 'integer', 'exists:insurance_companies,id'],
             'policy_number' => ['required_if:payment_type,insurance', 'nullable', 'string', 'max:255'],
             'authorization_code' => ['required_if:payment_type,insurance', 'nullable', 'string', 'max:255'],
@@ -69,7 +62,7 @@ class AppointmentController extends Controller
             $validated['payment_type'] = 'none';
         }
 
-        // تحويل الحقول المسطحة إلى صيغة الخدمة
+       
         if ($validated['payment_type'] === 'insurance') {
             $validated['insurance_approval'] = [
                 'insurance_company_id' => $validated['insurance_company_id'],
@@ -89,7 +82,7 @@ class AppointmentController extends Controller
             : ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
     }
 
-    // ✅ Update - تم تحديثه للحقول المسطحة
+   
     public function update(UpdateAppointmentRequest $request, int $id)
     {
         $result = $this->service->update($id, $request->validated());
@@ -101,7 +94,7 @@ class AppointmentController extends Controller
         return ApiResponse::success($result['data'], $result['message'], $result['code']);
     }
 
-    // ✅ الطرق الأخرى تبقى كما هي
+    
     public function index(Request $request)
     {
         $validated = $request->validate([
@@ -272,104 +265,27 @@ class AppointmentController extends Controller
         return $this->respondResult($this->service->sendWhatsAppReminder($id));
     }
 
-   public function sendToLab(int $id, array $data): array
+    public function sendToLab(Request $request, int $id)
     {
-        $appointment = $this->findClinicAppointment($id);
-        if (! $appointment) {
-            return ServiceResult::error('Appointment not found.', null, null, 404);
-        }
+        $validated = $request->validate([
+            'lab_id' => ['required', 'integer', 'exists:dental_labs,id'],
+            'service_id' => ['required', 'integer', 'exists:lab_services,id'],
+            'tooth_numbers' => ['required', 'array', 'min:1'],
+            'tooth_numbers.*' => ['integer', 'min:1', 'max:32'],
+            'material_id' => ['required', 'integer', 'min:1'],
+            'shade_id' => ['required', 'integer', 'min:1'],
+            'is_3d' => ['nullable', 'boolean'],
+            'delivery_date' => ['required', 'date'],
+            'files' => ['nullable', 'array'],
+            'files.*' => ['file', 'max:10240'],
+            'notes' => ['nullable', 'string'],
+        ]);
 
-        if (! $appointment->patient_id) {
-            return ServiceResult::error('Appointment is not linked to a patient.', null, ['patient_id' => ['Appointment is not linked to a patient.']], 422);
-        }
+        $result = $this->service->sendToLab($id, $validated);
 
-        $clinicId = (int) $appointment->clinic_id;
-        $lab = DentalLab::query()
-            ->whereHas('partnerships', fn ($query) => $query->where('clinic_id', $clinicId))
-            ->find($data['lab_id']);
-
-        if (! $lab) {
-            return ServiceResult::error('Dental lab not found.', null, ['lab_id' => ['Dental lab not found for this clinic.']], 422);
-        }
-
-        $service = LabService::query()
-            ->where('lab_id', $lab->id)
-            ->find($data['service_id']);
-
-        if (! $service) {
-            return ServiceResult::error('Lab service not found.', null, ['service_id' => ['Lab service not found for this lab.']], 422);
-        }
-
-        $dentistId = $this->doctorModelIdForUser((int) $appointment->doctor_user_id, $clinicId);
-        if (! $dentistId) {
-            return ServiceResult::error('No dentist profile is linked to this appointment.', null, ['doctor_id' => ['No dentist profile is linked to this appointment.']], 422);
-        }
-
-        $material = $this->materialName((int) $data['material_id']);
-        $shade = $this->shadeName((int) $data['shade_id']);
-
-        $order = DB::transaction(function () use ($appointment, $clinicId, $lab, $service, $dentistId, $data, $material, $shade) {
-            $order = CaseModel::query()->create([
-                'case_number' => $this->generateLabCaseNumber(),
-                'clinic_id' => $clinicId,
-                'lab_id' => $lab->id,
-                'patient_id' => $appointment->patient_id,
-                'dentist_id' => $dentistId,
-                'status' => CaseModel::STATUS_PENDING,
-                'priority' => CaseModel::PRIORITY_NORMAL,
-                'due_date' => $data['delivery_date'],
-                'case_type' => $service->service_name,
-                'lab_service_id' => $service->id,
-                'tooth_numbers' => $data['tooth_numbers'],
-                'tooth_chart_3d' => [
-                    'is_3d' => (bool) ($data['is_3d'] ?? false),
-                    'material_id' => (int) $data['material_id'],
-                    'material' => $material,
-                    'shade_id' => (int) $data['shade_id'],
-                    'shade' => $shade,
-                    'appointment_id' => $appointment->id,
-                ],
-                'description' => trim(collect([
-                    'Appointment ID: ' . $appointment->id,
-                    'Material: ' . $material,
-                    'Shade: ' . $shade,
-                    '3D: ' . ((bool) ($data['is_3d'] ?? false) ? 'Yes' : 'No'),
-                    filled($data['notes'] ?? null) ? 'Notes: ' . $data['notes'] : null,
-                ])->filter()->implode("\n")),
-                'created_by' => auth()->id(),
-            ]);
-
-            foreach (($data['files'] ?? []) as $file) {
-                $path = Storage::disk('public')->putFile('clinic/lab-orders/' . $order->id, $file);
-                CaseAttachment::query()->create([
-                    'case_id' => $order->id,
-                    'uploaded_by' => auth()->id(),
-                    'file_name' => $file->getClientOriginalName(),
-                    'file_path' => $path,
-                    'mime_type' => $file->getMimeType(),
-                    'file_size' => $file->getSize(),
-                    'attachment_type' => 'appointment_lab_file',
-                ]);
-            }
-
-            return $order;
-        });
-
-        return ServiceResult::success([
-            'order_id' => $order->id,
-            'appointment_id' => $appointment->id,
-            'lab' => ['id' => $lab->id, 'name' => $lab->name],
-            'service' => ['id' => $service->id, 'name' => $service->service_name],
-            'patient' => [
-                'id' => $appointment->patient_id,
-                'name' => $appointment->patient?->user?->name ?? $appointment->patient_name,
-            ],
-            'teeth' => $data['tooth_numbers'],
-            'material' => $material,
-            'shade' => $shade,
-            'delivery_date' => $order->due_date->toDateString(),
-            'created_at' => $order->created_at->toISOString(),
-        ], 'Case sent to lab successfully', 201);
+        return $result['success']
+            ? response()->json(['success' => true, 'data' => $result['data']], $result['code'])
+            : ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
     }
 
     public function availableSlots(Request $request)

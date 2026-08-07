@@ -412,7 +412,7 @@ public function complete(int $id): array
         return ServiceResult::success(['sent' => true], 'WhatsApp reminder queued successfully');
     }
 
-    public function sendToLab(int $id, array $data): array
+     public function sendToLab(int $id, array $data): array
     {
         $appointment = $this->findClinicAppointment($id);
         if (! $appointment) {
@@ -459,6 +459,7 @@ public function complete(int $id): array
                 'priority' => CaseModel::PRIORITY_NORMAL,
                 'due_date' => $data['delivery_date'],
                 'case_type' => $service->service_name,
+                'lab_service_id' => $service->id,
                 'tooth_numbers' => $data['tooth_numbers'],
                 'tooth_chart_3d' => [
                     'is_3d' => (bool) ($data['is_3d'] ?? false),

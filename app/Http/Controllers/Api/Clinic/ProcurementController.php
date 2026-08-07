@@ -64,7 +64,18 @@ class ProcurementController extends Controller
             return ApiResponse::error('Procurement order not found.', 404);
         }
 
-        return $this->receive($po);
+        // Distinct transition from receive(): approving only moves the order
+        // into the "ordered" state. It does NOT touch inventory quantities.
+        // Only receive() (called separately) adds stock.
+        $order->update([
+            'status' => ProcurementOrder::STATUS_ORDERED,
+            'ordered_at' => $order->ordered_at ?? now(),
+        ]);
+
+        return ApiResponse::success(
+            (new ProcurementOrderResource($order->fresh(['material:id,name', 'supplier:id,name'])))->resolve(),
+            'Procurement order approved successfully'
+        );
     }
 
     public function receive(int $po)
