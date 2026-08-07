@@ -10,6 +10,8 @@ class Doctor extends Model
 {
     protected $fillable = [
         'user_id',
+        'name',        // اسم الطبيب مباشرة (للأطباء الخارجيين بدون User)
+        'clinic_id',   // ربط مباشر بالعيادة لو مفيش user
         'branch_id',
         'specialization',
         'license_number',
@@ -20,6 +22,11 @@ class Doctor extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function clinic(): BelongsTo
+    {
+        return $this->belongsTo(Clinic::class);
     }
 
     public function branch(): BelongsTo
@@ -35,5 +42,13 @@ class Doctor extends Model
     public function clinicTasks(): HasMany
     {
         return $this->hasMany(ClinicTask::class, 'assign_to_doctor_id');
+    }
+
+    /**
+     
+     */
+    public function getDisplayNameAttribute(): ?string
+    {
+        return $this->user?->name ?? $this->name;
     }
 }

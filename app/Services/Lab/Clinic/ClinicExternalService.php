@@ -5,11 +5,9 @@ namespace App\Services\Lab\Clinic;
 use App\Http\Resources\Lab\Clinic\ClinicDetailResource;
 use App\Http\Resources\Lab\Clinic\ClinicPartnershipResource;
 use App\Models\Doctor;
-use App\Models\User;
 use App\Repositories\Lab\Clinic\ClinicRepositoryInterface;
 use App\Support\ServiceResult;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 class ClinicExternalService
 {
@@ -55,7 +53,9 @@ class ClinicExternalService
                 'invited_by'             => auth()->id(),
             ]);
 
-            // 3. Create doctor users linked to this clinic (if provided)
+            // 3. Create doctor RECORDS ONLY — no User account at all.
+            // These are just names attached to the external clinic; nobody
+            // logs in as them, so there's no reason to touch the users table.
             $createdDoctors = [];
             if (! empty($data['doctors']) && is_array($data['doctors'])) {
                 foreach ($data['doctors'] as $doctorName) {
@@ -64,33 +64,15 @@ class ClinicExternalService
                         continue;
                     }
 
-                    // Create a stub User for this doctor.
-                    // No password is set intentionally — external clinic doctors don't log in.
-                    $user = User::create([
-                        'name'       => $doctorName,
-                        'username'   => $this->generateUsername($doctorName),
-                        'email'      => null,
-                        'phone'      => null,
-                        'password'   => null,
-                        'clinic_id'  => $clinic->id,
-                        'is_active'  => false,
-                        'is_verified'=> false,
-                        'status'     => 'Active',
-                        'role'       => 'doctor',
-                    ]);
-
-                    // Assign Spatie role
-                    $user->assignRole('doctor');
-
-                    // Create the Doctor profile
                     $doctor = Doctor::create([
-                        'user_id' => $user->id,
+                        'user_id'   => null,
+                        'name'      => $doctorName,
+                        'clinic_id' => $clinic->id,
                     ]);
 
                     $createdDoctors[] = [
                         'doctor_id' => $doctor->id,
-                        'user_id'   => $user->id,
-                        'name'      => $user->name,
+                        'name'      => $doctor->name,
                     ];
                 }
             }
@@ -103,30 +85,8 @@ class ClinicExternalService
         });
     }
 
-    // ─── Private helpers ──────────────────────────────────────────────────────
-
     private function currentLabId(): ?int
     {
         return auth()->user()?->lab_id;
-    }
-
-    /**
-     * Generate a unique username from a doctor's name.
-     * Falls back to a random suffix if the base slug is taken.
-     */
-    private function generateUsername(string $name): string
-    {
-        $base = Str::slug($name, '_');
-        $base = $base ?: 'doctor';
-
-        $username = $base;
-        $counter  = 1;
-
-        while (User::where('username', $username)->exists()) {
-            $username = $base . '_' . $counter;
-            $counter++;
-        }
-
-        return $username;
     }
 }
