@@ -671,27 +671,37 @@ class BillingService
         ], 'Lab invoices fetched successfully');
     }
 
-    public function labInvoiceShow(int $invoiceId): array
-    {
-        $invoice = LabInvoice::query()
-            ->with(['lab:id,name,email,phone', 'doctor.user:id,name', 'items'])
-            ->where('clinic_id', $this->currentClinicId())
-            ->find($invoiceId);
-
-        if (! $invoice) {
-            return ServiceResult::error('Lab invoice not found.', null, null, 404);
-        }
-
-        return ServiceResult::success($this->mapLabInvoice($invoice) + [
-            'items' => $invoice->items->map(fn ($item) => [
-                'service_name' => $item->service_name,
-                'patient_name' => $item->patient_name,
-                'quantity' => (int) $item->quantity,
-                'price' => (float) $item->unit_price,
-                'total' => (float) $item->total,
-            ])->values()->all(),
-        ], 'Lab invoice fetched successfully');
+   public function labInvoiceShow(int $invoiceId): array
+{
+    $clinicId = $this->currentClinicId();
+    if (! $clinicId) {
+        return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
     }
+ 
+    $invoice = LabInvoice::query()
+        ->with(['lab:id,name,email,phone', 'doctor.user:id,name', 'items'])
+        ->where('clinic_id', $clinicId)
+        ->find($invoiceId);
+ 
+    if (! $invoice) {
+        return ServiceResult::error('Lab invoice not found.', null, null, 404);
+    }
+ 
+    return ServiceResult::success($this->mapLabInvoice($invoice) + [
+        'items' => $invoice->items->map(fn ($item) => [
+            'service_name' => $item->service_name,
+            'patient_name' => $item->patient_name,
+            'quantity' => (int) $item->quantity,
+            'price' => (float) $item->unit_price,
+            'total' => (float) $item->total,
+        ])->values()->all(),
+        // ⭐ إضافة رابط التحميل
+        'download' => [
+            'pdf_url' => $this->billingDownloadUrl($clinicId, 'lab_invoice', 'pdf', $invoiceId),
+            'filename' => 'lab-invoice-' . $invoice->invoice_number . '.pdf',
+        ],
+    ], 'Lab invoice fetched successfully');
+}
 
     public function updateLabInvoiceStatus(int $invoiceId, array $data): array
     {
@@ -900,63 +910,71 @@ class BillingService
     }
 
     public function extractAccounts(array $filters = []): array
-    {
-        $clinicId = $this->currentClinicId();
-        if (! $clinicId) {
-            return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
-        }
-
-        $rangeFilters = $this->applyDateRangeFilter($filters);
-        $doctorId = $filters['doctor_id'] ?? $filters['doctor'] ?? null;
-        $doctor = $doctorId ? User::query()->where('clinic_id', $clinicId)->find($doctorId) : null;
-
-        $invoices = ClinicInvoice::query()
-            ->with(['patient.user:id,name', 'doctor:id,name', 'items'])
-            ->where('clinic_id', $clinicId)
-            ->when($doctorId, fn ($query, int $id) => $query->where('doctor_user_id', $id))
-            ->when($rangeFilters['date_from'] ?? null, fn ($query, string $date) => $query->whereDate('issued_at', '>=', $date))
-            ->when($rangeFilters['date_to'] ?? null, fn ($query, string $date) => $query->whereDate('issued_at', '<=', $date))
-            ->latest('issued_at')
-            ->get();
-
-        $rows = $invoices->map(fn (ClinicInvoice $invoice) => [
-            'invoiceId' => $invoice->invoice_number,
-            'invoice_id' => $invoice->id,
-            'invoice_url' => '/clinic/billing/invoices/' . $invoice->id,
-            'patient' => $invoice->patient?->user?->name,
-            'date' => optional($invoice->issued_at)?->toDateString(),
-            'services' => $invoice->items->pluck('description')->filter()->implode(', '),
-            'amount' => (float) $invoice->total,
-        ])->values();
-
-        $deliveryLog = BillingReportDelivery::query()
-            ->where('clinic_id', $clinicId)
-            ->where('report_type', 'extract_accounts')
-            ->latest('sent_at')
-            ->get()
-            ->map(fn (BillingReportDelivery $delivery) => [
-                'sentAt' => optional($delivery->sent_at)->toDateTimeString(),
-                'sentTo' => $delivery->sent_to,
-                'channel' => $delivery->channel,
-                'status' => $delivery->status,
-            ])
-            ->values()
-            ->all();
-
-        return ServiceResult::success([
-            'title' => 'Found ' . $rows->count() . ' invoices for ' . ($doctor?->name ?? 'All Doctors'),
-            'filters' => [
-                'date_from' => $rangeFilters['date_from'] ?? null,
-                'date_to' => $rangeFilters['date_to'] ?? null,
-                'quick_ranges' => ['This Week', 'This Month', 'This Year'],
-                'doctors' => $this->clinicDoctors()['data'] ?? [],
-            ],
-            'items' => $rows->all(),
-            'total' => round((float) $rows->sum('amount'), 2),
-            'deliveryLog' => $deliveryLog,
-            'delivery_empty_message' => $deliveryLog === [] ? 'No reports have been sent yet.' : null,
-        ], 'Extract accounts fetched successfully');
+{
+    $clinicId = $this->currentClinicId();
+    if (! $clinicId) {
+        return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
     }
+
+    $rangeFilters = $this->applyDateRangeFilter($filters);
+    $doctorId = $filters['doctor_id'] ?? $filters['doctor'] ?? null;
+    $doctor = $doctorId ? User::query()->where('clinic_id', $clinicId)->find($doctorId) : null;
+
+    $invoices = ClinicInvoice::query()
+        ->with(['patient.user:id,name', 'doctor:id,name', 'items'])
+        ->where('clinic_id', $clinicId)
+        ->when($doctorId, fn ($query, int $id) => $query->where('doctor_user_id', $id))
+        ->when($rangeFilters['date_from'] ?? null, fn ($query, string $date) => $query->whereDate('issued_at', '>=', $date))
+        ->when($rangeFilters['date_to'] ?? null, fn ($query, string $date) => $query->whereDate('issued_at', '<=', $date))
+        ->latest('issued_at')
+        ->get();
+
+    $rows = $invoices->map(fn (ClinicInvoice $invoice) => [
+        'invoiceId' => $invoice->invoice_number,
+        'invoice_id' => $invoice->id,
+        'invoice_url' => '/clinic/billing/invoices/' . $invoice->id,
+        'patient' => $invoice->patient?->user?->name,
+        'date' => optional($invoice->issued_at)?->toDateString(),
+        'services' => $invoice->items->pluck('description')->filter()->implode(', '),
+        'amount' => (float) $invoice->total,
+    ])->values();
+
+    $deliveryLog = BillingReportDelivery::query()
+        ->where('clinic_id', $clinicId)
+        ->where('report_type', 'extract_accounts')
+        ->latest('sent_at')
+        ->get()
+        ->map(fn (BillingReportDelivery $delivery) => [
+            'sentAt' => optional($delivery->sent_at)->toDateTimeString(),
+            'sentTo' => $delivery->sent_to,
+            'channel' => $delivery->channel,
+            'status' => $delivery->status,
+        ])
+        ->values()
+        ->all();
+
+    return ServiceResult::success([
+        'title' => 'Found ' . $rows->count() . ' invoices for ' . ($doctor?->name ?? 'All Doctors'),
+        'filters' => [
+            'date_from' => $rangeFilters['date_from'] ?? null,
+            'date_to' => $rangeFilters['date_to'] ?? null,
+            'quick_ranges' => ['This Week', 'This Month', 'This Year'],
+            'doctors' => $this->clinicDoctors()['data'] ?? [],
+        ],
+        'items' => $rows->all(),
+        'total' => round((float) $rows->sum('amount'), 2),
+        'deliveryLog' => $deliveryLog,
+        'delivery_empty_message' => $deliveryLog === [] ? 'No reports have been sent yet.' : null,
+       
+        'download' => [
+            'pdf_url' => $this->extractAccountsDownloadUrl($clinicId, 'pdf', $filters),
+            'excel_url' => $this->extractAccountsDownloadUrl($clinicId, 'excel', $filters),
+            'pdf_filename' => 'extract-accounts-' . now()->format('Y-m-d') . '.pdf',
+            'excel_filename' => 'extract-accounts-' . now()->format('Y-m-d') . '.xlsx',
+        ],
+    ], 'Extract accounts fetched successfully');
+}
+
 
     public function sendExtractAccountWhatsApp(array $data): array
     {
@@ -1050,24 +1068,35 @@ class BillingService
     }
 
     public function signedBillingDownload(array $data): array
-    {
-        $clinicId = (int) $data['clinic_id'];
-        $type = $data['type'];
-        $format = $data['format'];
-
-        if ($type === 'lab_invoice') {
-            $invoice = LabInvoice::query()->with(['lab:id,name', 'items'])->where('clinic_id', $clinicId)->find($data['id'] ?? null);
-            if (! $invoice) {
-                return ServiceResult::error('Lab invoice not found.', null, null, 404);
-            }
-
-            return ServiceResult::success($this->downloadPayload('lab-invoice-' . $invoice->id, $format, [
-                ['Invoice', $invoice->invoice_number],
-                ['Lab', $invoice->lab?->name],
-                ['Amount', (float) $invoice->total_amount],
-                ['Status', $this->billingStatus($invoice->status)],
-            ]), 'Lab invoice download generated successfully');
+{
+    $clinicId = (int) $data['clinic_id'];
+    $type = $data['type'];
+    $format = $data['format'];
+ 
+    
+ 
+    // ⭐ إضافة معالجة extract_accounts
+    if ($type === 'extract_accounts') {
+        $filters = array_filter($data, fn ($value) => $value !== null && $value !== '');
+        $currentUser = auth()->user();
+        auth()->onceUsingId(User::query()->where('clinic_id', $clinicId)->value('id') ?? $currentUser?->id);
+        
+        $extract = $this->extractAccounts($filters);
+        if (! $extract['success']) {
+            return $extract;
         }
+ 
+        $rows = collect($extract['data']['items'])->map(fn ($row) => [
+            $row['invoiceId'],
+            $row['patient'],
+            $row['date'],
+            $row['services'],
+            $row['amount'],
+        ])->prepend(['Invoice', 'Patient', 'Date', 'Services', 'Amount'])->all();
+ 
+        return ServiceResult::success($this->downloadPayload('extract-accounts', $format, $rows), 'Extract accounts download generated successfully');
+    }
+
 
         if ($type === 'material_invoice') {
             $order = Order::query()->withoutGlobalScope(\App\Scopes\CompanyScope::class)->with(['supplierCompany:id,name', 'items.product:id,name'])->where('clinic_id', $clinicId)->find($data['id'] ?? null);
@@ -1224,7 +1253,16 @@ class BillingService
             'filename' => self::PROFIT_LOSS_DOWNLOAD_FILENAME,
         ];
     }
-
+private function extractAccountsDownloadUrl(int $clinicId, string $format, array $filters = []): string
+{
+    return $this->billingDownloadUrl(
+        $clinicId,
+        'extract_accounts',
+        $format,
+        null,
+        $filters
+    );
+}
     private function mapLabInvoice(LabInvoice $invoice): array
     {
         return [

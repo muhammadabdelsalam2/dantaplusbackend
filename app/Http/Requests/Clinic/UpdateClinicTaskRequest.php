@@ -16,6 +16,12 @@ class UpdateClinicTaskRequest extends FormRequest
             'Done' => 'done',
         ];
 
+         $priorityMap = [
+        'Low' => 'low',
+        'Medium' => 'medium',
+        'High' => 'high',
+    ];
+
         $payload = [];
         if ($this->has('task_title') && ! $this->has('title')) {
             $payload['title'] = $this->input('task_title');
@@ -27,7 +33,9 @@ class UpdateClinicTaskRequest extends FormRequest
         if ($this->has('status')) {
             $payload['status'] = $statusMap[$this->input('status')] ?? $this->input('status');
         }
-
+     if ($this->has('priority')) {
+        $payload['priority'] = $priorityMap[$this->input('priority')] ?? strtolower($this->input('priority'));
+    }
         $this->merge($payload);
     }
 

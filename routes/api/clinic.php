@@ -74,6 +74,8 @@ Route::get('clinic/patients/{patient}/radiology/{record}/download-file', [Patien
 Route::get('clinic/radiology/{radiologyId}/download-pdf', [RadiologyController::class, 'downloadPdf'])
     ->middleware(['api.error'])
     ->name('clinic.radiology.download-pdf');
+        Route::get('/radiology/compare/pdf-file', [RadiologyController::class, 'comparePdfFile']);
+
 
 Route::get('clinic/radiology/{radiologyId}/pdf-file', [RadiologyController::class, 'pdfFile'])
     ->middleware(['api.error'])

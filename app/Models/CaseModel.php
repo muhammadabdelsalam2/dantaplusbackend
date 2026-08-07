@@ -51,6 +51,7 @@ class CaseModel extends Model
         'priority',
         'due_date',
         'case_type',
+        'lab_service_id',
         'tooth_numbers',
         'description',
         'assigned_technician_id',
@@ -81,6 +82,11 @@ class CaseModel extends Model
     public function lab(): BelongsTo
     {
         return $this->belongsTo(DentalLab::class, 'lab_id');
+    }
+
+    public function labService(): BelongsTo
+    {
+        return $this->belongsTo(LabService::class, 'lab_service_id');
     }
 
     public function patient(): BelongsTo

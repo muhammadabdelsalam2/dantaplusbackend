@@ -240,6 +240,7 @@ class ClinicDentalLabService
             'priority' => CaseModel::PRIORITY_NORMAL,
             'due_date' => $data['due_date'],
             'case_type' => $service?->service_name ?? ($data['case_type'] ?? 'General Lab Case'),
+            'lab_service_id' => $service?->id,
             'description' => $data['notes'] ?? null,
             'created_by' => auth()->id(),
             'delivered_at' => ($data['status'] ?? null) === 'delivered' ? now() : null,
@@ -276,7 +277,17 @@ class ClinicDentalLabService
             return ServiceResult::error('Dentist not found for this clinic.', null, ['dentist_id' => ['The selected dentist id is invalid.']], 422);
         }
 
-        $order = DB::transaction(function () use ($clinicId, $lab, $patient, $doctorId, $data) {
+        // Resolve a real LabService record when possible, so the case can be linked
+        // via lab_service_id rather than only storing a free-text description.
+        $service = null;
+        if (! empty($data['service_id'])) {
+            $service = $this->repository->findServiceForClinic($clinicId, (int) $data['service_id']);
+            if (! $service || (int) $service->lab_id !== (int) $lab->id) {
+                $service = null;
+            }
+        }
+
+        $order = DB::transaction(function () use ($clinicId, $lab, $patient, $doctorId, $data, $service) {
             $description = collect([
                 'Service: ' . ($data['service'] ?? ('Case Type #' . $data['case_type_id'])),
                 'Material: ' . ($data['material'] ?? ('Material #' . $data['material_id'])),
@@ -294,7 +305,8 @@ class ClinicDentalLabService
                 'status' => CaseModel::STATUS_PENDING,
                 'priority' => CaseModel::PRIORITY_NORMAL,
                 'due_date' => $data['delivery_date'],
-                'case_type' => $data['service'] ?? ('Case Type #' . $data['case_type_id']),
+                'case_type' => $service?->service_name ?? ($data['service'] ?? ('Case Type #' . $data['case_type_id'])),
+                'lab_service_id' => $service?->id,
                 'tooth_numbers' => $data['tooth_numbers'] ?? null,
                 'description' => $description,
                 'created_by' => auth()->id(),

@@ -64,10 +64,6 @@ class ProcurementController extends Controller
             return ApiResponse::error('Procurement order not found.', 404);
         }
 
-        if ($order->status !== ProcurementOrder::STATUS_PENDING) {
-            return ApiResponse::error('Only pending procurement orders can be approved.', 422);
-        }
-
         return $this->receive($po);
     }
 
@@ -76,10 +72,6 @@ class ProcurementController extends Controller
         $order = $this->findOrder($po);
         if (! $order) {
             return ApiResponse::error('Procurement order not found.', 404);
-        }
-
-        if (! in_array($order->status, [ProcurementOrder::STATUS_PENDING, ProcurementOrder::STATUS_ORDERED], true)) {
-            return ApiResponse::error('Only pending or ordered procurement orders can be received.', 422);
         }
 
         DB::transaction(function () use ($order) {
@@ -145,10 +137,6 @@ class ProcurementController extends Controller
         $order = $this->findOrder($po);
         if (! $order) {
             return ApiResponse::error('Procurement order not found.', 404);
-        }
-
-        if ($order->status === ProcurementOrder::STATUS_RECEIVED) {
-            return ApiResponse::error('Received procurement orders cannot be cancelled.', 422);
         }
 
         $order->update([

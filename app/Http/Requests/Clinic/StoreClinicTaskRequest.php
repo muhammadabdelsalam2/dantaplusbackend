@@ -15,13 +15,18 @@ class StoreClinicTaskRequest extends FormRequest
             'In Progress' => 'in_progress',
             'Done' => 'done',
         ];
-
-        $this->merge(array_filter([
-            'title' => $this->input('title', $this->input('task_title')),
-            'assign_to_user_id' => $this->input('assign_to_user_id', $this->input('assignee_id')),
-            'status' => $statusMap[$this->input('status')] ?? $this->input('status'),
-        ], static fn ($value) => $value !== null));
-    }
+     $priorityMap = [
+        'Low' => 'low',
+        'Medium' => 'medium',
+        'High' => 'high',
+    ];
+         $this->merge(array_filter([
+        'title' => $this->input('title', $this->input('task_title')),
+        'assign_to_user_id' => $this->input('assign_to_user_id', $this->input('assignee_id')),
+        'status' => $statusMap[$this->input('status')] ?? $this->input('status'),
+        'priority' => $priorityMap[$this->input('priority')] ?? strtolower($this->input('priority') ?? ''),
+    ], static fn ($value) => $value !== null && $value !== ''));
+}
 
     public function authorize(): bool
     {

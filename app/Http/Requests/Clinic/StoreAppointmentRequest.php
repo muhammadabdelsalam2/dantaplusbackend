@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests\Clinic;
 
-use App\Http\Requests\Clinic\Concerns\ValidatesInsuranceApprovalData;
 use App\Models\ClinicAppointment;
 use Carbon\Carbon;
 use Illuminate\Foundation\Http\FormRequest;
@@ -11,8 +10,6 @@ use Illuminate\Validation\Rule;
 
 class StoreAppointmentRequest extends FormRequest
 {
-    use ValidatesInsuranceApprovalData;
-
     public function authorize(): bool
     {
         return true;
@@ -22,37 +19,63 @@ class StoreAppointmentRequest extends FormRequest
     {
         $clinicId = auth()->user()?->clinic_id;
 
-        return array_merge([
+        return [
+            // Appointment Fields
             'patient_id' => ['nullable', 'integer', 'exists:patients,id'],
             'patient_name' => ['required_without:patient_id', 'nullable', 'string', 'max:255'],
             'patient_phone' => ['nullable', 'string', 'max:50'],
             'doctor_id' => ['nullable', 'integer', 'exists:users,id'],
             'service_id' => ['nullable', 'integer', 'exists:services,id'],
             'service_name' => ['required_without:service_id', 'nullable', 'string', 'max:255'],
-            'appointment_at' => ['required_without_all:date,time', 'nullable', 'date'],
             'date' => ['required_without:appointment_at', 'nullable', 'date_format:Y-m-d'],
             'time' => ['required_without:appointment_at', 'nullable', 'date_format:H:i'],
+            'appointment_at' => ['nullable', 'date'],
             'duration' => ['nullable', 'integer', 'min:5', 'max:480'],
             'duration_minutes' => ['nullable', 'integer', 'min:5', 'max:480'],
-            'branch' => ['nullable', 'string', 'max:255'],
             'branch_id' => ['nullable', 'integer', Rule::exists('branches', 'id')->where(fn ($query) => $query->where('clinic_id', $clinicId))],
-            'room' => ['nullable', 'string', 'max:255'],
             'room_id' => ['nullable', 'integer', 'exists:rooms,id'],
-            'payment_type' => ['nullable', Rule::in(['cash', 'insurance', 'none'])],
-            'insurance_approval' => ['nullable', 'array'],
+            'branch' => ['nullable', 'string', 'max:255'],
+            'room' => ['nullable', 'string', 'max:255'],
             'status' => ['nullable', 'in:pending,scheduled,confirmed,arrived,attended,completed,cancelled'],
             'notes' => ['nullable', 'string'],
-        ], $this->insuranceApprovalRules('insurance_approval.'));
+
+            // Payment & Insurance Fields
+            'payment_type' => ['nullable', Rule::in(['cash', 'insurance', 'none'])],
+            'insurance_company_id' => ['required_if:payment_type,insurance', 'nullable', 'integer', 'exists:insurance_companies,id'],
+            'policy_number' => ['required_if:payment_type,insurance', 'nullable', 'string', 'max:255'],
+            'authorization_code' => ['required_if:payment_type,insurance', 'nullable', 'string', 'max:255'],
+            'approval_date' => ['required_if:payment_type,insurance', 'nullable', 'date_format:Y-m-d'],
+            'coverage' => ['required_if:payment_type,insurance', 'nullable', 'numeric', 'min:0', 'max:100'],
+            'approved_amount' => ['required_if:payment_type,insurance', 'nullable', 'numeric', 'min:0'],
+            'attachment' => ['nullable', 'file', 'max:5120', 'mimes:pdf,jpg,jpeg,png'],
+        ];
     }
 
     protected function prepareForValidation(): void
     {
+        // دمج date و time في appointment_at إذا لم تكن موجودة
         if (! $this->filled('appointment_at') && $this->filled('date') && $this->filled('time')) {
             $this->merge(['appointment_at' => $this->input('date') . ' ' . $this->input('time')]);
         }
 
+        // تحويل payment_type
         if ($this->input('payment_type') === 'no_payment_type') {
             $this->merge(['payment_type' => 'none']);
+        }
+
+        // تحويل الحقول المسطحة إلى صيغة الخدمة
+        if ($this->input('payment_type') === 'insurance') {
+            $this->merge([
+                'insurance_approval' => [
+                    'insurance_company_id' => $this->input('insurance_company_id'),
+                    'policy_number' => $this->input('policy_number'),
+                    'authorization_code' => $this->input('authorization_code'),
+                    'approval_date' => $this->input('approval_date'),
+                    'coverage' => $this->input('coverage'),
+                    'approved_amount' => $this->input('approved_amount'),
+                    'attachment' => $this->file('attachment'),
+                ],
+            ]);
         }
     }
 
