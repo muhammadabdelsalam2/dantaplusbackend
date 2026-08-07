@@ -47,24 +47,29 @@ class RadiologyController extends Controller
         ]);
     }
 
-    public function comparePdfFile(Request $request)
-    {
-        $data = $request->validate([
-            'case_1' => ['required', 'integer'],
-            'case_2' => ['required', 'integer', 'different:case_1'],
-        ]);
+   public function comparePdfFile(Request $request)
+{
+    $data = $request->validate([
+        'case_1'    => ['required', 'integer'],
+        'case_2'    => ['required', 'integer', 'different:case_1'],
+        'clinic_id' => ['required', 'integer'],
+    ]);
 
-        $result = $this->service->downloadComparePdf((int) $data['case_1'], (int) $data['case_2']);
+    $result = $this->service->downloadComparePdf(
+        (int) $data['case_1'],
+        (int) $data['case_2'],
+        (int) $data['clinic_id']
+    );
 
-        if (! $result['success']) {
-            return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
-        }
-
-        return response($result['data']['content'], 200, [
-            'Content-Type' => $result['data']['content_type'],
-            'Content-Disposition' => 'attachment; filename="' . $result['data']['filename'] . '"',
-        ]);
+    if (! $result['success']) {
+        return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
     }
+
+    return response($result['data']['content'], 200, [
+        'Content-Type'        => $result['data']['content_type'],
+        'Content-Disposition' => 'attachment; filename="' . $result['data']['filename'] . '"',
+    ]);
+}
 
     private function respond(array $result)
     {

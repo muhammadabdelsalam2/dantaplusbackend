@@ -8,7 +8,7 @@ use App\Support\ServiceResult;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-
+use Illuminate\Support\Facades\URL;
 class RadiologyService
 {
     public function index(int $patientId): array
@@ -35,70 +35,74 @@ class RadiologyService
         );
     }
 
- public function compare(int $case1Id, int $case2Id): array
-    {
-        $clinicId = auth()->user()?->clinic_id;
-        if (! $clinicId) {
-            return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
-        }
 
-        $records = PatientRadiology::query()
-            ->with(['linkedAppointment.doctor:id,name'])
-            ->where('clinic_id', $clinicId)
-            ->whereIn('id', [$case1Id, $case2Id])
-            ->get()
-            ->keyBy('id');
 
-        if (! $records->has($case1Id) || ! $records->has($case2Id)) {
-            return ServiceResult::error('Two radiology records are required for comparison.', null, null, 422);
-        }
-
-        $case1 = $records->get($case1Id);
-        $case2 = $records->get($case2Id);
-
-        return ServiceResult::success([
-            'case_1' => $this->mapRecord($case1),
-            'case_2' => $this->mapRecord($case2),
-
-            'download' => [
-                'pdf_url' => url('/api/clinic/radiology/compare/pdf-file?case_1=' . $case1Id . '&case_2=' . $case2Id),
-                'filename' => 'radiology-compare-' . ($case1->record_date?->format('Y-m-d') ?? now()->format('Y-m-d')) . '.pdf',
-            ],
-        ], 'Radiology cases compared successfully');
-    }
- public function downloadComparePdf(int $case1Id, int $case2Id): array
-    {
-        $clinicId = auth()->user()?->clinic_id;
-        if (! $clinicId) {
-            return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
-        }
-
-        $records = PatientRadiology::query()
-            ->with(['linkedAppointment.doctor:id,name', 'patient.user'])
-            ->where('clinic_id', $clinicId)
-            ->whereIn('id', [$case1Id, $case2Id])
-            ->get()
-            ->keyBy('id');
-
-        if (! $records->has($case1Id) || ! $records->has($case2Id)) {
-            return ServiceResult::error('Radiology records not found.', null, null, 404);
-        }
-
-        $case1 = $records->get($case1Id);
-        $case2 = $records->get($case2Id);
-        $case1Data = $this->mapRecord($case1);
-        $case2Data = $this->mapRecord($case2);
-
-        $html = $this->renderComparePdfHtml($case1, $case2, $case1Data, $case2Data);
-
-        return ServiceResult::success([
-            'filename' => 'radiology-compare-' . now()->format('Y-m-d-His') . '.pdf',
-            'content_type' => 'application/pdf',
-            'content' => Pdf::loadHTML($html)->setPaper('a4')->output(),
-        ], 'Radiology comparison PDF generated successfully');
+public function compare(int $case1Id, int $case2Id): array
+{
+    $clinicId = auth()->user()?->clinic_id;
+    if (! $clinicId) {
+        return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
     }
 
+    $records = PatientRadiology::query()
+        ->with(['linkedAppointment.doctor:id,name'])
+        ->where('clinic_id', $clinicId)
+        ->whereIn('id', [$case1Id, $case2Id])
+        ->get()
+        ->keyBy('id');
 
+    if (! $records->has($case1Id) || ! $records->has($case2Id)) {
+        return ServiceResult::error('Two radiology records are required for comparison.', null, null, 422);
+    }
+
+    $case1 = $records->get($case1Id);
+    $case2 = $records->get($case2Id);
+
+    return ServiceResult::success([
+        'case_1' => $this->mapRecord($case1),
+        'case_2' => $this->mapRecord($case2),
+
+        'download' => [
+            // ⭐ signed URL بدل url() العادي — كده اللينك يشتغل مباشرة من المتصفح من غير Authorization header
+            'pdf_url' => URL::temporarySignedRoute(
+                'clinic.radiology.compare.pdf-file',
+                now()->addMinutes(30),
+                [
+                    'case_1' => $case1Id,
+                    'case_2' => $case2Id,
+                    'clinic_id' => $clinicId, // نبعت clinic_id هنا لأن الراوت بقى مش هيعتمد على auth()
+                ]
+            ),
+            'filename' => 'radiology-compare-' . ($case1->record_date?->format('Y-m-d') ?? now()->format('Y-m-d')) . '.pdf',
+        ],
+    ], 'Radiology cases compared successfully');
+}
+ public function downloadComparePdf(int $case1Id, int $case2Id, int $clinicId): array
+{
+    $records = PatientRadiology::query()
+        ->with(['linkedAppointment.doctor:id,name', 'patient.user'])
+        ->where('clinic_id', $clinicId)
+        ->whereIn('id', [$case1Id, $case2Id])
+        ->get()
+        ->keyBy('id');
+
+    if (! $records->has($case1Id) || ! $records->has($case2Id)) {
+        return ServiceResult::error('Radiology records not found.', null, null, 404);
+    }
+
+    $case1 = $records->get($case1Id);
+    $case2 = $records->get($case2Id);
+    $case1Data = $this->mapRecord($case1);
+    $case2Data = $this->mapRecord($case2);
+
+    $html = $this->renderComparePdfHtml($case1, $case2, $case1Data, $case2Data);
+
+    return ServiceResult::success([
+        'filename' => 'radiology-compare-' . now()->format('Y-m-d-His') . '.pdf',
+        'content_type' => 'application/pdf',
+        'content' => Pdf::loadHTML($html)->setPaper('a4')->output(),
+    ], 'Radiology comparison PDF generated successfully');
+}
     public function downloadPdf(int $radiologyId): array
     {
         $record = PatientRadiology::query()
