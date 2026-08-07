@@ -462,29 +462,29 @@ class BillingController extends Controller
             : ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
     }
 
-    public function billingDownloadSigned(Request $request)
-    {
-        $result = $this->service->signedBillingDownload($request->validate([
-            'clinic_id' => ['required', 'integer'],
-            'type' => ['required', 'in:lab_invoice,material_invoice,doctor_earnings'],
-            'format' => ['required', 'in:pdf,excel'],
-            'id' => ['nullable', 'integer'],
-            'date_range' => ['nullable', 'string'],
-            'date_from' => ['nullable', 'date'],
-            'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
-            'doctor_id' => ['nullable', 'integer'],
-            'case_type' => ['nullable', 'string'],
-        ]));
+   public function billingDownloadSigned(Request $request)
+{
+    $result = $this->service->signedBillingDownload($request->validate([
+        'clinic_id' => ['nullable', 'integer'],
+        'type' => ['nullable', 'in:lab_invoice,material_invoice,doctor_earnings,extract_accounts'], // ⭐ أضيف extract_accounts
+        'format' => ['nullable', 'in:pdf,excel'],
+        'id' => ['nullable', 'integer'],
+        'date_range' => ['nullable', 'string'],
+        'date_from' => ['nullable', 'date'],
+        'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
+        'doctor_id' => ['nullable', 'integer'],
+        'case_type' => ['nullable', 'string'],
+    ]));
 
-        if (! $result['success']) {
-            return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
-        }
-
-        return response($result['data']['content'], 200, [
-            'Content-Type' => $result['data']['content_type'],
-            'Content-Disposition' => 'attachment; filename="' . $result['data']['filename'] . '"',
-        ]);
+    if (! $result['success']) {
+        return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
     }
+
+    return response($result['data']['content'], 200, [
+        'Content-Type' => $result['data']['content_type'],
+        'Content-Disposition' => 'attachment; filename="' . $result['data']['filename'] . '"',
+    ]);
+}
 
     public function sendExtractAccountWhatsApp(Request $request)
     {

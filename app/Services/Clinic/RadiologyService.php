@@ -41,25 +41,25 @@ class RadiologyService
         if (! $clinicId) {
             return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
         }
- 
+
         $records = PatientRadiology::query()
             ->with(['linkedAppointment.doctor:id,name'])
             ->where('clinic_id', $clinicId)
             ->whereIn('id', [$case1Id, $case2Id])
             ->get()
             ->keyBy('id');
- 
+
         if (! $records->has($case1Id) || ! $records->has($case2Id)) {
             return ServiceResult::error('Two radiology records are required for comparison.', null, null, 422);
         }
- 
+
         $case1 = $records->get($case1Id);
         $case2 = $records->get($case2Id);
- 
+
         return ServiceResult::success([
             'case_1' => $this->mapRecord($case1),
             'case_2' => $this->mapRecord($case2),
-            
+
             'download' => [
                 'pdf_url' => url('/api/clinic/radiology/compare/pdf-file?case_1=' . $case1Id . '&case_2=' . $case2Id),
                 'filename' => 'radiology-compare-' . ($case1->record_date?->format('Y-m-d') ?? now()->format('Y-m-d')) . '.pdf',
@@ -72,25 +72,25 @@ class RadiologyService
         if (! $clinicId) {
             return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
         }
- 
+
         $records = PatientRadiology::query()
             ->with(['linkedAppointment.doctor:id,name', 'patient.user'])
             ->where('clinic_id', $clinicId)
             ->whereIn('id', [$case1Id, $case2Id])
             ->get()
             ->keyBy('id');
- 
+
         if (! $records->has($case1Id) || ! $records->has($case2Id)) {
             return ServiceResult::error('Radiology records not found.', null, null, 404);
         }
- 
+
         $case1 = $records->get($case1Id);
         $case2 = $records->get($case2Id);
         $case1Data = $this->mapRecord($case1);
         $case2Data = $this->mapRecord($case2);
- 
+
         $html = $this->renderComparePdfHtml($case1, $case2, $case1Data, $case2Data);
- 
+
         return ServiceResult::success([
             'filename' => 'radiology-compare-' . now()->format('Y-m-d-His') . '.pdf',
             'content_type' => 'application/pdf',
@@ -226,190 +226,125 @@ class RadiologyService
             . '</body></html>';
     }
       private function renderComparePdfHtml(
-        PatientRadiology $case1,
-        PatientRadiology $case2,
-        array $case1Data,
-        array $case2Data
-    ): string {
-        $patientName = e($case1->patient?->user?->name ?? 'N/A');
-        $case1Doctor = e($case1->linkedAppointment?->doctor?->name ?? 'N/A');
-        $case2Doctor = e($case2->linkedAppointment?->doctor?->name ?? 'N/A');
-        
-        $before = $this->imageAsBase64($case1->before_image_path ?: $case1->file_path);
-        $after = $this->imageAsBase64($case2->before_image_path ?: $case2->file_path);
- 
-        $beforeHtml = $before 
-            ? '<img src="' . $before . '" style="max-width:100%;max-height:350px;border:1px solid #ddd;padding:5px;border-radius:4px;">' 
-            : '<p style="color:#999;font-style:italic;">No image available</p>';
-        
-        $afterHtml = $after 
-            ? '<img src="' . $after . '" style="max-width:100%;max-height:350px;border:1px solid #ddd;padding:5px;border-radius:4px;">' 
-            : '<p style="color:#999;font-style:italic;">No image available</p>';
- 
-        return <<<HTML
-        <html>
-        <head>
-            <meta charset="UTF-8">
-            <style>
-                body {
-                    font-family: 'DejaVu Sans', Arial, sans-serif;
-                    color: #111827;
-                    margin: 20px;
-                    background: #f9fafb;
-                }
-                .header {
-                    border-bottom: 2px solid #3b82f6;
-                    padding-bottom: 15px;
-                    margin-bottom: 20px;
-                }
-                .header h1 {
-                    margin: 0;
-                    font-size: 28px;
-                    color: #1f2937;
-                }
-                .info-table {
-                    width: 100%;
-                    border-collapse: collapse;
-                    margin-bottom: 20px;
-                    background: white;
-                    border: 1px solid #e5e7eb;
-                }
-                .info-table td {
-                    padding: 10px;
-                    border: 1px solid #e5e7eb;
-                }
-                .info-table td:first-child {
-                    font-weight: bold;
-                    width: 20%;
-                    background: #f3f4f6;
-                }
-                .cases-container {
-                    display: flex;
-                    gap: 20px;
-                    page-break-inside: avoid;
-                }
-                .case {
-                    flex: 1;
-                    background: white;
-                    border: 1px solid #e5e7eb;
-                    border-radius: 6px;
-                    padding: 15px;
-                    page-break-inside: avoid;
-                }
-                .case h2 {
-                    font-size: 18px;
-                    margin: 0 0 12px 0;
-                    color: #3b82f6;
-                    border-bottom: 1px solid #e5e7eb;
-                    padding-bottom: 8px;
-                }
-                .case-detail {
-                    margin: 8px 0;
-                    font-size: 14px;
-                }
-                .case-detail strong {
-                    display: inline-block;
-                    width: 80px;
-                    color: #374151;
-                }
-                .image-container {
-                    margin: 12px 0;
-                    text-align: center;
-                }
-                .notes {
-                    margin-top: 12px;
-                    padding: 10px;
-                    background: #f9fafb;
-                    border-left: 3px solid #3b82f6;
-                    font-size: 13px;
-                    line-height: 1.5;
-                }
-                .footer {
-                    margin-top: 30px;
-                    padding-top: 15px;
-                    border-top: 1px solid #e5e7eb;
-                    font-size: 12px;
-                    color: #6b7280;
-                    text-align: center;
-                }
-            </style>
-        </head>
-        <body>
-            <div class="header">
-                <h1>📊 Radiology Comparison Report</h1>
-            </div>
- 
-            <table class="info-table">
-                <tr>
-                    <td>Patient</td>
-                    <td>{$patientName}</td>
-                </tr>
-                <tr>
-                    <td>Generated</td>
-                    <td>{{ now()->format('Y-m-d H:i') }}</td>
-                </tr>
-                <tr>
-                    <td>Report Type</td>
-                    <td>Before & After Comparison</td>
-                </tr>
-            </table>
- 
-            <div class="cases-container">
-                <!-- Case 1 -->
-                <div class="case">
-                    <h2>Case 1 (Before)</h2>
-                    
-                    <div class="case-detail">
-                        <strong>Date:</strong> {$case1Data['date']}
-                    </div>
-                    <div class="case-detail">
-                        <strong>Type:</strong> {$case1Data['type']}
-                    </div>
-                    <div class="case-detail">
-                        <strong>Doctor:</strong> {$case1Doctor}
-                    </div>
- 
-                    <div class="image-container">
-                        {$beforeHtml}
-                    </div>
- 
-                    <div class="notes">
-                        <strong>Notes:</strong><br>
-                        {nl2br(e($case1Data['notes'] ?: 'No notes provided.'))}
-                    </div>
+    PatientRadiology $case1,
+    PatientRadiology $case2,
+    array $case1Data,
+    array $case2Data
+): string {
+    $patientName = e($case1->patient?->user?->name ?? 'N/A');
+    $case1Doctor = e($case1->linkedAppointment?->doctor?->name ?? 'N/A');
+    $case2Doctor = e($case2->linkedAppointment?->doctor?->name ?? 'N/A');
+
+    $before = $this->imageAsBase64($case1->before_image_path ?: $case1->file_path);
+    $after = $this->imageAsBase64($case2->before_image_path ?: $case2->file_path);
+
+    
+    $html = '
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <style>
+            body { font-family: "DejaVu Sans", Arial, sans-serif; color: #111827; margin: 20px; background: #f9fafb; }
+            .header { border-bottom: 2px solid #3b82f6; padding-bottom: 15px; margin-bottom: 20px; }
+            .header h1 { margin: 0; font-size: 28px; color: #1f2937; }
+            .info-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; background: white; border: 1px solid #e5e7eb; }
+            .info-table td { padding: 10px; border: 1px solid #e5e7eb; }
+            .info-table td:first-child { font-weight: bold; width: 20%; background: #f3f4f6; }
+            .cases-container { display: flex; gap: 20px; page-break-inside: avoid; }
+            .case { flex: 1; background: white; border: 1px solid #e5e7eb; border-radius: 6px; padding: 15px; page-break-inside: avoid; }
+            .case h2 { font-size: 18px; margin: 0 0 12px 0; color: #3b82f6; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px; }
+            .case-detail { margin: 8px 0; font-size: 14px; }
+            .case-detail strong { display: inline-block; width: 80px; color: #374151; }
+            .image-container { margin: 12px 0; text-align: center; }
+            .image-container img { max-width: 100%; max-height: 350px; border: 1px solid #ddd; padding: 5px; border-radius: 4px; }
+            .no-image { color: #999; font-style: italic; }
+            .notes { margin-top: 12px; padding: 10px; background: #f9fafb; border-left: 3px solid #3b82f6; font-size: 13px; line-height: 1.5; }
+            .footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #6b7280; text-align: center; }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h1>Radiology Comparison Report</h1>
+        </div>
+
+        <table class="info-table">
+            <tr>
+                <td>Patient</td>
+                <td>' . $patientName . '</td>
+            </tr>
+            <tr>
+                <td>Generated</td>
+                <td>' . now()->format('Y-m-d H:i') . '</td>
+            </tr>
+            <tr>
+                <td>Report Type</td>
+                <td>Before & After Comparison</td>
+            </tr>
+        </table>
+
+        <div class="cases-container">
+            <div class="case">
+                <h2>Case 1 (Before)</h2>
+                <div class="case-detail">
+                    <strong>Date:</strong> ' . $case1Data['date'] . '
                 </div>
- 
-                <!-- Case 2 -->
-                <div class="case">
-                    <h2>Case 2 (After)</h2>
-                    
-                    <div class="case-detail">
-                        <strong>Date:</strong> {$case2Data['date']}
-                    </div>
-                    <div class="case-detail">
-                        <strong>Type:</strong> {$case2Data['type']}
-                    </div>
-                    <div class="case-detail">
-                        <strong>Doctor:</strong> {$case2Doctor}
-                    </div>
- 
-                    <div class="image-container">
-                        {$afterHtml}
-                    </div>
- 
-                    <div class="notes">
-                        <strong>Notes:</strong><br>
-                        {nl2br(e($case2Data['notes'] ?: 'No notes provided.'))}
-                    </div>
+                <div class="case-detail">
+                    <strong>Type:</strong> ' . $case1Data['type'] . '
                 </div>
-            </div>
- 
-            <div class="footer">
-                <p>This is an automatically generated radiology comparison report.</p>
-                <p>For medical decisions, please consult with your healthcare provider.</p>
-            </div>
-        </body>
-        </html>
-        HTML;
+                <div class="case-detail">
+                    <strong>Doctor:</strong> ' . $case1Doctor . '
+                </div>
+                <div class="image-container">';
+
+    if ($before) {
+        $html .= '<img src="' . $before . '" />';
+    } else {
+        $html .= '<p class="no-image">No image available</p>';
     }
+
+    $html .= '
+                </div>
+                <div class="notes">
+                    <strong>Notes:</strong><br>
+                    ' . nl2br(e($case1Data['notes'] ?: 'No notes provided.')) . '
+                </div>
+            </div>
+
+            <div class="case">
+                <h2>Case 2 (After)</h2>
+                <div class="case-detail">
+                    <strong>Date:</strong> ' . $case2Data['date'] . '
+                </div>
+                <div class="case-detail">
+                    <strong>Type:</strong> ' . $case2Data['type'] . '
+                </div>
+                <div class="case-detail">
+                    <strong>Doctor:</strong> ' . $case2Doctor . '
+                </div>
+                <div class="image-container">';
+
+    if ($after) {
+        $html .= '<img src="' . $after . '" />';
+    } else {
+        $html .= '<p class="no-image">No image available</p>';
+    }
+
+    $html .= '
+                </div>
+                <div class="notes">
+                    <strong>Notes:</strong><br>
+                    ' . nl2br(e($case2Data['notes'] ?: 'No notes provided.')) . '
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>This is an automatically generated radiology comparison report.</p>
+            <p>For medical decisions, please consult with your healthcare provider.</p>
+        </div>
+    </body>
+    </html>';
+
+    return $html;
+}
 }
