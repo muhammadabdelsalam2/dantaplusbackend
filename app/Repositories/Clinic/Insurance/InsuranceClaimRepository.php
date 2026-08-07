@@ -3,11 +3,14 @@
 namespace App\Repositories\Clinic\Insurance;
 
 use App\Models\Clinic\Insurance\InsuranceClaim;
+use App\Support\Clinic\BranchFilter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 
 class InsuranceClaimRepository
 {
+    use BranchFilter;
+
     public function listForClinic(int $clinicId, array $filters = []): Collection
     {
         return InsuranceClaim::query()
@@ -20,6 +23,7 @@ class InsuranceClaimRepository
                 'patientConsent',
             ])
             ->where('clinic_id', $clinicId)
+            ->when($this->selectedBranchId($filters), fn (Builder $query, int $branchId) => $query->whereHas('appointment', fn (Builder $appointment) => $appointment->where('branch_id', $branchId)))
             ->when($filters['status'] ?? null, fn (Builder $query, string $status) => $query->where('status', $status))
             ->when($filters['patient_id'] ?? null, fn (Builder $query, int $patientId) => $query->where('patient_id', $patientId))
             ->when($filters['insurance_company_id'] ?? null, fn (Builder $query, int $companyId) => $query->where('insurance_company_id', $companyId))

@@ -60,6 +60,17 @@ class BranchController extends Controller
         return ApiResponse::success($result['data'], $result['message'], $result['code']);
     }
 
+    public function selector()
+    {
+        $result = $this->service->selector();
+
+        if (! $result['success']) {
+            return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+        }
+
+        return ApiResponse::success($result['data'], $result['message'], $result['code']);
+    }
+
     public function update(UpdateBranchRequest $request, int $id)
     {
         $result = $this->service->update($id, $request->validated());

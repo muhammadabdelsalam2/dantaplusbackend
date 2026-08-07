@@ -89,6 +89,25 @@ class BranchService
         );
     }
 
+    public function selector(): array
+    {
+        $clinicId = $this->currentClinicId();
+        if (! $clinicId) {
+            return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
+        }
+
+        return ServiceResult::success(
+            $this->repository->listBranches($clinicId)
+                ->map(fn ($branch) => [
+                    'id' => $branch->id,
+                    'name' => $branch->name,
+                ])
+                ->values()
+                ->all(),
+            'Clinic branches fetched successfully'
+        );
+    }
+
     public function update(int $id, array $data): array
     {
         $branch = $this->resolveBranch($id);

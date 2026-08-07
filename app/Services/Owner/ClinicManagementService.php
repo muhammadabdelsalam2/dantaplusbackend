@@ -3,6 +3,8 @@
 namespace App\Services\Owner;
 
 use App\Mail\SystemAccessMail;
+use App\Http\Resources\SuperAdmin\ClinicDetailsResource;
+use App\Http\Resources\SuperAdmin\ClinicListResource;
 use App\Models\User;
 use App\Repositories\ClinicRepository;
 use App\Support\ServiceResult;
@@ -23,25 +25,14 @@ class ClinicManagementService
         $clinics = $this->clinicRepository->paginate($filters, $perPage);
 
         $data = [
-            'items' => collect($clinics->items())->map(fn ($clinic) => [
-                'id' => $clinic->id,
-                'source' => $clinic->added_by ? 'Admin' : 'System Signup',
-                'date_added' => optional($clinic->created_at)->format('d/m/Y'),
-                'status' => $clinic->status,
-                'branches' => (int) $clinic->branches_count,
-                'subscription' => $clinic->subscription_plan,
-                'clinic' => [
-                    'name' => $clinic->name,
-                    'owner' => $clinic->owner_name,
-                    'email' => $clinic->email,
-                ],
-            ])->values()->all(),
+            'items' => ClinicListResource::collection($clinics->getCollection())->resolve(),
             'pagination' => [
                 'current_page' => $clinics->currentPage(),
                 'last_page' => $clinics->lastPage(),
                 'per_page' => $clinics->perPage(),
                 'total' => $clinics->total(),
             ],
+            'filters' => $this->filtersData(),
         ];
 
         return ServiceResult::success($data, 'Clinics fetched successfully');
@@ -109,15 +100,16 @@ class ClinicManagementService
 
     public function show(int $clinicId, string $include = ''): array
     {
-        $relations = ['modules:id,clinic_id,module'];
+        $relations = [
+            'modules:id,clinic_id,module',
+            'users:id,name,email,avatar_url,last_login_at,clinic_id',
+            'users.roles:id,name',
+            'payments:id,clinic_id,amount,method,paid_at,created_at',
+        ];
         $includes = collect(explode(',', $include))
             ->map(fn($item) => trim($item))
             ->filter()
             ->values();
-
-        if ($includes->contains('users')) {
-            $relations[] = 'users:id,name,email,clinic_id';
-        }
 
         if ($includes->contains('branches')) {
             $relations[] = 'branches';
@@ -129,7 +121,14 @@ class ClinicManagementService
             return ServiceResult::error('Clinic not found', 404);
         }
 
-        return ServiceResult::success($clinic, 'Clinic details fetched successfully');
+        $clinic->loadCount([
+            'patients',
+            'appointments as appointments_this_month_count' => fn ($query) => $query
+                ->whereBetween('appointment_at', [now()->startOfMonth(), now()->endOfMonth()]),
+            'messageLogs as messages_sent_count' => fn ($query) => $query->where('status', 'sent'),
+        ]);
+
+        return ServiceResult::success((new ClinicDetailsResource($clinic))->resolve(), 'Clinic details fetched successfully');
     }
 
     public function update(int $clinicId, array $data): array
@@ -179,6 +178,26 @@ class ClinicManagementService
         return ServiceResult::success($updated, 'Clinic status updated successfully');
     }
 
+    public function activate(int $clinicId): array
+    {
+        return $this->updateStatus($clinicId, 'Active');
+    }
+
+    public function suspend(int $clinicId): array
+    {
+        return $this->updateStatus($clinicId, 'Suspended');
+    }
+
+    public function disable(int $clinicId): array
+    {
+        return $this->updateStatus($clinicId, 'Expired');
+    }
+
+    public function filters(): array
+    {
+        return ServiceResult::success($this->filtersData(), 'Clinic filters fetched successfully');
+    }
+
     public function destroy(int $clinicId): array
     {
         $clinic = $this->clinicRepository->findById($clinicId);
@@ -203,5 +222,20 @@ class ClinicManagementService
         $branches = $this->clinicRepository->getBranches($clinic);
 
         return ServiceResult::success($branches, 'Clinic branches fetched successfully');
+    }
+
+    private function filtersData(): array
+    {
+        return [
+            'subscription_plans' => collect(['Basic', 'Standard', 'Premium'])
+                ->map(fn (string $plan) => ['id' => $plan, 'name' => $plan])
+                ->all(),
+            'payment_methods' => collect(['Stripe', 'PayPal', 'Manual'])
+                ->map(fn (string $method) => ['id' => $method, 'name' => $method])
+                ->all(),
+            'statuses' => collect(['Active', 'Trial', 'Expired', 'Suspended'])
+                ->map(fn (string $status) => ['id' => $status, 'name' => $status])
+                ->all(),
+        ];
     }
 }

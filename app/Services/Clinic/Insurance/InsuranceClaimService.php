@@ -11,6 +11,7 @@ use App\Models\ClinicInvoice;
 use App\Models\Patient;
 use App\Repositories\Clinic\Insurance\InsuranceClaimRepository;
 use App\Repositories\Clinic\Insurance\InsuranceCompanyRepository;
+use App\Support\Clinic\BranchFilter;
 use App\Support\ServiceResult;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Exception;
@@ -23,6 +24,8 @@ use Carbon\Carbon;
 
 class InsuranceClaimService
 {
+    use BranchFilter;
+
     public function __construct(
         private InsuranceClaimRepository $repository,
         private InsuranceCompanyRepository $companyRepository,
@@ -395,6 +398,7 @@ class InsuranceClaimService
         $claims = InsuranceClaim::query()
             ->with('company:id,name')
             ->where('clinic_id', $clinicId)
+            ->when($this->selectedBranchId($filters), fn (Builder $query, int $branchId) => $query->whereHas('appointment', fn (Builder $appointment) => $appointment->where('branch_id', $branchId)))
             ->whereIn('status', InsuranceClaim::reportStatuses())
             ->when($from, fn (Builder $query) => $query->whereDate('service_date', '>=', $from))
             ->when($to, fn (Builder $query) => $query->whereDate('service_date', '<=', $to))
@@ -483,6 +487,7 @@ class InsuranceClaimService
         $claims = InsuranceClaim::query()
             ->where('clinic_id', $clinicId)
             ->whereYear('service_date', $year)
+            ->when($this->selectedBranchId($filters), fn (Builder $query, int $branchId) => $query->whereHas('appointment', fn (Builder $appointment) => $appointment->where('branch_id', $branchId)))
             ->when($filters['insurance_company_id'] ?? null, fn ($query, int $companyId) => $query->where('insurance_company_id', $companyId))
             ->get();
 
@@ -517,7 +522,7 @@ class InsuranceClaimService
             ->whereBetween('service_date', [$from, $to])
             ->when($filters['insurance_company_id'] ?? null, fn ($query, int $companyId) => $query->where('insurance_company_id', $companyId))
             ->when($filters['doctor_id'] ?? null, fn ($query, int $doctorId) => $query->whereHas('appointment', fn ($appointment) => $appointment->where('doctor_user_id', $doctorId)))
-            ->when($filters['branch_id'] ?? null, fn ($query, int $branchId) => $query->whereHas('appointment', fn ($appointment) => $appointment->where('branch_id', $branchId)))
+            ->when($this->selectedBranchId($filters), fn ($query, int $branchId) => $query->whereHas('appointment', fn ($appointment) => $appointment->where('branch_id', $branchId)))
             ->when($filters['status'] ?? null, fn ($query, string $status) => $query->whereIn('status', $this->storedStatusesForFilter($status)))
             ->when($filters['search'] ?? null, function ($query, string $search) {
                 $query->where(function ($nested) use ($search) {
@@ -571,7 +576,7 @@ class InsuranceClaimService
             ->whereBetween('service_date', [$from, $to])
             ->when($filters['insurance_company_id'] ?? null, fn ($query, $companyId) => $query->where('insurance_company_id', (int) $companyId))
             ->when($filters['doctor_id'] ?? null, fn ($query, $doctorId) => $query->whereHas('appointment', fn ($appointment) => $appointment->where('doctor_user_id', (int) $doctorId)))
-            ->when($filters['branch_id'] ?? null, fn ($query, $branchId) => $query->whereHas('appointment', fn ($appointment) => $appointment->where('branch_id', (int) $branchId)))
+            ->when($this->selectedBranchId($filters), fn ($query, $branchId) => $query->whereHas('appointment', fn ($appointment) => $appointment->where('branch_id', (int) $branchId)))
             ->when($filters['status'] ?? null, fn ($query, $status) => $query->whereIn('status', $this->storedStatusesForFilter((string) $status)))
             ->get();
 
@@ -641,6 +646,7 @@ class InsuranceClaimService
         return InsuranceClaim::query()
             ->where('clinic_id', $clinicId)
             ->whereBetween('service_date', [$from->toDateString(), $to->toDateString()])
+            ->when($this->selectedBranchId($filters), fn (Builder $query, int $branchId) => $query->whereHas('appointment', fn (Builder $appointment) => $appointment->where('branch_id', $branchId)))
             ->when($filters['insurance_company_id'] ?? null, fn (Builder $query, int $companyId) => $query->where('insurance_company_id', $companyId))
             ->when($filters['status'] ?? null, fn (Builder $query, string $status) => $query->whereIn('status', $this->storedStatusesForFilter($status)))
             ->get();
@@ -807,7 +813,7 @@ class InsuranceClaimService
             ], 422);
         }
 
-        if ($dto->appointmentId && ! ClinicAppointment::query()->where('clinic_id', $clinicId)->find($dto->appointmentId)) {
+        if ($dto->appointmentId && ! $this->branchContext()->applyToAppointments(ClinicAppointment::query()->where('clinic_id', $clinicId))->find($dto->appointmentId)) {
             return ServiceResult::error('Appointment not found.', null, [
                 'appointment_id' => ['Appointment not found for this clinic.'],
             ], 422);
@@ -829,7 +835,7 @@ class InsuranceClaimService
         }
 
         if ($dto->appointmentId) {
-            $appointment = ClinicAppointment::query()->where('clinic_id', $clinicId)->find($dto->appointmentId);
+            $appointment = $this->branchContext()->applyToAppointments(ClinicAppointment::query()->where('clinic_id', $clinicId))->find($dto->appointmentId);
             if ($appointment && $appointment->patient_id && $appointment->patient_id !== $dto->patientId) {
                 return ServiceResult::error('Appointment patient mismatch.', null, [
                     'appointment_id' => ['Selected appointment does not belong to the selected patient.'],
@@ -855,7 +861,7 @@ class InsuranceClaimService
         }
 
         if (isset($data['appointment_id']) && $data['appointment_id'] !== null
-            && ! ClinicAppointment::query()->where('clinic_id', $clinicId)->find((int) $data['appointment_id'])) {
+            && ! $this->branchContext()->applyToAppointments(ClinicAppointment::query()->where('clinic_id', $clinicId))->find((int) $data['appointment_id'])) {
             return ServiceResult::error('Appointment not found.', null, [
                 'appointment_id' => ['Appointment not found for this clinic.'],
             ], 422);

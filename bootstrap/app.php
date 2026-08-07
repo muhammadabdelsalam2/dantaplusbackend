@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\ApiErrorMiddleware;
+use App\Http\Middleware\ResolveClinicBranchContext;
 use App\Http\Middleware\RedirectIfAuthenticatedCustom;
 use App\Support\ApiResponse;
 use Illuminate\Auth\AuthenticationException;
@@ -47,6 +48,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
             // optional convenience alias
             'api.error' => ApiErrorMiddleware::class,
+            'clinic.branch' => ResolveClinicBranchContext::class,
         ]);
 
         $middleware->appendToGroup('api/*', [

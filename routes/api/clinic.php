@@ -84,8 +84,10 @@ Route::get('clinic/radiology/{radiologyId}/pdf-file', [RadiologyController::clas
     ->name('clinic.radiology.pdf-file');
 
 Route::prefix('clinic')
-    ->middleware(['api.error', 'auth:sanctum', 'role:clinic_admin|doctor|nurse|accountant|receptionist|staff'])
+    ->middleware(['api.error', 'auth:sanctum', 'role:clinic_admin|doctor|nurse|accountant|receptionist|staff', 'clinic.branch'])
     ->group(function () {
+        Route::get('/branches', [SettingsBranchController::class, 'selector']);
+
         Route::middleware('permission:dental_labs.view')->prefix('dental-lab-orders/{id}')->group(function () {
     Route::get('/messages', [CaseCommunicationController::class, 'messages']);
     Route::get('/attachments', [CaseCommunicationController::class, 'attachments']);
@@ -510,7 +512,7 @@ Route::middleware('permission:support.manage')->prefix('support')->group(functio
     });
 // ─── Selects (no role restriction — any authenticated user, including lab users) ───
 Route::prefix('clinic')
-    ->middleware(['api.error', 'auth:sanctum'])
+    ->middleware(['api.error', 'auth:sanctum', 'clinic.branch'])
     ->group(function () {
         Route::prefix('selects')->group(function () {
             Route::get('/labs', [SelectsController::class, 'labs']);

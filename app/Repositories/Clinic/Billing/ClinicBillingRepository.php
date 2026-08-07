@@ -7,17 +7,21 @@ use App\Models\ClinicExpenseCategory;
 use App\Models\ClinicInvoice;
 use App\Models\ClinicInvoiceItem;
 use App\Models\ClinicPayment;
+use App\Support\Clinic\BranchFilter;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 class ClinicBillingRepository implements ClinicBillingRepositoryInterface
 {
+    use BranchFilter;
+
     public function paginateInvoices(int $clinicId, array $filters): LengthAwarePaginator
     {
         return ClinicInvoice::query()
             ->with(['clinic:id,name', 'patient.user:id,name,phone', 'doctor:id,name', 'items', 'payments.recorder:id,name'])
             ->where('clinic_id', $clinicId)
+            ->tap(fn (Builder $query) => $this->branchContext()->applyToInvoicesThroughAppointments($query, $this->selectedBranchId($filters)))
             ->when($filters['search'] ?? null, function (Builder $query, string $search) {
                 $query->where(function (Builder $builder) use ($search) {
                     $builder->where('invoice_number', 'like', "%{$search}%")
@@ -68,6 +72,7 @@ class ClinicBillingRepository implements ClinicBillingRepositoryInterface
         return ClinicPayment::query()
             ->with(['invoice.patient.user:id,name', 'invoice.doctor:id,name', 'recorder:id,name'])
             ->where('clinic_id', $clinicId)
+            ->tap(fn (Builder $query) => $this->branchContext()->applyToPaymentsThroughInvoiceAppointment($query, $this->selectedBranchId($filters)))
             ->when($filters['invoice_id'] ?? null, fn (Builder $query, int $invoiceId) => $query->where('clinic_invoice_id', $invoiceId))
             ->when($filters['doctor_id'] ?? $filters['doctor'] ?? null, fn (Builder $query, int $doctorId) => $query->whereHas('invoice', fn (Builder $invoiceQuery) => $invoiceQuery->where('doctor_user_id', $doctorId)))
             ->when($filters['payment_method'] ?? null, fn (Builder $query, string $method) => $query->where('method', $method))
@@ -159,6 +164,7 @@ class ClinicBillingRepository implements ClinicBillingRepositoryInterface
     {
         $revenueQuery = ClinicPayment::query()
             ->where('clinic_id', $clinicId)
+            ->tap(fn (Builder $query) => $this->branchContext()->applyToPaymentsThroughInvoiceAppointment($query, $this->selectedBranchId($filters)))
             ->when($filters['date_from'] ?? null, fn (Builder $query, string $date) => $query->whereDate('paid_at', '>=', $date))
             ->when($filters['date_to'] ?? null, fn (Builder $query, string $date) => $query->whereDate('paid_at', '<=', $date));
 

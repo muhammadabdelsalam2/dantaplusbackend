@@ -1,0 +1,552 @@
+{
+  "info": {
+    "name": "DentaPlus Prototype API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000/api"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "clinic_id",
+      "value": "1"
+    },
+    {
+      "key": "user_id",
+      "value": "1"
+    },
+    {
+      "key": "branch_id",
+      "value": "1"
+    },
+    {
+      "key": "appointment_id",
+      "value": "1"
+    },
+    {
+      "key": "patient_id",
+      "value": "1"
+    },
+    {
+      "key": "invoice_id",
+      "value": "1"
+    },
+    {
+      "key": "insurance_claim_id",
+      "value": "1"
+    },
+    {
+      "key": "maintenance_request_id",
+      "value": "1"
+    },
+    {
+      "key": "alert_id",
+      "value": "1"
+    }
+  ],
+  "item": [
+    {
+      "name": "Super Admin",
+      "item": [
+        {
+          "name": "Clinic Management",
+          "item": [
+            {
+              "name": "List",
+              "request": {
+                "method": "GET",
+                "description": "Returns the Super Admin clinic table data required by the prototype.\n\nClinic Status Values:\nActive\nTrial\nExpired\nSuspended",
+                "url": "{{base_url}}/owner/clinics?per_page=15"
+              }
+            },
+            {
+              "name": "Details",
+              "request": {
+                "method": "GET",
+                "description": "Returns all prototype tabs for one clinic: Clinic Details, Users, Payments, and Usage.",
+                "url": "{{base_url}}/owner/clinics/{{clinic_id}}"
+              }
+            },
+            {
+              "name": "Filters",
+              "request": {
+                "method": "GET",
+                "description": "Returns subscription_plans, payment_methods, and statuses as select data.",
+                "url": "{{base_url}}/owner/clinics/filters"
+              }
+            },
+            {
+              "name": "Activate",
+              "request": {
+                "method": "POST",
+                "description": "Sets clinic status to Active.\n\nClinic Status Values:\nActive\nTrial\nExpired\nSuspended",
+                "url": "{{base_url}}/owner/clinics/{{clinic_id}}/activate"
+              }
+            },
+            {
+              "name": "Suspend",
+              "request": {
+                "method": "POST",
+                "description": "Sets clinic status to Suspended.\n\nClinic Status Values:\nActive\nTrial\nExpired\nSuspended",
+                "url": "{{base_url}}/owner/clinics/{{clinic_id}}/suspend"
+              }
+            },
+            {
+              "name": "Disable",
+              "request": {
+                "method": "POST",
+                "description": "Disables the clinic using the existing DB value Expired. The current schema does not define Disabled.\n\nClinic Status Values:\nActive\nTrial\nExpired\nSuspended",
+                "url": "{{base_url}}/owner/clinics/{{clinic_id}}/disable"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Users",
+          "item": [
+            {
+              "name": "List",
+              "request": {
+                "method": "GET",
+                "description": "Returns Super Admin users. Role is returned as {id, name, display_name}; assigned_to is returned from the entity assigned during create.",
+                "url": "{{base_url}}/owner/users?per_page=15"
+              }
+            },
+            {
+              "name": "Details",
+              "request": {
+                "method": "GET",
+                "description": "Returns one user with role object and assigned_to object when applicable.",
+                "url": "{{base_url}}/owner/users/{{user_id}}"
+              }
+            },
+            {
+              "name": "Create",
+              "request": {
+                "method": "POST",
+                "description": "Creates a Super Admin managed user. Clinic roles require clinic_id; lab roles require lab_id; material company roles require material_company_id or company_id.",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Clinic Admin\",\n  \"email\": \"clinic.admin@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"clinic_admin\",\n  \"clinic_id\": 1,\n  \"is_active\": true\n}"
+                },
+                "url": "{{base_url}}/owner/users"
+              }
+            },
+            {
+              "name": "Update",
+              "request": {
+                "method": "POST",
+                "description": "Updates a Super Admin managed user. Include only fields that need to change.",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Updated User\",\n  \"is_active\": true\n}"
+                },
+                "url": "{{base_url}}/owner/users/{{user_id}}"
+              }
+            },
+            {
+              "name": "Delete",
+              "request": {
+                "method": "DELETE",
+                "description": "Deletes a Super Admin managed user. The API protects the current user and last super-admin.",
+                "url": "{{base_url}}/owner/users/{{user_id}}"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Equipment",
+          "item": [
+            {
+              "name": "Smart Alerts",
+              "request": {
+                "method": "GET",
+                "description": "Returns smart alerts shown at the top of the Equipment page.",
+                "url": "{{base_url}}/owner/equipment-maintenance/alerts"
+              }
+            },
+            {
+              "name": "Mark As Reviewed",
+              "request": {
+                "method": "POST",
+                "description": "Marks one smart alert as reviewed.",
+                "url": "{{base_url}}/owner/equipment-maintenance/alerts/{{alert_id}}/review"
+              }
+            },
+            {
+              "name": "Maintenance Companies (Select)",
+              "request": {
+                "method": "GET",
+                "description": "Returns maintenance companies for Assigned Company select. Response contains only id and name.",
+                "url": "{{base_url}}/owner/equipment-maintenance/companies/select"
+              }
+            },
+            {
+              "name": "Request Details",
+              "request": {
+                "method": "GET",
+                "description": "Returns maintenance request details.\n\nAllowed Status Values:\nPending\nIn Progress\nCompleted\nOverdue",
+                "url": "{{base_url}}/owner/equipment-maintenance/requests/{{maintenance_request_id}}"
+              }
+            },
+            {
+              "name": "Update Assigned Company",
+              "request": {
+                "method": "POST",
+                "description": "Updates only assigned_company_id or assigned_company alias.",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"assigned_company_id\": 1\n}"
+                },
+                "url": "{{base_url}}/owner/equipment-maintenance/requests/{{maintenance_request_id}}"
+              }
+            },
+            {
+              "name": "Update Status",
+              "request": {
+                "method": "POST",
+                "description": "Updates only request status.\n\nAllowed Status Values:\nPending\nIn Progress\nCompleted\nOverdue",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"In Progress\"\n}"
+                },
+                "url": "{{base_url}}/owner/equipment-maintenance/requests/{{maintenance_request_id}}"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Clinic",
+      "item": [
+        {
+          "name": "Branch",
+          "item": [
+            {
+              "name": "Get Clinic Branches",
+              "request": {
+                "method": "GET",
+                "description": "Returns all branches that belong to the authenticated clinic.\n\nUsed by the Header Branch Selector.\n\nAfter selecting a branch, send it in X-Branch-Id for Clinic requests.\n\nThis header represents the current selected clinic branch.\n\nAll endpoints that depend on branch_id will automatically filter data using this header.",
+                "header": [
+                  {
+                    "key": "X-Branch-Id",
+                    "value": "{{branch_id}}",
+                    "description": "Optional here. This header represents the current selected clinic branch."
+                  }
+                ],
+                "url": "{{base_url}}/clinic/branches"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Dashboard",
+          "item": [
+            {
+              "name": "Cards",
+              "request": {
+                "method": "GET",
+                "description": "Dashboard cards. Appointment and patient metrics are filtered by X-Branch-Id when provided.\n\nThis header represents the current selected clinic branch.\n\nAll endpoints that depend on branch_id will automatically filter data using this header.",
+                "header": [
+                  {
+                    "key": "X-Branch-Id",
+                    "value": "{{branch_id}}",
+                    "description": "Current selected clinic branch."
+                  }
+                ],
+                "url": "{{base_url}}/clinic/dashboard/cards"
+              }
+            },
+            {
+              "name": "Revenue Tracking",
+              "request": {
+                "method": "GET",
+                "description": "Revenue tracking filtered by appointment branch when X-Branch-Id is provided.",
+                "header": [
+                  {
+                    "key": "X-Branch-Id",
+                    "value": "{{branch_id}}"
+                  }
+                ],
+                "url": "{{base_url}}/clinic/dashboard/revenue-generation-tracking"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Appointments",
+          "item": [
+            {
+              "name": "List",
+              "request": {
+                "method": "GET",
+                "description": "Returns appointments. X-Branch-Id automatically filters clinic_appointments.branch_id.",
+                "header": [
+                  {
+                    "key": "X-Branch-Id",
+                    "value": "{{branch_id}}",
+                    "description": "This header represents the current selected clinic branch. All endpoints that depend on branch_id will automatically filter data using this header."
+                  }
+                ],
+                "url": "{{base_url}}/clinic/appointments?view=day&date=2026-08-07"
+              }
+            },
+            {
+              "name": "Details",
+              "request": {
+                "method": "GET",
+                "description": "Returns one appointment. With X-Branch-Id, appointments from other branches are not returned.",
+                "header": [
+                  {
+                    "key": "X-Branch-Id",
+                    "value": "{{branch_id}}"
+                  }
+                ],
+                "url": "{{base_url}}/clinic/appointments/{{appointment_id}}"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Patients",
+          "item": [
+            {
+              "name": "List",
+              "request": {
+                "method": "GET",
+                "description": "Returns patients. With X-Branch-Id, patients are filtered through their appointments in the selected branch.",
+                "header": [
+                  {
+                    "key": "X-Branch-Id",
+                    "value": "{{branch_id}}"
+                  }
+                ],
+                "url": "{{base_url}}/clinic/patients?per_page=15"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tasks",
+          "item": [
+            {
+              "name": "List",
+              "request": {
+                "method": "GET",
+                "description": "Returns clinic tasks. Current schema has no branch_id on tasks, so X-Branch-Id is validated but no task-level branch filter is applied.",
+                "header": [
+                  {
+                    "key": "X-Branch-Id",
+                    "value": "{{branch_id}}"
+                  }
+                ],
+                "url": "{{base_url}}/clinic/tasks?per_page=15"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Billing",
+          "item": [
+            {
+              "name": "Invoices",
+              "request": {
+                "method": "GET",
+                "description": "Returns invoices. With X-Branch-Id, invoices are filtered through their linked appointment branch.",
+                "header": [
+                  {
+                    "key": "X-Branch-Id",
+                    "value": "{{branch_id}}"
+                  }
+                ],
+                "url": "{{base_url}}/clinic/billing/invoices?per_page=15"
+              }
+            },
+            {
+              "name": "Payments",
+              "request": {
+                "method": "GET",
+                "description": "Returns payments. With X-Branch-Id, payments are filtered through invoice -> appointment -> branch.",
+                "header": [
+                  {
+                    "key": "X-Branch-Id",
+                    "value": "{{branch_id}}"
+                  }
+                ],
+                "url": "{{base_url}}/clinic/billing/payments?per_page=15"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Insurance",
+          "item": [
+            {
+              "name": "Claims",
+              "request": {
+                "method": "GET",
+                "description": "Returns insurance claims. With X-Branch-Id, claims are filtered through their linked appointment branch.",
+                "header": [
+                  {
+                    "key": "X-Branch-Id",
+                    "value": "{{branch_id}}"
+                  }
+                ],
+                "url": "{{base_url}}/clinic/insurance/claims"
+              }
+            },
+            {
+              "name": "Approval Report",
+              "request": {
+                "method": "GET",
+                "description": "Returns approval report. With X-Branch-Id, report rows are filtered by appointment branch.",
+                "header": [
+                  {
+                    "key": "X-Branch-Id",
+                    "value": "{{branch_id}}"
+                  }
+                ],
+                "url": "{{base_url}}/clinic/insurance/approval-report"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Dental Labs",
+          "item": [
+            {
+              "name": "Orders",
+              "request": {
+                "method": "GET",
+                "description": "Returns dental lab orders. Current schema has no branch_id on lab orders, so X-Branch-Id is validated but no order-level branch filter is applied.",
+                "header": [
+                  {
+                    "key": "X-Branch-Id",
+                    "value": "{{branch_id}}"
+                  }
+                ],
+                "url": "{{base_url}}/clinic/dental-lab-orders"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Materials",
+          "item": [
+            {
+              "name": "List",
+              "request": {
+                "method": "GET",
+                "description": "Returns materials. Current schema has no branch_id on material catalog data, so X-Branch-Id is validated but no material-level branch filter is applied.",
+                "header": [
+                  {
+                    "key": "X-Branch-Id",
+                    "value": "{{branch_id}}"
+                  }
+                ],
+                "url": "{{base_url}}/clinic/materials"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Inventory",
+          "item": [
+            {
+              "name": "List",
+              "request": {
+                "method": "GET",
+                "description": "Returns inventory items. Current schema has no branch_id on inventory_items, so X-Branch-Id is validated but no inventory-level branch filter is applied.",
+                "header": [
+                  {
+                    "key": "X-Branch-Id",
+                    "value": "{{branch_id}}"
+                  }
+                ],
+                "url": "{{base_url}}/clinic/inventory"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Orders",
+          "item": [
+            {
+              "name": "List",
+              "request": {
+                "method": "GET",
+                "description": "Returns material orders. Current schema has no branch_id on orders, so X-Branch-Id is validated but no order-level branch filter is applied.",
+                "header": [
+                  {
+                    "key": "X-Branch-Id",
+                    "value": "{{branch_id}}"
+                  }
+                ],
+                "url": "{{base_url}}/clinic/orders"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Equipment",
+          "item": [
+            {
+              "name": "List",
+              "request": {
+                "method": "GET",
+                "description": "Returns clinic equipment. Current schema has no branch_id on equipments, so X-Branch-Id is validated but no equipment-level branch filter is applied.",
+                "header": [
+                  {
+                    "key": "X-Branch-Id",
+                    "value": "{{branch_id}}"
+                  }
+                ],
+                "url": "{{base_url}}/clinic/equipment"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

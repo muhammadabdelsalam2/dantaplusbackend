@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\Clinic\MessageLog;
 
 class Clinic extends Model
 {
@@ -65,6 +66,21 @@ class Clinic extends Model
     public function users(): HasMany
     {
         return $this->hasMany(User::class);
+    }
+
+    public function patients(): HasMany
+    {
+        return $this->hasMany(Patient::class);
+    }
+
+    public function appointments(): HasMany
+    {
+        return $this->hasMany(ClinicAppointment::class);
+    }
+
+    public function messageLogs(): HasMany
+    {
+        return $this->hasMany(MessageLog::class);
     }
 
     public function labPartnerships(): HasMany

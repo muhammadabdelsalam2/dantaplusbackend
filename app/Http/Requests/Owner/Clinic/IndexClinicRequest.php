@@ -17,6 +17,7 @@ class IndexClinicRequest extends FormRequest
             'search' => ['nullable', 'string', 'max:255'],
             'status' => ['nullable', 'in:Active,Trial,Expired,Suspended'],
             'subscription_plan' => ['nullable', 'in:Basic,Standard,Premium'],
+            'payment_method' => ['nullable', 'in:Stripe,PayPal,Manual'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
             'include' => ['nullable', 'string'],
         ];

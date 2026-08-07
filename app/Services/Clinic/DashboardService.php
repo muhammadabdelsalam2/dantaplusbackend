@@ -5,6 +5,7 @@ namespace App\Services\Clinic;
 use App\Models\ClinicAppointment;
 use App\Models\ClinicInvoice;
 use App\Models\Patient;
+use App\Support\Clinic\BranchFilter;
 use App\Support\ServiceResult;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
@@ -12,6 +13,8 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardService
 {
+    use BranchFilter;
+
     public function cards(): array
     {
         $clinicId = $this->currentClinicId();
@@ -26,13 +29,13 @@ class DashboardService
             'cards' => [
                 $this->card(
                     "Today's Appointments",
-                    ClinicAppointment::query()->where('clinic_id', $clinicId)->whereDate('appointment_at', $today)->count(),
-                    ClinicAppointment::query()->where('clinic_id', $clinicId)->whereDate('appointment_at', $lastMonth)->count()
+                    $this->appointmentQuery($clinicId)->whereDate('appointment_at', $today)->count(),
+                    $this->appointmentQuery($clinicId)->whereDate('appointment_at', $lastMonth)->count()
                 ),
                 $this->card(
                     'Patients',
-                    Patient::query()->where('clinic_id', $clinicId)->count(),
-                    Patient::query()->where('clinic_id', $clinicId)->where('created_at', '<=', $lastMonth->copy()->endOfDay())->count()
+                    $this->patientQuery($clinicId)->count(),
+                    $this->patientQuery($clinicId)->where('created_at', '<=', $lastMonth->copy()->endOfDay())->count()
                 ),
                 $this->card(
                     'Monthly Revenue',
@@ -41,8 +44,8 @@ class DashboardService
                 ),
                 $this->card(
                     'New Patients',
-                    Patient::query()->where('clinic_id', $clinicId)->whereBetween('created_at', [$today->copy()->startOfMonth(), $today->copy()->endOfMonth()])->count(),
-                    Patient::query()->where('clinic_id', $clinicId)->whereBetween('created_at', [$lastMonth->copy()->startOfMonth(), $lastMonth->copy()->endOfMonth()])->count()
+                    $this->patientQuery($clinicId)->whereBetween('created_at', [$today->copy()->startOfMonth(), $today->copy()->endOfMonth()])->count(),
+                    $this->patientQuery($clinicId)->whereBetween('created_at', [$lastMonth->copy()->startOfMonth(), $lastMonth->copy()->endOfMonth()])->count()
                 ),
             ],
         ], 'Dashboard cards fetched successfully');
@@ -78,8 +81,7 @@ class DashboardService
 
         $buckets = ['Cleanings' => 0, 'Crowns' => 0, 'Fillings' => 0, 'Other' => 0];
 
-        ClinicAppointment::query()
-            ->where('clinic_id', $clinicId)
+        $this->appointmentQuery($clinicId)
             ->select('service_name', DB::raw('count(*) as aggregate'))
             ->groupBy('service_name')
             ->get()
@@ -112,13 +114,12 @@ class DashboardService
             return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
         }
 
-        $phone = ClinicAppointment::query()->where('clinic_id', $clinicId)->whereNotNull('patient_phone')->count();
-        $website = max(ClinicAppointment::query()->where('clinic_id', $clinicId)->count() - $phone, 0);
+        $phone = $this->appointmentQuery($clinicId)->whereNotNull('patient_phone')->count();
+        $website = max($this->appointmentQuery($clinicId)->count() - $phone, 0);
         $total = max($phone + $website, 1);
 
         $platforms = ['Facebook', 'Instagram', 'Google', 'TikTok'];
-        $last30Days = ClinicAppointment::query()
-            ->where('clinic_id', $clinicId)
+        $last30Days = $this->appointmentQuery($clinicId)
             ->where('appointment_at', '>=', now()->subDays(30))
             ->count();
 
@@ -156,8 +157,23 @@ class DashboardService
     {
         return (float) ClinicInvoice::query()
             ->where('clinic_id', $clinicId)
+            ->tap(fn ($query) => $this->branchContext()->applyToInvoicesThroughAppointments($query))
             ->whereBetween('issued_at', [$from->toDateString(), $to->toDateString()])
             ->sum('paid');
+    }
+
+    private function appointmentQuery(int $clinicId)
+    {
+        return $this->branchContext()->applyToAppointments(
+            ClinicAppointment::query()->where('clinic_id', $clinicId)
+        );
+    }
+
+    private function patientQuery(int $clinicId)
+    {
+        return $this->branchContext()->applyToPatientsThroughAppointments(
+            Patient::query()->where('clinic_id', $clinicId)
+        );
     }
 
     private function currentClinicId(): ?int

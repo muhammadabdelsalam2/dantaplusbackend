@@ -1122,6 +1122,7 @@ private function flexibleTransition(int $id, string $nextStatus, string $message
         return ClinicAppointment::query()
             ->with(['doctor:id,name', 'patient.user:id,name', 'service', 'invoices.payments'])
             ->where('clinic_id', $this->currentClinicId())
+            ->tap(fn (Builder $query) => $this->branchContext()->applyToAppointments($query))
             ->find($id);
     }
 

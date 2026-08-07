@@ -30,6 +30,7 @@ class InsuranceClaimController extends Controller
             'status' => $request->string('status')->toString() ?: null,
             'patient_id' => $request->integer('patient_id') ?: null,
             'insurance_company_id' => $request->integer('insurance_company_id') ?: null,
+            'branch_id' => $request->integer('branch_id') ?: null,
         ]);
 
         if (! $result['success']) {

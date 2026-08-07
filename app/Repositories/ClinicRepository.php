@@ -23,6 +23,7 @@ class ClinicRepository implements ClinicRepositoryInterface
             })
             ->when($filters['status'] ?? null, fn($query, $status) => $query->where('status', $status))
             ->when($filters['subscription_plan'] ?? null, fn($query, $plan) => $query->where('subscription_plan', $plan))
+            ->when($filters['payment_method'] ?? null, fn($query, $method) => $query->where('payment_method', $method))
             ->orderByDesc('id')
             ->paginate($perPage);
     }

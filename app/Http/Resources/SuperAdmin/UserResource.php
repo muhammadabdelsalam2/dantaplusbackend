@@ -5,29 +5,41 @@ namespace App\Http\Resources\SuperAdmin;
 use App\Support\UserRoleManager;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Str;
 
 class UserResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
         $role = $this->relationLoaded('roles')
-            ? $this->roles->first()?->name
-            : $this->getRoleNames()->first();
+            ? $this->roles->first()
+            : $this->roles()->first();
+        $roleName = $role?->name;
 
-        $entity = $this->entityForRole($role);
+        $entity = $this->entityForRole($roleName);
 
         return [
             'id' => $this->id,
             'name' => $this->name,
             'email' => $this->email,
+            'avatar' => $this->avatar_url,
             'is_active' => (bool) $this->is_active,
             'user' => [
                 'name' => $this->name,
                 'email' => $this->email,
                 'avatar_url' => $this->avatar_url,
             ],
-            'role' => $role,
+            'role' => $role ? [
+                'id' => $role->id,
+                'name' => $role->name,
+                'display_name' => Str::of($role->name)->replace(['-', '_'], ' ')->title()->toString(),
+            ] : null,
             'entity' => $entity,
+            'assigned_to' => $entity ? [
+                'type' => $entity['type'],
+                'id' => $entity['id'],
+                'name' => $entity['name'],
+            ] : null,
             'status' => $this->is_active ? 'Active' : 'Inactive',
             'last_login' => optional($this->last_login_at ?? $this->updated_at)->format('d/m/Y'),
         ];

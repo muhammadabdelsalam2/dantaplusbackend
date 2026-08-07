@@ -75,6 +75,50 @@ class ClinicManagementController extends Controller
         return ApiResponse::success($result['data'], $result['message'], $result['code']);
     }
 
+    public function activate(int $clinic)
+    {
+        $result = $this->clinicManagementService->activate($clinic);
+
+        if (!$result['success']) {
+            return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+        }
+
+        return ApiResponse::success($result['data'], $result['message'], $result['code']);
+    }
+
+    public function suspend(int $clinic)
+    {
+        $result = $this->clinicManagementService->suspend($clinic);
+
+        if (!$result['success']) {
+            return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+        }
+
+        return ApiResponse::success($result['data'], $result['message'], $result['code']);
+    }
+
+    public function disable(int $clinic)
+    {
+        $result = $this->clinicManagementService->disable($clinic);
+
+        if (!$result['success']) {
+            return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+        }
+
+        return ApiResponse::success($result['data'], $result['message'], $result['code']);
+    }
+
+    public function filters()
+    {
+        $result = $this->clinicManagementService->filters();
+
+        if (!$result['success']) {
+            return ApiResponse::error($result['message'], $result['code'], $result['errors'] ?? null);
+        }
+
+        return ApiResponse::success($result['data'], $result['message'], $result['code']);
+    }
+
     public function destroy(int $clinic)
     {
         $result = $this->clinicManagementService->destroy($clinic);

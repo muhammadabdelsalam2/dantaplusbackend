@@ -14,7 +14,7 @@ class UpdateClinicStatusRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'status' => ['required', 'in:Active,Suspended'],
+            'status' => ['required', 'in:Active,Trial,Expired,Suspended'],
         ];
     }
 }

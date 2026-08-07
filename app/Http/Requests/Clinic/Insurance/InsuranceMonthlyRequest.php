@@ -23,6 +23,7 @@ class InsuranceMonthlyRequest extends FormRequest
                 'integer',
                 Rule::exists('insurance_companies', 'id')->where(fn ($query) => $query->where('clinic_id', $clinicId)),
             ],
+            'branch_id' => ['nullable', 'integer', Rule::exists('branches', 'id')->where(fn ($query) => $query->where('clinic_id', $clinicId))],
         ];
     }
 
@@ -36,4 +37,3 @@ class InsuranceMonthlyRequest extends FormRequest
         ];
     }
 }
-

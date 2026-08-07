@@ -20,4 +20,11 @@ class UpdateMaintenanceRequestStatusRequest extends FormRequest
             'assigned_company_id' => ['nullable', 'integer', 'exists:maintenance_companies,id'],
         ];
     }
+
+    protected function prepareForValidation(): void
+    {
+        if (! $this->has('assigned_company_id') && $this->has('assigned_company')) {
+            $this->merge(['assigned_company_id' => $this->input('assigned_company')]);
+        }
+    }
 }

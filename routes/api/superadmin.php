@@ -58,9 +58,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('/clinics', [ClinicManagementController::class, 'index']);
         Route::post('/clinics', [ClinicManagementController::class, 'store']);
+        Route::get('/clinics/filters', [ClinicManagementController::class, 'filters']);
         Route::get('/clinics/{clinic}', [ClinicManagementController::class, 'show']);
         Route::post('/clinics/{clinic}', [ClinicManagementController::class, 'update']);
         Route::post('/clinics/{clinic}/status', [ClinicManagementController::class, 'updateStatus']);
+        Route::post('/clinics/{clinic}/activate', [ClinicManagementController::class, 'activate']);
+        Route::post('/clinics/{clinic}/suspend', [ClinicManagementController::class, 'suspend']);
+        Route::post('/clinics/{clinic}/disable', [ClinicManagementController::class, 'disable']);
         Route::delete('/clinics/{clinic}', [ClinicManagementController::class, 'destroy']);
         Route::get('/clinics/{clinic}/branches', [ClinicManagementController::class, 'branches']);
         Route::get('/modules', [ClinicManagementController::class, 'clinicmodules']);
@@ -85,10 +89,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/invoices/{invoice}/status', [SubscriptionDashboardController::class, 'updateStatus']);
 
         Route::prefix('equipment-maintenance')->group(function () {
+            Route::get('/alerts', [EquipmentMaintenanceController::class, 'smartAlerts']);
             Route::get('/requests', [EquipmentMaintenanceController::class, 'listRequests']);
             Route::get('/requests/{id}', [EquipmentMaintenanceController::class, 'showRequest']);
             Route::post('/requests', [EquipmentMaintenanceController::class, 'storeRequest']);
             Route::post('/requests/{id}', [EquipmentMaintenanceController::class, 'updateRequest']);
+            Route::get('/companies/select', [EquipmentMaintenanceController::class, 'maintenanceCompanySelect']);
             Route::get('/companies', [EquipmentMaintenanceController::class, 'listCompanies']);
             Route::get('/companies/{id}', [EquipmentMaintenanceController::class, 'showCompany']);
             Route::post('/companies', [EquipmentMaintenanceController::class, 'storeCompany']);
@@ -133,10 +139,12 @@ Route::post('/products/{product}/reject', [MaterialProductController::class, 're
         });
 
         Route::prefix('maintenance')->group(function () {
+            Route::get('/alerts', [EquipmentMaintenanceController::class, 'smartAlerts']);
             Route::get('/requests', [EquipmentMaintenanceController::class, 'listRequests']);
             Route::get('/requests/{id}', [EquipmentMaintenanceController::class, 'showRequest']);
             Route::post('/requests', [EquipmentMaintenanceController::class, 'storeRequest']);
             Route::post('/requests/{id}', [EquipmentMaintenanceController::class, 'updateRequest']);
+            Route::get('/companies/select', [EquipmentMaintenanceController::class, 'maintenanceCompanySelect']);
             Route::get('/companies', [EquipmentMaintenanceController::class, 'listCompanies']);
             Route::get('/companies/{id}', [EquipmentMaintenanceController::class, 'showCompany']);
             Route::post('/companies', [EquipmentMaintenanceController::class, 'storeCompany']);

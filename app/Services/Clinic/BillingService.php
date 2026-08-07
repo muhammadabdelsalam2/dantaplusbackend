@@ -19,6 +19,7 @@ use App\Models\Patient;
 use App\Models\User;
 use App\Repositories\Clinic\Billing\ClinicBillingRepositoryInterface;
 use App\Services\Clinic\WhatsappBot\Providers\WhatsAppProviderInterface;
+use App\Support\Clinic\BranchFilter;
 use App\Support\ServiceResult;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
@@ -29,6 +30,8 @@ use Throwable;
 
 class BillingService
 {
+    use BranchFilter;
+
     private const PROFIT_LOSS_DOWNLOAD_FILENAME = 'profit-loss-report.pdf';
     private const PROFIT_LOSS_DOWNLOAD_ROUTE = 'clinic.billing.profit-loss.download.signed';
     private const PROFIT_LOSS_DOWNLOAD_TTL_MINUTES = 10;
@@ -100,7 +103,7 @@ class BillingService
         }
 
         $appointment = ! empty($data['appointment_id'])
-            ? ClinicAppointment::query()->where('clinic_id', $clinicId)->find($data['appointment_id'])
+            ? $this->branchContext()->applyToAppointments(ClinicAppointment::query()->where('clinic_id', $clinicId))->find($data['appointment_id'])
             : null;
 
         if (! empty($data['appointment_id']) && ! $appointment) {
@@ -1488,6 +1491,7 @@ private function extractAccountsDownloadUrl(int $clinicId, string $format, array
     {
         return round((float) ClinicInvoice::query()
             ->where('clinic_id', $clinicId)
+            ->tap(fn ($query) => $this->branchContext()->applyToInvoicesThroughAppointments($query))
             ->whereBetween('issued_at', [$range[0]->toDateString(), $range[1]->toDateString()])
             ->sum($column), 2);
     }
@@ -1496,6 +1500,7 @@ private function extractAccountsDownloadUrl(int $clinicId, string $format, array
     {
         return round((float) \App\Models\ClinicPayment::query()
             ->where('clinic_id', $clinicId)
+            ->tap(fn ($query) => $this->branchContext()->applyToPaymentsThroughInvoiceAppointment($query))
             ->whereBetween('paid_at', [$range[0]->startOfDay(), $range[1]->endOfDay()])
             ->sum('amount'), 2);
     }

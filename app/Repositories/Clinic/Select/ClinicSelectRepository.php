@@ -16,12 +16,15 @@ use App\Models\Service;
 use App\Models\Setting;
 use App\Models\User;
 use App\Models\Clinic\Insurance\InsuranceClaim;
+use App\Support\Clinic\BranchFilter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Collection;
 
 class ClinicSelectRepository implements ClinicSelectRepositoryInterface
 {
+    use BranchFilter;
+
     public function dentalLabs(?int $clinicId, array $filters = []): Collection
     {
         return ClinicLabPartnership::query()
@@ -39,6 +42,7 @@ class ClinicSelectRepository implements ClinicSelectRepositoryInterface
     {
         return User::query()
             ->when($clinicId, fn ($q) => $q->where('clinic_id', $clinicId))
+            ->when($this->selectedBranchId($filters), fn (Builder $query, int $branchId) => $query->whereHas('doctor', fn (Builder $doctor) => $doctor->where('branch_id', $branchId)))
             ->whereHas('roles', fn (Builder $query) => $query->where('name', 'doctor'))
             ->orderBy('name')
             ->get(['id', 'name']);
@@ -51,6 +55,7 @@ class ClinicSelectRepository implements ClinicSelectRepositoryInterface
         return Patient::query()
             ->with('user:id,name,phone')
             ->when($clinicId, fn ($q) => $q->where('clinic_id', $clinicId))
+            ->when($this->selectedBranchId($filters), fn (Builder $query, int $branchId) => $query->whereHas('appointments', fn (Builder $appointment) => $appointment->where('branch_id', $branchId)))
             ->when($search, function ($query, string $search) {
                 $query->where(function ($nested) use ($search) {
                     $nested->where('phone', 'like', "%{$search}%")
@@ -227,6 +232,7 @@ class ClinicSelectRepository implements ClinicSelectRepositoryInterface
 
         return ClinicInvoice::query()
             ->when($clinicId, fn ($q) => $q->where('clinic_id', $clinicId))
+            ->tap(fn (Builder $query) => $this->branchContext()->applyToInvoicesThroughAppointments($query, $this->selectedBranchId($filters)))
             ->when($patientId, fn ($query, $patientId) => $query->where('patient_id', $patientId))
             ->when($search, fn ($query, $search) => $query->where('invoice_number', 'like', "%{$search}%"))
             ->orderByDesc('id')

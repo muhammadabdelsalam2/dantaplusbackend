@@ -2,6 +2,7 @@
 
 namespace App\Services\Owner;
 
+use App\Http\Resources\SuperAdmin\SmartAlertResource;
 use App\Models\AiAlert;
 use App\Models\MaintenanceCompany;
 use App\Models\OwnerMaintenanceRequest;
@@ -10,6 +11,7 @@ use App\Repositories\AiAlertRepository;
 use App\Repositories\MaintenanceCompanyRepository;
 use App\Repositories\OwnerMaintenanceRequestRepository;
 use App\Support\ServiceResult;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -67,7 +69,7 @@ class EquipmentMaintenanceService
                 'name' => $request->company?->name ?? 'Unassigned',
             ],
             'status' => $request->status,
-            'editable_fields' => ['status', 'assigned_company_id'],
+            'editable_fields' => ['status', 'assigned_company_id', 'assigned_company'],
             'options' => $this->maintenanceOptions(),
         ], 'Maintenance request details fetched successfully');
     }
@@ -109,8 +111,9 @@ class EquipmentMaintenanceService
             return ServiceResult::error('Maintenance request not found', null, null, 404);
         }
 
-        $updated = $this->maintenanceRequestRepository->update($request, $data);
-        $updated->loadMissing('clinic:id,name');
+        $payload = Arr::only($data, ['assigned_company_id', 'status']);
+        $updated = $this->maintenanceRequestRepository->update($request, $payload);
+        $updated->loadMissing(['clinic:id,name', 'company:id,name']);
 
         return ServiceResult::success([
             'id' => $updated->id,
@@ -118,9 +121,40 @@ class EquipmentMaintenanceService
             'clinic' => $updated->clinic?->name,
             'equipment' => $updated->equipment,
             'issue' => $updated->issue_description,
+            'assigned_company' => [
+                'id' => $updated->assigned_company_id,
+                'name' => $updated->company?->name ?? 'Unassigned',
+            ],
             'assigned_company_id' => $updated->assigned_company_id,
             'status' => $updated->status,
         ], 'Maintenance request updated successfully');
+    }
+
+    public function smartAlertsList(): array
+    {
+        $alerts = AiAlert::query()
+            ->latest('id')
+            ->get();
+
+        return ServiceResult::success(
+            SmartAlertResource::collection($alerts)->resolve(),
+            'Smart alerts fetched successfully'
+        );
+    }
+
+    public function maintenanceCompanySelect(): array
+    {
+        $companies = MaintenanceCompany::query()
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn (MaintenanceCompany $company) => [
+                'id' => $company->id,
+                'name' => $company->name,
+            ])
+            ->values()
+            ->all();
+
+        return ServiceResult::success($companies, 'Maintenance companies fetched successfully');
     }
 
     public function listCompanies(array $filters): array
@@ -264,7 +298,7 @@ class EquipmentMaintenanceService
         ]);
         $updated->loadMissing('company:id,name');
 
-        return ServiceResult::success($this->mapAlert($updated), 'AI alert reviewed successfully');
+        return ServiceResult::success((new SmartAlertResource($updated))->resolve(), 'AI alert reviewed successfully');
     }
 
     private function generateRequestCode(): string

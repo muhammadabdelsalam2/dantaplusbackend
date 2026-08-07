@@ -19,6 +19,7 @@ class IndexClinicBillingRequest extends FormRequest
             'patient_id' => ['nullable', 'integer'],
             'doctor_id' => ['nullable', 'integer'],
             'doctor' => ['nullable', 'integer'],
+            'branch_id' => ['nullable', 'integer'],
             'invoice_id' => ['nullable', 'integer'],
             'lab_id' => ['nullable', 'integer'],
             'expense_category_id' => ['nullable', 'integer'],

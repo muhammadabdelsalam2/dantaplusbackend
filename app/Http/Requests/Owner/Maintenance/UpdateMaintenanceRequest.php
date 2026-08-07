@@ -23,6 +23,10 @@ class UpdateMaintenanceRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        if (! $this->has('assigned_company_id') && $this->has('assigned_company')) {
+            $this->merge(['assigned_company_id' => $this->input('assigned_company')]);
+        }
+
         if ($this->input('status') === 'Resolved') {
             $this->merge(['status' => OwnerMaintenanceRequestModel::STATUS_COMPLETED]);
         }
