@@ -51,41 +51,70 @@ class ClinicDentalLabService
         ], 'Dental labs fetched successfully');
     }
 
-    public function store(array $data): array
-    {
-        $clinicId = $this->currentClinicId();
-        if (! $clinicId) {
-            return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
+  public function store(array $data): array
+{
+    $clinicId = $this->currentClinicId();
+    if (! $clinicId) {
+        return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
+    }
+
+    $payload = $this->labPayload($data);
+
+    $lab = DB::transaction(function () use ($clinicId, $payload) {
+        $existingLab = $this->repository->findReusableDentalLab(
+            $payload['email'] ?? null,
+            $payload['phone'] ?? null,
+            $payload['name']
+        );
+
+        $lab = $existingLab
+            ? $this->repository->updateDentalLab($existingLab, array_filter($payload, static fn ($value) => $value !== null))
+            : $this->repository->createDentalLab(array_merge($payload, ['is_external' => true]));
+
+        $this->repository->upsertPartnership($clinicId, $lab->id, [
+            'status' => ClinicLabPartnership::STATUS_ACTIVE,
+            'partnership_start_date' => now()->toDateString(),
+            'invited_by' => auth()->id(),
+        ]);
+
+        return $lab;
+    });
+
+    // رفع صور قبل/بعد لو موجودة في نفس الطلب
+    $this->storeGalleryImagesForLab($lab, $data['before_images'] ?? null, 'before');
+    $this->storeGalleryImagesForLab($lab, $data['after_images'] ?? null, 'after');
+
+    return ServiceResult::success(
+        (new ClinicDentalLabResource($this->repository->findDentalLab($clinicId, $lab->id)))->resolve(),
+        'Dental lab created successfully',
+        201
+    );
+}
+
+
+private function storeGalleryImagesForLab(DentalLab $lab, ?array $images, string $type): array
+{
+    $uploaded = [];
+
+    foreach ($images ?? [] as $image) {
+        if (! $image instanceof UploadedFile) {
+            continue;
         }
 
-        $payload = $this->labPayload($data);
+        $path = Storage::disk('public')->putFile('clinic/dental-labs/'.$lab->id.'/'.$type, $image);
 
-        $lab = DB::transaction(function () use ($clinicId, $payload) {
-            $existingLab = $this->repository->findReusableDentalLab(
-                $payload['email'] ?? null,
-                $payload['phone'] ?? null,
-                $payload['name']
-            );
-
-            $lab = $existingLab
-                ? $this->repository->updateDentalLab($existingLab, array_filter($payload, static fn ($value) => $value !== null))
-                : $this->repository->createDentalLab(array_merge($payload, ['is_external' => true]));
-
-            $this->repository->upsertPartnership($clinicId, $lab->id, [
-                'status' => ClinicLabPartnership::STATUS_ACTIVE,
-                'partnership_start_date' => now()->toDateString(),
-                'invited_by' => auth()->id(),
-            ]);
-
-            return $lab;
-        });
-
-        return ServiceResult::success(
-            (new ClinicDentalLabResource($this->repository->findDentalLab($clinicId, $lab->id)))->resolve(),
-            'Dental lab created successfully',
-            201
-        );
+        $uploaded[] = $this->repository->createGalleryImage([
+            'lab_id' => $lab->id,
+            'type' => $type,
+            'url' => $path,
+            'disk' => 'public',
+            'uploaded_by' => auth()->id(),
+            'created_at' => now(),
+        ]);
     }
+
+    return $uploaded;
+}
 
     public function show(int $labId): array
     {
@@ -406,38 +435,54 @@ class ClinicDentalLabService
         return ServiceResult::success((new ClinicDentalLabOrderResource($order))->resolve(), 'Dental lab order status updated successfully');
     }
 
+    // public function uploadGallery(int $labId, array $data): array
+    // {
+    //     $lab = $this->resolveDentalLab($labId);
+    //     if (! $lab) {
+    //         return ServiceResult::error('Dental lab not found.', null, null, 404);
+    //     }
+
+    //     $uploaded = [];
+
+    //     foreach ($data['images'] as $image) {
+    //         if (! $image instanceof UploadedFile) {
+    //             continue;
+    //         }
+
+    //         $path = Storage::disk('public')->putFile('clinic/dental-labs/'.$lab->id.'/'.$data['type'], $image);
+
+    //         $uploaded[] = $this->repository->createGalleryImage([
+    //             'lab_id' => $lab->id,
+    //             'type' => $data['type'],
+    //             'url' => $path,
+    //             'disk' => 'public',
+    //             'uploaded_by' => auth()->id(),
+    //             'created_at' => now(),
+    //         ]);
+    //     }
+
+    //     return ServiceResult::success(
+    //         ClinicDentalLabGalleryResource::collection($uploaded)->resolve(),
+    //         'Dental lab gallery uploaded successfully',
+    //         201
+    //     );
+    // }
     public function uploadGallery(int $labId, array $data): array
-    {
-        $lab = $this->resolveDentalLab($labId);
-        if (! $lab) {
-            return ServiceResult::error('Dental lab not found.', null, null, 404);
-        }
-
-        $uploaded = [];
-
-        foreach ($data['images'] as $image) {
-            if (! $image instanceof UploadedFile) {
-                continue;
-            }
-
-            $path = Storage::disk('public')->putFile('clinic/dental-labs/'.$lab->id.'/'.$data['type'], $image);
-
-            $uploaded[] = $this->repository->createGalleryImage([
-                'lab_id' => $lab->id,
-                'type' => $data['type'],
-                'url' => $path,
-                'disk' => 'public',
-                'uploaded_by' => auth()->id(),
-                'created_at' => now(),
-            ]);
-        }
-
-        return ServiceResult::success(
-            ClinicDentalLabGalleryResource::collection($uploaded)->resolve(),
-            'Dental lab gallery uploaded successfully',
-            201
-        );
+{
+    $lab = $this->resolveDentalLab($labId);
+    if (! $lab) {
+        return ServiceResult::error('Dental lab not found.', null, null, 404);
     }
+
+    $uploaded = $this->storeGalleryImagesForLab($lab, $data['images'], $data['type']);
+
+    return ServiceResult::success(
+        ClinicDentalLabGalleryResource::collection($uploaded)->resolve(),
+        'Dental lab gallery uploaded successfully',
+        201
+    );
+}
+
 
     public function analytics(): array
     {
