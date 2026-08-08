@@ -59,14 +59,7 @@ class StoreDentalLabRequest extends FormRequest
             'working_hours' => ['nullable', 'string', 'max:255'],
             'avg_delivery_days' => ['required', 'numeric', 'min:0'],
 
-            'response_speed' => [
-                'nullable',
-                Rule::in([
-                    DentalLab::RESPONSE_SPEED_FAST,
-                    DentalLab::RESPONSE_SPEED_MEDIUM,
-                    DentalLab::RESPONSE_SPEED_SLOW,
-                ]),
-            ],
+           'response_speed' => ['nullable', 'string', 'max:255'],
 
             'status' => [
                 'sometimes',
