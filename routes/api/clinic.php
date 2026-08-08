@@ -316,6 +316,8 @@ Route::prefix('clinic')
         Route::middleware('permission:patients.view')->get('/patients/{id}/discussion',           [PatientController::class, 'discussion']);
         Route::middleware('permission:communication.send')->post('/patients/{id}/discussion',     [PatientController::class, 'storeDiscussion']);
         Route::middleware('permission:patients.view')->get('/patients/{id}/analytics',            [PatientController::class, 'analytics']);
+        Route::middleware('permission:patients.view')->get('/patients/{id}/invoices', [PatientController::class, 'invoices']);
+Route::middleware('permission:patients.update')->post('/patients/{id}/invoices/{invoiceId}/payments', [PatientController::class, 'addPayment']);
         Route::middleware('permission:patients.view')->get('/patients/{id}/documents', [PatientController::class, 'documents']);
 Route::middleware('permission:patients.update')->post('/patients/{id}/documents/upload', [PatientController::class, 'uploadDocument']);
         Route::middleware('permission:patients.view')->get('/patients/{id}/approvals', [PatientController::class, 'approvals']);
