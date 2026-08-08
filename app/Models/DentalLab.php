@@ -26,6 +26,7 @@ class DentalLab extends Model
     public const RESPONSE_SPEED_SLOW = 'Slow';
 
     protected $fillable = [
+        'created_by_clinic_id',
         'name',
         'contact_person',
         'address',

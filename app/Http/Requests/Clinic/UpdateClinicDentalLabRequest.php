@@ -28,6 +28,13 @@ class UpdateClinicDentalLabRequest extends FormRequest
             'before_images.*' => ['file', 'image', 'max:5120'],
             'after_images' => ['nullable', 'array'],
             'after_images.*' => ['file', 'image', 'max:5120'],
+
+            
+            'services' => ['nullable', 'array'],
+            'services.*.id' => ['nullable', 'integer'], 
+            'services.*.name' => ['required_with:services', 'string', 'max:255'],
+            'services.*.price' => ['required_with:services', 'numeric', 'min:0'],
+            'services.*.turnaround_days' => ['nullable', 'numeric', 'min:0'],
         ];
     }
 

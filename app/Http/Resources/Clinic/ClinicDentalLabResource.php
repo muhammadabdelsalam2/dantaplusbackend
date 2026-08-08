@@ -36,6 +36,7 @@ class ClinicDentalLabResource extends JsonResource
         return [
             'id' => $this->id,
             'clinic_id' => $partnership?->clinic_id,
+            'is_own' => (bool) ($this->is_own ?? false),
             'name' => $this->name,
             'contact_person' => $this->contact_person,
             'phone' => $this->phone,

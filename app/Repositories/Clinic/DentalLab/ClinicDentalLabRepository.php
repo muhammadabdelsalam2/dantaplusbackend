@@ -14,33 +14,31 @@ use Illuminate\Support\Collection;
 class ClinicDentalLabRepository implements ClinicDentalLabRepositoryInterface
 {
     public function paginateDentalLabs(int $clinicId, array $filters): LengthAwarePaginator
-    {
-        return DentalLab::query()
-            ->with([
-                'partnerships' => fn ($query) => $query->where('clinic_id', $clinicId),
-                'labServices',
-                'galleryImages',
-                'latestReview',
-                'cases' => fn ($query) => $query
-                    ->where('clinic_id', $clinicId)
-                    ->with(['patient.user:id,name', 'dentist.user:id,name']),
-            ])
-            ->withAvg('reviews', 'rating')
-            ->withCount('reviews')
-            ->whereHas('partnerships', fn ( $query) => $query->where('clinic_id', $clinicId))
-            ->when($filters['search'] ?? null, function (Builder $query, string $search) {
-                $query->where(function (Builder $innerQuery) use ($search) {
-                    $innerQuery
-                        ->where('name', 'like', "%{$search}%")
-                        ->orWhere('contact_person', 'like', "%{$search}%")
-                        ->orWhere('email', 'like', "%{$search}%")
-                        ->orWhere('phone', 'like', "%{$search}%");
-                });
-            })
-            ->latest('id')
-            ->paginate($filters['per_page'] ?? 15);
-    }
-
+{
+    return DentalLab::query()
+        ->with([
+            'partnerships' => fn ($query) => $query->where('clinic_id', $clinicId),
+            'labServices',
+            'galleryImages',
+            'latestReview',
+            'cases' => fn ($query) => $query
+                ->where('clinic_id', $clinicId)
+                ->with(['patient.user:id,name', 'dentist.user:id,name']),
+        ])
+        ->withAvg('reviews', 'rating')
+        ->withCount('reviews')
+        ->when($filters['search'] ?? null, function (Builder $query, string $search) {
+            $query->where(function (Builder $innerQuery) use ($search) {
+                $innerQuery
+                    ->where('name', 'like', "%{$search}%")
+                    ->orWhere('contact_person', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%");
+            });
+        })
+        ->latest('id')
+        ->paginate($filters['per_page'] ?? 15);
+}
     public function findDentalLab(int $clinicId, int $labId): ?DentalLab
     {
         return DentalLab::query()
@@ -62,7 +60,7 @@ class ClinicDentalLabRepository implements ClinicDentalLabRepositoryInterface
     public function findReusableDentalLab(?string $email, ?string $phone, string $name): ?DentalLab
 {
     if (! $email && ! $phone) {
-        return null; 
+        return null;
     }
 
     return DentalLab::query()

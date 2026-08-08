@@ -11,7 +11,7 @@ class StoreClinicDentalLabRequest extends FormRequest
         return true;
     }
 
-  public function rules(): array
+public function rules(): array
 {
     return [
         'name' => ['required', 'string', 'max:255'],
@@ -24,11 +24,16 @@ class StoreClinicDentalLabRequest extends FormRequest
         'working_hours' => ['nullable', 'string', 'max:255'],
         'status' => ['nullable', 'string', 'max:50'],
 
-        
         'before_images' => ['nullable', 'array'],
         'before_images.*' => ['file', 'image', 'max:5120'],
         'after_images' => ['nullable', 'array'],
         'after_images.*' => ['file', 'image', 'max:5120'],
+
+        
+        'services' => ['nullable', 'array'],
+        'services.*.name' => ['required_with:services', 'string', 'max:255'],
+        'services.*.price' => ['required_with:services', 'numeric', 'min:0'],
+        'services.*.turnaround_days' => ['nullable', 'numeric', 'min:0'],
     ];
 }
 

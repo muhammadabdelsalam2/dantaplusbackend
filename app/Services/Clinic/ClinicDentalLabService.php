@@ -31,27 +31,33 @@ class ClinicDentalLabService
     {
     }
 
-    public function index(array $filters): array
-    {
-        $clinicId = $this->currentClinicId();
-        if (! $clinicId) {
-            return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
-        }
-
-        $dentalLabs = $this->repository->paginateDentalLabs($clinicId, $filters);
-
-        return ServiceResult::success([
-            'items' => ClinicDentalLabResource::collection($dentalLabs->items())->resolve(),
-            'pagination' => [
-                'current_page' => $dentalLabs->currentPage(),
-                'last_page' => $dentalLabs->lastPage(),
-                'per_page' => $dentalLabs->perPage(),
-                'total' => $dentalLabs->total(),
-            ],
-        ], 'Dental labs fetched successfully');
+ public function index(array $filters): array
+{
+    $clinicId = $this->currentClinicId();
+    if (! $clinicId) {
+        return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
     }
 
-  public function store(array $data): array
+    $dentalLabs = $this->repository->paginateDentalLabs($clinicId, $filters);
+
+
+    $dentalLabs->getCollection()->transform(function (DentalLab $lab) use ($clinicId) {
+        $lab->is_own = (int) $lab->created_by_clinic_id === (int) $clinicId;
+
+        return $lab;
+    });
+
+    return ServiceResult::success([
+        'items' => ClinicDentalLabResource::collection($dentalLabs->items())->resolve(),
+        'pagination' => [
+            'current_page' => $dentalLabs->currentPage(),
+            'last_page' => $dentalLabs->lastPage(),
+            'per_page' => $dentalLabs->perPage(),
+            'total' => $dentalLabs->total(),
+        ],
+    ], 'Dental labs fetched successfully');
+}
+public function store(array $data): array
 {
     $clinicId = $this->currentClinicId();
     if (! $clinicId) {
@@ -69,7 +75,10 @@ class ClinicDentalLabService
 
         $lab = $existingLab
             ? $this->repository->updateDentalLab($existingLab, array_filter($payload, static fn ($value) => $value !== null))
-            : $this->repository->createDentalLab(array_merge($payload, ['is_external' => true]));
+            : $this->repository->createDentalLab(array_merge($payload, [
+                'is_external' => true,
+                'created_by_clinic_id' => $clinicId,
+            ]));
 
         $this->repository->upsertPartnership($clinicId, $lab->id, [
             'status' => ClinicLabPartnership::STATUS_ACTIVE,
@@ -80,15 +89,44 @@ class ClinicDentalLabService
         return $lab;
     });
 
-    // رفع صور قبل/بعد لو موجودة في نفس الطلب
     $this->storeGalleryImagesForLab($lab, $data['before_images'] ?? null, 'before');
     $this->storeGalleryImagesForLab($lab, $data['after_images'] ?? null, 'after');
+    $this->storeServicesForLab($lab, $data['services'] ?? null);   // ← جديد
 
     return ServiceResult::success(
         (new ClinicDentalLabResource($this->repository->findDentalLab($clinicId, $lab->id)))->resolve(),
         'Dental lab created successfully',
         201
     );
+}
+
+private function storeServicesForLab(DentalLab $lab, ?array $services): void
+{
+    foreach ($services ?? [] as $service) {
+        if (empty($service['name']) || ! isset($service['price'])) {
+            continue;
+        }
+
+        
+        if (! empty($service['id'])) {
+            $existingService = $this->repository->findServiceForClinic($this->currentClinicId(), (int) $service['id']);
+            if ($existingService && (int) $existingService->lab_id === (int) $lab->id) {
+                $existingService->update([
+                    'service_name' => $service['name'],
+                    'price' => $service['price'],
+                    'turnaround_time_days' => $service['turnaround_days'] ?? $existingService->turnaround_time_days,
+                ]);
+                continue;
+            }
+        }
+
+        $this->repository->createService([
+            'lab_id' => $lab->id,
+            'service_name' => $service['name'],
+            'price' => $service['price'],
+            'turnaround_time_days' => $service['turnaround_days'] ?? null,
+        ]);
+    }
 }
 
 
@@ -126,54 +164,68 @@ private function storeGalleryImagesForLab(DentalLab $lab, ?array $images, string
         return ServiceResult::success((new ClinicDentalLabResource($lab))->resolve(), 'Dental lab fetched successfully');
     }
 
- public function update(int $labId, array $data): array
+public function update(int $labId, array $data): array
 {
+    $clinicId = $this->currentClinicId();
+    if (! $clinicId) {
+        return ServiceResult::error('Clinic account is not linked to a clinic.', null, null, 403);
+    }
+
     $lab = $this->resolveDentalLab($labId);
     if (! $lab) {
         return ServiceResult::error('Dental lab not found.', null, null, 404);
     }
 
+    // بس الكلينيك اللي عملت add للاب هي اللي تقدر تعدّل
+    if ((int) $lab->created_by_clinic_id !== (int) $clinicId) {
+        return ServiceResult::error('You are not allowed to edit this dental lab.', null, null, 403);
+    }
+
     $updatedLab = $this->repository->updateDentalLab($lab, $this->labPayload($data));
 
-    
     $this->storeGalleryImagesForLab($updatedLab, $data['before_images'] ?? null, 'before');
     $this->storeGalleryImagesForLab($updatedLab, $data['after_images'] ?? null, 'after');
+    $this->storeServicesForLab($updatedLab, $data['services'] ?? null);
 
     return ServiceResult::success(
-        (new ClinicDentalLabResource($this->repository->findDentalLab($this->currentClinicId(), $updatedLab->id)))->resolve(),
+        (new ClinicDentalLabResource($this->repository->findDentalLab($clinicId, $updatedLab->id)))->resolve(),
         'Dental lab updated successfully'
     );
 }
 
     public function destroy(int $labId): array
-    {
-        $clinicId = $this->currentClinicId();
-        $lab = $this->resolveDentalLab($labId);
-        if (! $lab || ! $clinicId) {
-            return ServiceResult::error('Dental lab not found.', null, null, 404);
-        }
-
-        DB::transaction(function () use ($clinicId, $lab) {
-            $this->repository->deletePartnership($clinicId, $lab->id);
-
-            if (
-                $lab->is_external
-                && ! $lab->users()->exists()
-                && ! $lab->partnerships()->exists()
-                && ! $lab->cases()->exists()
-            ) {
-                foreach ($lab->galleryImages as $image) {
-                    if ($image->url && Storage::disk($image->disk ?? 'public')->exists($image->url)) {
-                        Storage::disk($image->disk ?? 'public')->delete($image->url);
-                    }
-                }
-
-                $this->repository->deleteDentalLab($lab);
-            }
-        });
-
-        return ServiceResult::success(null, 'Dental lab detached successfully');
+{
+    $clinicId = $this->currentClinicId();
+    $lab = $this->resolveDentalLab($labId);
+    if (! $lab || ! $clinicId) {
+        return ServiceResult::error('Dental lab not found.', null, null, 404);
     }
+
+    if ((int) $lab->created_by_clinic_id !== (int) $clinicId) {
+        return ServiceResult::error('You are not allowed to delete this dental lab.', null, null, 403);
+    }
+
+    DB::transaction(function () use ($clinicId, $lab) {
+        $this->repository->deletePartnership($clinicId, $lab->id);
+
+        if (
+            $lab->is_external
+            && ! $lab->users()->exists()
+            && ! $lab->partnerships()->exists()
+            && ! $lab->cases()->exists()
+        ) {
+            foreach ($lab->galleryImages as $image) {
+                if ($image->url && Storage::disk($image->disk ?? 'public')->exists($image->url)) {
+                    Storage::disk($image->disk ?? 'public')->delete($image->url);
+                }
+            }
+
+            $this->repository->deleteDentalLab($lab);
+        }
+    });
+
+    return ServiceResult::success(null, 'Dental lab detached successfully');
+}
 
     public function storeService(int $labId, array $data): array
     {
