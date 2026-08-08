@@ -28,7 +28,7 @@ class IndexNotificationsRequest extends FormRequest
         return [
             'search' => ['nullable', 'string', 'max:255'],
             'tab' => ['nullable', Rule::in(['all', 'warning', 'reached', 'branch_limit', 'user_limit', 'usage_limit'])],
-            'type' => ['nullable', Rule::in(['system', 'payment', 'custom', 'subscription', 'warning', 'reached', 'branch_limit', 'user_limit', 'usage_limit'])],
+            'type' => ['nullable', 'string', 'max:100'],
             'priority' => ['nullable', 'string', 'max:50'],
             'role' => ['nullable', Rule::in(['super_admin', 'owner', 'clinic', 'patient'])],
             'user_id' => ['nullable', 'integer', 'exists:users,id'],

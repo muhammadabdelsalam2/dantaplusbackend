@@ -17,6 +17,8 @@ use App\Models\Setting;
 use App\Models\User;
 use App\Models\Clinic\Insurance\InsuranceClaim;
 use App\Support\Clinic\BranchFilter;
+use App\Support\Clinic\DentistUserScope;
+use App\Support\Clinic\InventoryUnits;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Collection;
@@ -43,7 +45,7 @@ class ClinicSelectRepository implements ClinicSelectRepositoryInterface
         return User::query()
             ->when($clinicId, fn ($q) => $q->where('clinic_id', $clinicId))
             ->when($this->selectedBranchId($filters), fn (Builder $query, int $branchId) => $query->whereHas('doctor', fn (Builder $doctor) => $doctor->where('branch_id', $branchId)))
-            ->whereHas('roles', fn (Builder $query) => $query->where('name', 'doctor'))
+            ->tap(fn (Builder $query) => DentistUserScope::apply($query))
             ->orderBy('name')
             ->get(['id', 'name']);
     }
@@ -187,7 +189,7 @@ class ClinicSelectRepository implements ClinicSelectRepositoryInterface
 
     public function inventoryUnits(?int $clinicId, array $filters = []): Collection
     {
-        return collect(['Piece', 'ML', 'Gram', 'Box'])
+        return collect(InventoryUnits::values())
             ->map(fn (string $unit) => (object) [
                 'id' => $unit,
                 'name' => $unit,

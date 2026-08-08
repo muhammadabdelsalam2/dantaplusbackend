@@ -9,6 +9,7 @@ use App\Models\MaterialCategory;
 use App\Models\MaterialCompany;
 use App\Repositories\MaterialProductRepository;
 use App\Support\ApiResponse;
+use App\Support\Clinic\InventoryUnits;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -16,8 +17,6 @@ use Illuminate\Validation\Rule;
 class InventoryController extends Controller
 {
     use ApiResponse;
-
-    private const UNITS = ['Piece', 'ML', 'Gram', 'Box'];
 
     public function __construct(private MaterialProductRepository $materialProductRepository)
     {
@@ -124,8 +123,8 @@ public function store(Request $request)
         'category' => ['nullable', 'integer', 'exists:material_categories,id'],
         'initial_qty' => ['required_without:quantity', 'nullable', 'integer', 'min:0'],
         'quantity' => ['required_without:initial_qty', 'nullable', 'integer', 'min:0'],
-        'unit_type' => ['required_without:unit', 'nullable', Rule::in(self::UNITS)],
-        'unit' => ['required_without:unit_type', 'nullable', Rule::in(self::UNITS)],
+        'unit_type' => ['required_without:unit', 'nullable', Rule::in(InventoryUnits::values())],
+        'unit' => ['required_without:unit_type', 'nullable', Rule::in(InventoryUnits::values())],
         'consumption_per_case' => ['nullable', 'numeric', 'min:0'],
         'min_threshold' => ['required_without:minimum_stock_level', 'nullable', 'integer', 'min:0'],
         'minimum_stock_level' => ['required_without:min_threshold', 'nullable', 'integer', 'min:0'],
@@ -232,8 +231,8 @@ public function store(Request $request)
             'min_threshold' => ['sometimes', 'integer', 'min:0'],
             'reorder_quantity' => ['sometimes', 'integer', 'min:0'],
             'reorder_qty' => ['sometimes', 'integer', 'min:0'],
-            'unit' => ['sometimes', Rule::in(self::UNITS)],
-            'unit_type' => ['sometimes', Rule::in(self::UNITS)],
+            'unit' => ['sometimes', Rule::in(InventoryUnits::values())],
+            'unit_type' => ['sometimes', Rule::in(InventoryUnits::values())],
             'material_name' => ['sometimes', 'string', 'max:255'],
             'category' => ['sometimes', 'nullable', 'integer', 'exists:material_categories,id'],
             'consumption_per_case' => ['sometimes', 'nullable', 'numeric', 'min:0'],

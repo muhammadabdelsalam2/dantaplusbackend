@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Clinic;
 use App\Http\Controllers\Controller;
 use App\Services\Clinic\SelectService;
 use App\Support\ApiResponse;
+use App\Support\Clinic\DentistUserScope;
 use Illuminate\Http\Request;
 use Spatie\Permission\Models\Role;
 use App\Models\User;
@@ -36,9 +37,7 @@ class SelectController extends Controller
         }
 
         if ($resource === 'rooms') {
-            // No restriction — returns rooms for everyone.
-            // Optional ?clinic_id=<id> narrows it to a specific clinic's rooms.
-            $clinicId = $request->query('clinic_id');
+            $clinicId = $request->query('clinic_id', auth()->user()?->clinic_id);
 
             $rooms = \App\Models\Room::query()
                 ->when($clinicId, fn ($q) => $q->where('clinic_id', $clinicId))
@@ -63,21 +62,16 @@ class SelectController extends Controller
     }
 
     /**
-     * Dentists select — no restriction. Optional ?clinic_id=<id> in the
-     * request filters to the dentists/doctors belonging to that clinic.
+     * Dentists select.
      */
     public function getDentists(Request $request)
     {
-        $clinicId = $request->query('clinic_id');
+        $clinicId = $request->query('clinic_id', auth()->user()?->clinic_id);
 
         $dentists = User::query()
             ->with('doctor:id,user_id,specialization')
             ->when($clinicId, fn ($q) => $q->where('clinic_id', $clinicId))
-            ->where(function ($query) {
-                $query
-                    ->whereIn('role', ['dentist', 'doctor'])
-                    ->orWhereHas('roles', fn ($role) => $role->whereIn('name', ['dentist', 'doctor']));
-            })
+            ->tap(fn ($query) => DentistUserScope::apply($query))
             ->orderBy('name')
             ->get(['id', 'name', 'role'])
             ->map(fn (User $user) => [

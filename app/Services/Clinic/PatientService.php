@@ -28,6 +28,8 @@ use App\Models\PatientTooth;
 use App\Models\Service;
 use App\Models\User;
 use App\Support\Clinic\BranchFilter;
+use App\Support\Clinic\DentistUserScope;
+use App\Support\Clinic\RadiologyModalities;
 use App\Support\ServiceResult;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
@@ -582,7 +584,7 @@ private function imageAsBase64(?string $relativePath): ?string
                 'total_records'  => $total,
                 'cases_finished' => $finished . ' / ' . $total,
             ],
-            'modalities' => ['Periapical', 'Bitewing', 'Panoramic', 'CBCT'],
+            'modalities' => RadiologyModalities::values(),
             'items'      => $items,
         ], 'Radiology archive fetched successfully');
     }
@@ -1097,7 +1099,7 @@ private function imageAsBase64(?string $relativePath): ?string
 
         return ServiceResult::success(User::query()
             ->where('clinic_id', $clinicId)
-            ->role('doctor')
+            ->tap(fn ($query) => DentistUserScope::apply($query))
             ->orderBy('name')
             ->get(['id', 'name', 'email'])
             ->map(fn ($user) => [
@@ -1125,17 +1127,20 @@ private function imageAsBase64(?string $relativePath): ?string
         return ServiceResult::success(ClinicInvoiceResource::collection($rows)->resolve(), 'Patient invoices fetched successfully');
     }
 
-    public function addPayment(int $patientId, int $invoiceId, array $data): array
+    public function addPayment(int $patientId, string|int $invoiceId, array $data): array
     {
         $patient = $this->findClinicPatient($patientId);
         if (! $patient) {
             return ServiceResult::error('Patient not found.', null, null, 404);
         }
 
-        $invoice = ClinicInvoice::query()
+        $invoiceQuery = ClinicInvoice::query()
             ->where('clinic_id', $this->currentClinicId())
-            ->where('patient_id', $patient->id)
-            ->find($invoiceId);
+            ->where('patient_id', $patient->id);
+
+        $invoice = is_numeric($invoiceId)
+            ? $invoiceQuery->whereKey((int) $invoiceId)->first()
+            : $invoiceQuery->where('invoice_number', $invoiceId)->first();
 
         if (! $invoice) {
             return ServiceResult::error('Invoice not found.', null, null, 404);

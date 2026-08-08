@@ -47,15 +47,9 @@ class SelectService
     {
     }
 
-    /**
-     * No auth/clinic restriction — every select returns data for everyone.
-     * If the caller passes an explicit clinic_id filter (e.g. for the
-     * dentists resource), it's forwarded to the repository as-is; otherwise
-     * null is passed so the repository returns unscoped data.
-     */
     public function options(string $resource, array $filters = []): array
     {
-        $clinicId = $filters['clinic_id'] ?? null;
+        $clinicId = $filters['clinic_id'] ?? auth()->user()?->clinic_id;
 
         $method = self::RESOURCE_MAP[$resource] ?? null;
         if (! $method) {

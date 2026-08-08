@@ -15,7 +15,9 @@ use App\Http\Requests\Clinic\UploadPatientRadiologyRequest;
 use App\Services\Clinic\PatientService;
 use App\Services\Clinic\Settings\CommunicationPermissionService;
 use App\Support\ApiResponse;
+use App\Support\Clinic\RadiologyModalities;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class PatientController extends Controller
 {
@@ -111,7 +113,7 @@ class PatientController extends Controller
         $result = $this->service->radiology($id, $request->validate([
             'search' => ['nullable', 'string', 'max:255'],
             'teeth' => ['nullable', 'string', 'max:50'],
-            'modality' => ['nullable', 'in:Periapical,Bitewing,Panoramic,CBCT'],
+            'modality' => ['nullable', Rule::in(RadiologyModalities::values())],
         ]));
 
         if (! $result['success']) {
@@ -302,7 +304,7 @@ class PatientController extends Controller
         return $this->respond($this->service->invoices($id));
     }
 
-    public function addPayment(Request $request, int $id, int $invoiceId)
+    public function addPayment(Request $request, int $id, string $invoiceId)
     {
         $data = $request->validate([
             'amount_to_pay' => ['required', 'numeric', 'min:0.01'],

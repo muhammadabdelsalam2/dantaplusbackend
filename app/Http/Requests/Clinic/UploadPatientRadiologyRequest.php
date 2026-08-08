@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Clinic;
 
+use App\Support\Clinic\RadiologyModalities;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UploadPatientRadiologyRequest extends FormRequest
 {
@@ -14,7 +16,7 @@ class UploadPatientRadiologyRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'modality' => ['required', 'in:Periapical,Bitewing,Panoramic,CBCT'],
+            'modality' => ['required', Rule::in(RadiologyModalities::values())],
             'teeth' => ['nullable', 'string', 'max:255'],
             'date' => ['nullable', 'date'],
             'record_date' => ['nullable', 'date'],

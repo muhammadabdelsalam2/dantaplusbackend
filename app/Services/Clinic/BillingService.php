@@ -20,6 +20,7 @@ use App\Models\User;
 use App\Repositories\Clinic\Billing\ClinicBillingRepositoryInterface;
 use App\Services\Clinic\WhatsappBot\Providers\WhatsAppProviderInterface;
 use App\Support\Clinic\BranchFilter;
+use App\Support\Clinic\DentistUserScope;
 use App\Support\ServiceResult;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
@@ -97,7 +98,10 @@ class BillingService
             return ServiceResult::error('Patient not found.', null, ['patient_id' => ['Patient not found.']], 422);
         }
 
-        $doctor = User::query()->where('clinic_id', $clinicId)->role('doctor')->find($data['doctor_user_id']);
+        $doctor = User::query()
+            ->where('clinic_id', $clinicId)
+            ->tap(fn ($query) => DentistUserScope::apply($query))
+            ->find($data['doctor_user_id']);
         if (! $doctor) {
             return ServiceResult::error('Doctor not found.', null, ['doctor_user_id' => ['Doctor not found.']], 422);
         }

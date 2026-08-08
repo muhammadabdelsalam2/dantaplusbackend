@@ -11,11 +11,19 @@ class StoreClinicInvoiceRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        if (! $this->has('doctor_user_id') && $this->has('dentist_id')) {
+            $this->merge(['doctor_user_id' => $this->input('dentist_id')]);
+        }
+    }
+
     public function rules(): array
     {
         return [
             'patient_id' => ['required', 'integer', 'exists:patients,id'],
             'doctor_user_id' => ['required', 'integer', 'exists:users,id'],
+            'dentist_id' => ['nullable', 'integer', 'exists:users,id'],
             'appointment_id' => ['nullable', 'integer', 'exists:clinic_appointments,id'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.description' => ['required', 'string', 'max:255'],

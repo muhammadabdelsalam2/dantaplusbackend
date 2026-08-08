@@ -27,4 +27,11 @@ class StoreInsuranceCompanyRequest extends FormRequest
             'is_active' => ['nullable', 'boolean'],
         ];
     }
+
+    protected function prepareForValidation(): void
+    {
+        if (in_array($this->input('syndicate_price_list_id'), ['', 'null', 'undefined', 'all'], true)) {
+            $this->merge(['syndicate_price_list_id' => null]);
+        }
+    }
 }
