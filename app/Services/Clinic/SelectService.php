@@ -5,9 +5,12 @@ namespace App\Services\Clinic;
 use App\Http\Resources\Common\SelectOptionResource;
 use App\Repositories\Clinic\Select\ClinicSelectRepositoryInterface;
 use App\Support\ServiceResult;
+use App\Traits\HasSuperAdminScope;
 
 class SelectService
 {
+    use HasSuperAdminScope;
+
     private const RESOURCE_MAP = [
         'providers'              => 'dentalLabs',
         'dental-labs'            => 'dentalLabs',
@@ -47,9 +50,18 @@ class SelectService
     {
     }
 
+    /**
+     * لو اليوزر Super Admin ومبعتش clinic_id صراحة في الفلاتر، مفيش تقييد —
+     * بيرجع النتائج من كل العيادات. أي يوزر عادي بيتقيد بعيادته دايمًا،
+     * حتى لو حاول يبعت clinic_id مختلف (بيتجاهل ويترجع لعيادته هو).
+     */
     public function options(string $resource, array $filters = []): array
     {
-        $clinicId = $filters['clinic_id'] ?? auth()->user()?->clinic_id;
+        $clinicId = $filters['clinic_id'] ?? null;
+
+        if (! $clinicId && ! $this->isSuperAdmin()) {
+            $clinicId = auth()->user()?->clinic_id;
+        }
 
         $method = self::RESOURCE_MAP[$resource] ?? null;
         if (! $method) {

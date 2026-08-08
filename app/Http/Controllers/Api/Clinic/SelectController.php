@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\Clinic\SelectService;
 use App\Support\ApiResponse;
 use App\Support\Clinic\DentistUserScope;
+use App\Traits\HasSuperAdminScope;
 use Illuminate\Http\Request;
 use Spatie\Permission\Models\Role;
 use App\Models\User;
@@ -13,6 +14,7 @@ use App\Models\User;
 class SelectController extends Controller
 {
     use ApiResponse;
+    use HasSuperAdminScope;
 
     public function __construct(private SelectService $service)
     {
@@ -37,7 +39,11 @@ class SelectController extends Controller
         }
 
         if ($resource === 'rooms') {
-            $clinicId = $request->query('clinic_id', auth()->user()?->clinic_id);
+            $clinicId = $request->query('clinic_id');
+
+            if (! $clinicId && ! $this->isSuperAdmin()) {
+                $clinicId = auth()->user()?->clinic_id;
+            }
 
             $rooms = \App\Models\Room::query()
                 ->when($clinicId, fn ($q) => $q->where('clinic_id', $clinicId))
@@ -68,7 +74,11 @@ class SelectController extends Controller
      */
     public function getDentists(Request $request)
     {
-        $clinicId = $request->query('clinic_id', auth()->user()?->clinic_id);
+        $clinicId = $request->query('clinic_id');
+
+        if (! $clinicId && ! $this->isSuperAdmin()) {
+            $clinicId = auth()->user()?->clinic_id;
+        }
 
         $dentists = User::query()
             ->with('doctor:id,user_id,specialization')
