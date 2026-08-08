@@ -62,7 +62,9 @@ class SelectController extends Controller
     }
 
     /**
-     * Dentists select.
+     * Dentists select — كل اليوزرز اللي عندهم Dentist Profile فعلي
+     * (صف حقيقي في جدول doctors)، بغض النظر عن الـ role.
+     * ده مختلف عن "doctors" اللي بترجع أي حد عنده role=doctor.
      */
     public function getDentists(Request $request)
     {
@@ -71,9 +73,9 @@ class SelectController extends Controller
         $dentists = User::query()
             ->with('doctor:id,user_id,specialization')
             ->when($clinicId, fn ($q) => $q->where('clinic_id', $clinicId))
-            ->tap(fn ($query) => DentistUserScope::apply($query))
+            ->whereHas('doctor')
             ->orderBy('name')
-            ->get(['id', 'name', 'role'])
+            ->get(['id', 'name'])
             ->map(fn (User $user) => [
                 'id' => $user->id,
                 'name' => $user->name,

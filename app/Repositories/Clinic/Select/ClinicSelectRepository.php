@@ -16,17 +16,12 @@ use App\Models\Service;
 use App\Models\Setting;
 use App\Models\User;
 use App\Models\Clinic\Insurance\InsuranceClaim;
-use App\Support\Clinic\BranchFilter;
-use App\Support\Clinic\DentistUserScope;
-use App\Support\Clinic\InventoryUnits;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Collection;
 
 class ClinicSelectRepository implements ClinicSelectRepositoryInterface
 {
-    use BranchFilter;
-
     public function dentalLabs(?int $clinicId, array $filters = []): Collection
     {
         return ClinicLabPartnership::query()
@@ -40,14 +35,38 @@ class ClinicSelectRepository implements ClinicSelectRepositoryInterface
             ]);
     }
 
+    /**
+     * كل اليوزرز اللي عندهم role = doctor (Spatie role).
+     * ملحوظة: ده بيرجع أي حد عنده الصلاحية دي، بغض النظر عن وجود
+     * Dentist Profile فعلي (جدول doctors) — استخدم dentists() لو محتاج
+     * بس اللي عندهم profile فعلي.
+     */
     public function doctors(?int $clinicId, array $filters = []): Collection
     {
         return User::query()
             ->when($clinicId, fn ($q) => $q->where('clinic_id', $clinicId))
-            ->when($this->selectedBranchId($filters), fn (Builder $query, int $branchId) => $query->whereHas('doctor', fn (Builder $doctor) => $doctor->where('branch_id', $branchId)))
-            ->tap(fn (Builder $query) => DentistUserScope::apply($query))
+            ->whereHas('roles', fn (Builder $query) => $query->where('name', 'doctor'))
             ->orderBy('name')
             ->get(['id', 'name']);
+    }
+
+    /**
+     * كل اليوزرز اللي عندهم Dentist Profile فعلي (صف حقيقي في جدول doctors)،
+     * بغض النظر عن الـ role. ده مختلف عن doctors() اللي بتفلتر بالـ role بس.
+     */
+    public function dentists(?int $clinicId, array $filters = []): Collection
+    {
+        return User::query()
+            ->with('doctor:id,user_id,specialization')
+            ->when($clinicId, fn ($q) => $q->where('clinic_id', $clinicId))
+            ->whereHas('doctor')
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn (User $user) => (object) [
+                'id' => $user->id,
+                'name' => $user->name,
+                'specialization' => $user->doctor?->specialization,
+            ]);
     }
 
     public function patients(?int $clinicId, array $filters = []): Collection
@@ -57,7 +76,6 @@ class ClinicSelectRepository implements ClinicSelectRepositoryInterface
         return Patient::query()
             ->with('user:id,name,phone')
             ->when($clinicId, fn ($q) => $q->where('clinic_id', $clinicId))
-            ->when($this->selectedBranchId($filters), fn (Builder $query, int $branchId) => $query->whereHas('appointments', fn (Builder $appointment) => $appointment->where('branch_id', $branchId)))
             ->when($search, function ($query, string $search) {
                 $query->where(function ($nested) use ($search) {
                     $nested->where('phone', 'like', "%{$search}%")
@@ -100,11 +118,6 @@ class ClinicSelectRepository implements ClinicSelectRepositoryInterface
             ->when($search, fn ($query, $search) => $query->where('name', 'like', "%{$search}%"))
             ->orderBy('name')
             ->get(['id', 'name']);
-    }
-
-    public function dentists(?int $clinicId, array $filters = []): Collection
-    {
-        return $this->doctors($clinicId, $filters);
     }
 
     public function expenseCategories(?int $clinicId, array $filters = []): Collection
@@ -189,7 +202,7 @@ class ClinicSelectRepository implements ClinicSelectRepositoryInterface
 
     public function inventoryUnits(?int $clinicId, array $filters = []): Collection
     {
-        return collect(InventoryUnits::values())
+        return collect(['Piece', 'ML', 'Gram', 'Box'])
             ->map(fn (string $unit) => (object) [
                 'id' => $unit,
                 'name' => $unit,
@@ -234,7 +247,6 @@ class ClinicSelectRepository implements ClinicSelectRepositoryInterface
 
         return ClinicInvoice::query()
             ->when($clinicId, fn ($q) => $q->where('clinic_id', $clinicId))
-            ->tap(fn (Builder $query) => $this->branchContext()->applyToInvoicesThroughAppointments($query, $this->selectedBranchId($filters)))
             ->when($patientId, fn ($query, $patientId) => $query->where('patient_id', $patientId))
             ->when($search, fn ($query, $search) => $query->where('invoice_number', 'like', "%{$search}%"))
             ->orderByDesc('id')
