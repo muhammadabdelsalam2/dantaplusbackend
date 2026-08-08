@@ -126,20 +126,24 @@ private function storeGalleryImagesForLab(DentalLab $lab, ?array $images, string
         return ServiceResult::success((new ClinicDentalLabResource($lab))->resolve(), 'Dental lab fetched successfully');
     }
 
-    public function update(int $labId, array $data): array
-    {
-        $lab = $this->resolveDentalLab($labId);
-        if (! $lab) {
-            return ServiceResult::error('Dental lab not found.', null, null, 404);
-        }
-
-        $updatedLab = $this->repository->updateDentalLab($lab, $this->labPayload($data));
-
-        return ServiceResult::success(
-            (new ClinicDentalLabResource($this->repository->findDentalLab($this->currentClinicId(), $updatedLab->id)))->resolve(),
-            'Dental lab updated successfully'
-        );
+ public function update(int $labId, array $data): array
+{
+    $lab = $this->resolveDentalLab($labId);
+    if (! $lab) {
+        return ServiceResult::error('Dental lab not found.', null, null, 404);
     }
+
+    $updatedLab = $this->repository->updateDentalLab($lab, $this->labPayload($data));
+
+    
+    $this->storeGalleryImagesForLab($updatedLab, $data['before_images'] ?? null, 'before');
+    $this->storeGalleryImagesForLab($updatedLab, $data['after_images'] ?? null, 'after');
+
+    return ServiceResult::success(
+        (new ClinicDentalLabResource($this->repository->findDentalLab($this->currentClinicId(), $updatedLab->id)))->resolve(),
+        'Dental lab updated successfully'
+    );
+}
 
     public function destroy(int $labId): array
     {

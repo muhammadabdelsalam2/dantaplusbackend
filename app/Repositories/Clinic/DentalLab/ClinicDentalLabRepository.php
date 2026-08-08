@@ -60,22 +60,19 @@ class ClinicDentalLabRepository implements ClinicDentalLabRepositoryInterface
     }
 
     public function findReusableDentalLab(?string $email, ?string $phone, string $name): ?DentalLab
-    {
-        return DentalLab::query()
-            ->where(function ( $query) use ($email, $phone, $name) {
-                if ($email) {
-                    $query->orWhere('email', $email);
-                }
-
-                if ($phone) {
-                    $query->orWhere('phone', $phone);
-                }
-
-                $query->orWhere('name', $name);
-            })
-            ->latest('id')
-            ->first();
+{
+    if (! $email && ! $phone) {
+        return null; 
     }
+
+    return DentalLab::query()
+        ->where(function ($query) use ($email, $phone) {
+            if ($email) $query->orWhere('email', $email);
+            if ($phone) $query->orWhere('phone', $phone);
+        })
+        ->latest('id')
+        ->first();
+}
 
     public function createDentalLab(array $data): DentalLab
     {
